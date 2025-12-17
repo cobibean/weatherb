@@ -166,13 +166,13 @@ export default async function AdminDashboard() {
 // prisma/schema.prisma
 
 model SystemConfig {
-  id        String   @id @default("default")
-  cadence   Int      @default(5)     // minutes
-  testMode  Boolean  @default(true)
-  dailyCount Int     @default(5)
-  bettingBuffer Int  @default(60)    // seconds
-  isPaused  Boolean  @default(false)
-  updatedAt DateTime @updatedAt
+  id            String   @id @default("default")
+  cadence       Int      @default(5)      // minutes
+  testMode      Boolean  @default(true)
+  dailyCount    Int      @default(5)
+  bettingBuffer Int      @default(600)    // seconds (10 minutes)
+  isPaused      Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
 }
 
 model City {

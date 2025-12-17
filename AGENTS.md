@@ -39,6 +39,9 @@ weatherb/
 | Queue | BullMQ + Redis | Job scheduling, retries |
 | Package Manager | pnpm | Fast, workspace support |
 | Deployment | Vercel (web) + Railway (services) | Simple, scalable |
+| Weather (Primary) | MET Norway (api.met.no) | Free, high-quality, ~5-min nowcast |
+| Weather (Fallback) | NOAA/NWS (US-only) | Free, reliable for US markets |
+| Weather (Dev/Test) | Open-Meteo | Free tier for local testing only |
 
 ---
 
@@ -57,6 +60,8 @@ These are **locked rules** from the PRD. Breaking them breaks the product.
 | 7 | **Automation-only settlement** | No user can call `resolve()` |
 | 8 | **1% fee from losing pool** | Math: `fee = losingPool * 0.01` |
 | 9 | **First reading at/after T** | Not "closest to T" or "average" |
+| 10 | **Betting closes 10 min before T** | Configurable `bettingBuffer` (default 600s) |
+| 11 | **Min bet: 0.01 FLR** | Spam prevention, admin-adjustable |
 
 ---
 
@@ -107,7 +112,8 @@ NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
 # Private (server only)
 DATABASE_URL=postgresql://...
 SETTLER_PRIVATE_KEY=0x...      # NEVER expose
-WEATHER_API_KEY=...
+ADMIN_REPORT_EMAIL=...         # Weekly AI reports destination
+ADMIN_WALLETS=0x...,0x...      # Comma-separated admin allowlist
 ```
 
 ### Environments
@@ -148,9 +154,13 @@ When making architectural decisions, document them here:
 
 | Date | Decision | Rationale | Reversible? |
 |------|----------|-----------|-------------|
-| TBD | Single contract (not factory) | Simpler for V1, lower gas | Yes |
-| TBD | PostgreSQL over SQLite | Need concurrent access for indexer | Yes |
-| TBD | Foundry over Hardhat | Faster tests, better fuzzing | No (migration painful) |
+| 2024-12 | Single contract (not factory) | Simpler for V1, lower gas | Yes |
+| 2024-12 | PostgreSQL over SQLite | Need concurrent access for indexer | Yes |
+| 2024-12 | Foundry over Hardhat | Faster tests, better fuzzing | No |
+| 2024-12 | MET Norway as primary provider | Free, high-quality, ~5-min nowcast | Yes |
+| 2024-12 | 10-minute betting buffer | Reduces timing exploits; admin-adjustable | Yes |
+| 2024-12 | No bug bounty in V1 | Keep scope tight; SECURITY.md inbox only | Yes |
+| 2024-12 | Single admin wallet for V1 | Move to multi-sig when TVL justifies | Yes |
 
 ---
 

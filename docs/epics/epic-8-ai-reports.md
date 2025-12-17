@@ -144,7 +144,7 @@ export async function sendWeeklyReport() {
   // Send email
   await resend.emails.send({
     from: 'WeatherB <reports@weatherb.app>',
-    to: process.env.ADMIN_EMAIL,
+    to: process.env.ADMIN_REPORT_EMAIL,
     subject: `📊 WeatherB Weekly Report - ${formatDate(new Date())}`,
     html: renderReportEmail(metrics, suggestions, aiSummary, actions),
   });
@@ -266,7 +266,7 @@ export async function sendTestResults(suggestionId: string, results: TestResult[
   
   await resend.emails.send({
     from: 'WeatherB <reports@weatherb.app>',
-    to: process.env.ADMIN_EMAIL,
+    to: process.env.ADMIN_REPORT_EMAIL,
     subject: `${allPassed ? '✅' : '❌'} Test Results: ${suggestion.cityName}`,
     html: renderTestResultsEmail(suggestion, results, allPassed),
   });

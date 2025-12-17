@@ -38,9 +38,9 @@ interface WeatherProvider {
 ```
 
 - Build adapters for candidates:
-  - **Open-Meteo** (free, good global coverage) — primary candidate
-  - **Tomorrow.io** (paid, high reliability) — backup candidate
-  - OpenWeatherMap (fallback option)
+  - **MET Norway (api.met.no)** — primary (free, ~5-min nowcast, requires User-Agent)
+  - **NOAA/NWS (api.weather.gov)** — fallback for US markets (free, polite rate limits)
+  - **Open-Meteo** — dev/testing only (free tier is non-commercial)
 
 - Build comparison test script:
   - Check update frequency
@@ -51,7 +51,7 @@ interface WeatherProvider {
 - Add caching layer (Redis) to avoid rate limit issues
 - Add fallback logic (primary → backup provider)
 
-**Deliverable:** Provider abstraction + working Open-Meteo adapter + test report.
+**Deliverable:** Provider abstraction + working MET Norway adapter + test report.
 
 ---
 

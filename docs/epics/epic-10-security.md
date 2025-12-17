@@ -269,7 +269,7 @@ export async function criticalAlert(message: string, data?: Record<string, any>)
 - [ ] Document admin powers and limits
 - [ ] Document incident response steps
 - [ ] Document key management procedures
-- [ ] Create security disclosure policy
+- [ ] Create `SECURITY.md` with vulnerability disclosure instructions (use admin email as inbox for now)
 
 ### 10.6 Pre-Launch Review
 - [ ] Complete security checklist
