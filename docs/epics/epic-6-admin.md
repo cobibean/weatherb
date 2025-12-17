@@ -11,15 +11,14 @@
 | Auth | **Wallet allowlist** | Simple, no passwords, crypto-native |
 | Location | **Separate route in web app** | No separate deploy needed |
 | Database | **Prisma + PostgreSQL** | Already using for indexing |
+| Admin wallets | **Single wallet to start; allowlist-backed** | Keep scope small; support future multi-admin |
 
 ---
 
-## ⚠️ Get This Answered From User
+## ✅ User Decisions Locked
 
-| Question | Why It Matters | Options |
-|----------|----------------|---------|
-| **Admin wallet addresses?** | Need to allowlist | Provide addresses |
-| **Multi-admin support?** | Single person or team | Single / Multiple |
+- **Admin wallet:** `<ADMIN_WALLET_ADDRESS_PLACEHOLDER>` (start with one address, but keep `admin_wallets[]` allowlist design).
+- **Future-proofing:** Keep revoke/rotate flow ready so a lost key doesn't brick the project. Multi-admin optional later; design supports it.
 
 ---
 
@@ -32,7 +31,7 @@
 | Cadence | 5 minutes | Time between market resolve times |
 | Testing Mode | true | Single city only when enabled |
 | Daily Market Count | 5 | Markets created per day |
-| Betting Buffer | 60 seconds | Close betting this long before resolve |
+| Betting Buffer | 10 minutes | Close betting this long before resolve (admin-adjustable) |
 
 ### City Management
 

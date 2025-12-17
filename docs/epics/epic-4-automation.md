@@ -12,16 +12,16 @@
 | Queue | **BullMQ + Redis** | Mature, retries, job scheduling |
 | Language | **TypeScript** | Consistent with rest of stack |
 | Scheduling | **Cron + event-driven** | Cron for daily creation, events for settlement |
+| Market creation time | **Midnight UTC (configurable)** | Default cadence; shiftable based on usage/oracle behavior |
 
 ---
 
-## ⚠️ Get This Answered From User
+## ✅ User Decisions Locked
 
-| Question | Why It Matters | Options |
-|----------|----------------|---------|
-| **What time should daily markets be created?** | Impacts when first market of day resolves | Midnight UTC / 6am local / Rolling |
-| **Max retries before cancel?** | Balance reliability vs stuck markets | 3 retries / 5 retries / Infinite |
-| **Alert method for failures?** | Need to know when things break | Email / Discord webhook / PagerDuty |
+- **Daily market creation:** Default midnight UTC. Make `schedule_time_utc` configurable to adjust without redeploy.
+- **Operational logging:** Persist `create_time_utc` and `resolve_time_utc` per market for auditability.
+
+> Still pending: retry/alerting decisions (leave configurable defaults until answered).
 
 ---
 
@@ -75,8 +75,8 @@ import { weatherProvider } from '@weatherb/shared/providers';
 
 const marketQueue = new Queue('market-creation', { connection: redis });
 
-// Daily job at midnight UTC
-const dailyJob = new CronJob('0 0 * * *', async () => {
+// Daily job at configurable time (default: midnight UTC)
+const dailyJob = new CronJob(process.env.SCHEDULE_TIME_CRON ?? '0 0 * * *', async () => {
   console.log('[Scheduler] Starting daily market creation');
   
   // Health check

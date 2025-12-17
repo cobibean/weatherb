@@ -13,16 +13,20 @@
 | Fee model | **1% from losing pool** | Winners get full share, losers pay fee |
 | Upgradeability | **Non-upgradeable** | Simpler, more trust, V1 is small scope |
 | Framework | **Foundry** | Fast tests, good fuzzing, Solidity-native |
+| Min bet | **0.01 FLR (configurable)** | Spam prevention without blocking normal users |
+| Max bet | **No max in V1 (configurable later)** | Keep friction low; add per-wallet caps later if needed |
+| Betting deadline | **Close 10 minutes before resolve (configurable)** | Reduces timing exploits; adjustable via admin setting |
 
 ---
 
-## ⚠️ Get This Answered From User
+## ✅ User Decisions Locked
 
-| Question | Why It Matters | Options |
-|----------|----------------|---------|
-| **Min/max bet amounts?** | Spam prevention, gas efficiency | No limits / 0.1 FLR min / 100 FLR max |
-| **Betting deadline before resolve time?** | Prevent last-second timing exploits | Close at T / Close 1 min before T / Close 5 min before T |
-| **Can admin cancel any market?** | Emergency vs user trust | Yes always / Only before any bets / Only with reason |
+- **Min bet:** 0.01 FLR. Store as config so admin can adjust without redeploy (keep contract and admin setting in sync).
+- **Max bet:** None for V1. Keep a path to add per-wallet caps later if whale behavior appears.
+- **Betting deadline:** 10 minutes before resolve time. Make `bettingBufferMinutes` an admin-tunable setting enforced on-chain.
+- **Admin flexibility:** Mirror settings in the admin panel + config table; avoid hardcoding except sane defaults.
+
+> Still pending: clarify cancellation powers (keep question open).
 
 ---
 
@@ -410,8 +414,8 @@ function test_ThresholdTieResolvesToYES() public {
 ```solidity
 // Constants
 uint256 public constant FEE_BPS = 100;        // 1%
-uint256 public constant MIN_BET = 0.01 ether; // Minimum bet (decision needed)
-uint64 public constant BETTING_BUFFER = 60;   // Close betting 60s before resolve
+uint256 public constant MIN_BET = 0.01 ether;        // Minimum bet (admin-configurable default)
+uint64 public constant BETTING_BUFFER = 600;         // Close betting 10 minutes before resolve
 
 // State
 address public admin;

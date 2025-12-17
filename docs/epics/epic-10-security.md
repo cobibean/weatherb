@@ -11,6 +11,8 @@
 | Upgradeability | **Non-upgradeable** | More trust, simpler, V1 is limited scope |
 | Audit | **Internal review + tools** | Full audit for V2 if traction |
 | Admin powers | **Limited, logged** | Can pause/cancel, cannot steal funds |
+| Bug bounty | **None for V1 (SECURITY.md inbox only)** | Keep scope tight; revisit if volume grows |
+| Admin custody | **Single admin wallet for V1; plan multi-sig trigger later** | Lower complexity now; move to 2-of-3 when TVL/volume justifies |
 
 ---
 
@@ -18,9 +20,8 @@
 
 | Question | Why It Matters | Options |
 |----------|----------------|---------|
-| **Bug bounty budget?** | Incentivize responsible disclosure | $0 / $1k / $5k |
 | **Timelock on admin actions?** | Reduce key compromise risk | No / 6 hours / 24 hours |
-| **Multi-sig for admin?** | Reduce single point of failure | Single wallet / 2-of-3 / 3-of-5 |
+| **Multi-sig trigger timing?** | Define when to upgrade custody | At launch / After TVL threshold / Later |
 
 ---
 
@@ -318,7 +319,7 @@ export async function criticalAlert(message: string, data?: Record<string, any>)
 
 **Mitigation:**
 - Use hardware wallet for admin
-- Consider multi-sig
+- Plan to switch to 2-of-3 multi-sig once TVL/daily volume crosses a defined threshold (TBD)
 - Limit powers to necessary minimum
 - All admin actions logged
 
@@ -360,8 +361,7 @@ export async function criticalAlert(message: string, data?: Record<string, any>)
 ## Future Considerations (V2+)
 
 - Full third-party audit
-- Bug bounty program
-- Multi-sig admin
+- Multi-sig admin once TVL/volume justifies upgrade
 - Timelock on critical changes
 - On-chain governance
 - Multiple weather data sources for settlement

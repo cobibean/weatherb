@@ -11,16 +11,15 @@
 | Email provider | **Resend** | Simple API, good DX, cheap |
 | AI provider | **OpenAI GPT-4** | Best for summaries, cheap at this volume |
 | Email actions | **Magic links** | One-click approve/reject without login |
+| Admin report target | **cobibean777@gmail.com (env-driven)** | Configurable without code change; primary inbox for V1 |
 
 ---
 
-## ⚠️ Get This Answered From User
+## ✅ User Decisions Locked
 
-| Question | Why It Matters | Options |
-|----------|----------------|---------|
-| **Admin email address?** | Where to send reports | Provide email |
-| **Report day/time?** | When to send weekly report | Monday 9am / Sunday evening |
-| **OpenAI API key available?** | For AI summaries | Yes / Use alternative |
+- **Admin email:** `cobibean777@gmail.com`. Store as `ADMIN_REPORT_EMAIL` env and mirror to a DB table for redundancy.
+
+> Still pending: report day/time + OpenAI API key availability.
 
 ---
 
