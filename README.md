@@ -23,13 +23,13 @@ A simple prediction market on **Flare** where users bet YES/NO on temperature ou
 
 ## Tech Stack
 
-| Layer | Choice |
-|-------|--------|
-| Blockchain | Flare (FLR) |
-| Contracts | Foundry + Solidity 0.8.24+ |
-| Frontend | Next.js 14+ / Thirdweb |
-| Weather Data | MET Norway (primary) |
-| Database | PostgreSQL + Prisma |
+| Layer        | Choice                     |
+| ------------ | -------------------------- |
+| Blockchain   | Flare (FLR)                |
+| Contracts    | Foundry + Solidity 0.8.24+ |
+| Frontend     | Next.js 14+ / Thirdweb     |
+| Weather Data | MET Norway (primary)       |
+| Database     | PostgreSQL + Prisma        |
 
 ---
 
@@ -48,18 +48,55 @@ weatherb/
 
 ---
 
-## Getting Started
+## Quick Start
 
-```bash
-# Install dependencies
-pnpm install
+### Prerequisites
 
-# Start local services (Postgres + Redis)
-docker-compose up -d
+- Node.js 20+ (see `.nvmrc`)
+- pnpm 9+
+- Foundry
+- Docker (optional, for local Postgres + Redis)
 
-# Run development
-pnpm dev
-```
+### Setup
+
+1. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+2. Start local services:
+
+   ```bash
+   docker compose -f infra/docker-compose.yml up -d
+   ```
+
+3. Environment:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   `FLARE_CONTRACT_REGISTRY_ADDRESS` (Coston2 + Flare mainnet): `0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019`
+
+4. Build contracts:
+
+   ```bash
+   pnpm -C contracts build
+   ```
+
+5. Run dev server:
+
+   ```bash
+   pnpm dev
+   ```
+
+6. Run tests:
+
+   ```bash
+   pnpm test
+   pnpm -C contracts test
+   ```
 
 See `.env.example` for required environment variables.
 

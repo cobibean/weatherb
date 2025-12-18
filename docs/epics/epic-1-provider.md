@@ -4,6 +4,20 @@
 
 ---
 
+## Status (Implemented)
+
+As of 2025-12-18:
+
+- Provider interface + factory implemented in `packages/shared/src/providers/*`
+- MET Norway adapter implemented (requires `WEATHER_USER_AGENT` / `MET_NO_USER_AGENT`)
+- NOAA/NWS adapter implemented (US-only fallback)
+- Open-Meteo adapter implemented (dev/testing; hourly limitation)
+- Redis-backed caching wrapper + fallback wrapper implemented
+- Comparison script added (`packages/shared/src/providers/compare.ts`)
+
+Remaining:
+- Add unit tests for `NwsProvider` and `OpenMeteoProvider`
+
 ## Decisions Made (Reversible)
 
 | Decision | Choice | Rationale |
@@ -109,53 +123,53 @@ packages/
 ## Tasks
 
 ### 1.1 Define Provider Interface
-- [ ] Create `interface.ts` with `WeatherProvider` type
-- [ ] Define `WeatherReading` and `ProviderHealth` types
-- [ ] Document the "first reading at/after T" requirement clearly
+- [x] Create `interface.ts` with `WeatherProvider` type
+- [x] Define `WeatherReading` and `ProviderHealth` types
+- [x] Document the "first reading at/after T" requirement clearly
 
 ### 1.2 Implement MET Norway Adapter
-- [ ] Use Nowcast product for near-term readings (~5 min cadence)
-- [ ] Add required User-Agent header (app + contact email)
-- [ ] Implement `getForecast()` and `getFirstReadingAtOrAfter()` mapping to normalized schema
-- [ ] Implement `healthCheck()` with latency + error tracking
-- [ ] Write unit tests with mocked responses
+- [x] Use Nowcast product for near-term readings (~5 min cadence)
+- [x] Add required User-Agent header (app + contact email)
+- [x] Implement `getForecast()` and `getFirstReadingAtOrAfter()` mapping to normalized schema
+- [x] Implement `healthCheck()` with latency + error tracking
+- [x] Write unit tests with mocked responses
 
 ### 1.3 Implement NOAA/NWS Adapter (US-only fallback)
-- [ ] Use forecast grid/observation endpoints
-- [ ] Implement polite caching/backoff to respect implicit limits
-- [ ] Implement `healthCheck()`
+- [x] Use forecast grid/observation endpoints
+- [x] Implement polite caching/backoff to respect implicit limits (via cache wrapper)
+- [x] Implement `healthCheck()`
 - [ ] Write unit tests
 
 ### 1.4 Implement Open-Meteo Adapter (dev/testing)
-- [ ] Keep for local/dev usage; document non-commercial terms
-- [ ] Implement basic forecast + first-reading mapping (hourly limits noted)
+- [x] Keep for local/dev usage; document non-commercial terms
+- [x] Implement basic forecast + first-reading mapping (hourly limits noted)
 - [ ] Write unit tests
 
 ### 1.5 Build Caching Layer
-- [ ] Create `CachedProvider` wrapper class
-- [ ] Cache forecasts for 60–300s (configurable)
-- [ ] Cache historical readings for 24 hours (they never change)
-- [ ] Use Redis for distributed caching
+- [x] Create `CachedProvider` wrapper class
+- [x] Cache forecasts for 60–300s (configurable)
+- [x] Cache historical readings for 24 hours (they never change)
+- [x] Use Redis for distributed caching
 
 ### 1.6 Build Fallback Layer
-- [ ] Create `FallbackProvider` wrapper
-- [ ] Try primary provider first
-- [ ] On failure, try backup
+- [x] Create `FallbackProvider` wrapper
+- [x] Try primary provider first
+- [x] On failure, try backup
 - [ ] Log all fallback events for monitoring
 
 ### 1.7 Build Comparison Test Script
-- [ ] Query same location/time from all providers
-- [ ] Compare:
+- [x] Query same location/time from all providers
+- [x] Compare:
   - Response latency
   - Data freshness
   - "First at/after" behavior accuracy
   - Rate limit behavior
-- [ ] Output comparison report
+- [x] Output comparison report
 
 ### 1.8 Integrate with Scheduler/Settler
-- [ ] Create provider factory in `packages/shared`
-- [ ] Configure via environment variable
-- [ ] Export for use by services
+- [x] Create provider factory in `packages/shared`
+- [x] Configure via environment variable
+- [x] Export for use by services
 
 ---
 
@@ -404,4 +418,3 @@ RECOMMENDATION:
   Primary: MET Norway
   Fallback: NOAA/NWS for US; Open-Meteo for dev
 ```
-

@@ -1,0 +1,26 @@
+{
+  "name": "@weatherb/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./providers": "./src/providers/index.ts",
+    "./types": "./src/types/index.ts",
+    "./constants": "./src/constants/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "ioredis": "^5.5.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "vitest": "^2.1.8"
+  }
+}

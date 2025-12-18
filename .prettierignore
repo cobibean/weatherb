@@ -1,0 +1,25 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+
+# Contracts build artifacts
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# Vendored / submodule deps
+contracts/lib/
+
+# Repo specs/docs (keep line-stable for references)
+docs/
+AGENTS.md
+PRD.md
+buildplanoutline.md
+initialcontext.md
+
+# Lockfiles
+pnpm-lock.yaml

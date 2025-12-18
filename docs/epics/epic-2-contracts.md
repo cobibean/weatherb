@@ -4,6 +4,22 @@
 
 ---
 
+## Status (Implemented)
+
+As of 2025-12-18, the Epic 2 contract surface is implemented in:
+
+- `contracts/src/WeatherMarket.sol` (native FLR-only V1)
+- `contracts/src/libraries/PayoutMath.sol`
+- `contracts/src/interfaces/IWeatherMarket.sol`
+- `contracts/test/WeatherMarket.t.sol` (includes a `PayoutMath` fuzz test)
+- `contracts/script/Deploy.s.sol`
+
+Notes:
+- Settlement is restricted to `onlySettler`.
+- Outcome uses `tempTenths >= thresholdTenths` (tie → YES).
+- Betting closes at `resolveTime - bettingBufferSeconds` (default 600s).
+- Fee is 1% of losing pool.
+
 ## Decisions Made (Reversible)
 
 | Decision | Choice | Rationale |
@@ -485,4 +501,3 @@ mapping(address => uint256) public feeBalance; // Per-currency fee accumulation
 - **Access control:** Strict `onlyAdmin` and `onlySettler` modifiers
 - **Front-running:** Low-value markets reduce incentive; consider commit-reveal later
 - **Timestamp manipulation:** Using external FDC timestamps, not block.timestamp for resolution
-

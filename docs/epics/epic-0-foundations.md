@@ -4,6 +4,16 @@
 
 ---
 
+## Status (Implemented)
+
+As of 2025-12-18:
+
+- Monorepo scaffolded with pnpm workspaces (`pnpm-workspace.yaml`, root `package.json`)
+- CI workflow implemented as per spec (`.github/workflows/ci.yml`)
+- Local infra added (`infra/docker-compose.yml`)
+- Frontend/service/shared packages scaffolded (`apps/web`, `services/*`, `packages/shared`)
+- Contracts + tests scaffolded (`contracts/*`)
+
 ## Decisions Made (Reversible)
 
 | Decision | Choice | Rationale |
@@ -92,43 +102,43 @@ weatherb/
 ## Tasks
 
 ### 0.1 Initialize Monorepo
-- [ ] Create `pnpm-workspace.yaml`
-- [ ] Create root `package.json` with workspace scripts
-- [ ] Add `.nvmrc` with `20`
-- [ ] Add comprehensive `.gitignore`
+- [x] Create `pnpm-workspace.yaml`
+- [x] Create root `package.json` with workspace scripts
+- [x] Add `.nvmrc` with `20`
+- [x] Add comprehensive `.gitignore`
 
 ### 0.2 Set Up Contracts Package
-- [ ] Initialize Foundry project in `contracts/`
-- [ ] Configure `foundry.toml` (Flare chain settings, optimizer)
-- [ ] Add placeholder `WeatherMarket.sol`
-- [ ] Add placeholder test file
-- [ ] Add `package.json` for workspace inclusion
+- [x] Initialize Foundry project in `contracts/`
+- [x] Configure `foundry.toml` (Flare chain settings, optimizer)
+- [x] Add `WeatherMarket.sol`
+- [x] Add Foundry test file
+- [x] Add `package.json` for workspace inclusion
 
 ### 0.3 Set Up Frontend
-- [ ] Create Next.js 14+ app in `apps/web/`
-- [ ] Configure TypeScript strict mode
-- [ ] Add TailwindCSS + shadcn/ui
-- [ ] Add Thirdweb SDK
-- [ ] Configure for Flare network (chain ID: 14, testnet: 114)
+- [x] Create Next.js 14+ app in `apps/web/`
+- [x] Configure TypeScript strict mode
+- [x] Add TailwindCSS + shadcn/ui
+- [x] Add Thirdweb SDK
+- [x] Configure for Flare network (chain ID: 14, testnet: 114)
 
 ### 0.4 Set Up Services
-- [ ] Create `services/scheduler/` with TypeScript config
-- [ ] Create `services/settler/` with TypeScript config
-- [ ] Add shared dev dependencies (tsx, vitest)
+- [x] Create `services/scheduler/` with TypeScript config
+- [x] Create `services/settler/` with TypeScript config
+- [x] Add shared dev dependencies (tsx, vitest)
 
 ### 0.5 Set Up Shared Package
-- [ ] Create `packages/shared/` structure
-- [ ] Add base types for Market, Bet, Provider
-- [ ] Export from barrel file
+- [x] Create `packages/shared/` structure
+- [x] Add base types for Market, Bet, Provider
+- [x] Export from barrel file
 
 ### 0.6 Set Up Local Dev Environment
-- [ ] Create `infra/docker-compose.yml` with Postgres + Redis
-- [ ] Add `.env.example` with all required variables
-- [ ] Add README with setup instructions
+- [x] Create `infra/docker-compose.yml` with Postgres + Redis
+- [x] Add `.env.example` with all required variables
+- [x] Add README with setup instructions
 
 ### 0.7 Set Up CI Pipeline
-- [ ] Create `.github/workflows/ci.yml`
-- [ ] Jobs:
+- [x] Create `.github/workflows/ci.yml`
+- [x] Jobs:
   - Lint (ESLint + Prettier check)
   - Typecheck (tsc --noEmit)
   - Contract tests (forge test)
@@ -359,4 +369,3 @@ jobs:
 - Keep dependencies minimal in V1
 - Don't over-engineer the folder structure — can refactor later
 - Foundry submodules can be tricky — document the setup clearly
-

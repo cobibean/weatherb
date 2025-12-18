@@ -24,6 +24,22 @@
 
 ---
 
+## Contract Registry Addresses (Implemented)
+
+WeatherB uses `IFlareContractRegistry` to resolve `FdcVerification` on-chain by name.
+
+- **Coston2 + Flare mainnet registry address:** `0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019`
+- **Source:** `flare-foundation/flare-foundry-periphery-package` (`src/coston2/ContractRegistry.sol`, `src/flare/ContractRegistry.sol`)
+- **Verified via read-only RPC calls:**
+  - Coston2:
+    `cast call --rpc-url https://coston2-api.flare.network/ext/C/rpc 0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019 "getContractAddressByName(string)(address)" "FdcVerification"`
+  - Flare:
+    `cast call --rpc-url https://flare-api.flare.network/ext/C/rpc 0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019 "getContractAddressByName(string)(address)" "FdcVerification"`
+
+This value is wired via `.env.example` / `FLARE_CONTRACT_REGISTRY_ADDRESS` and passed to `WeatherMarket` constructor.
+
+---
+
 ## Background: How Flare FDC Works
 
 1. **Off-chain request:** Settlement bot requests attestation from Flare attestation providers
@@ -396,4 +412,3 @@ error AttestationTimeout();
 - Flare FDC Documentation: https://docs.flare.network/
 - Flare Discord (for support)
 - Example Web2Json implementations
-
