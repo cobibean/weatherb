@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { z } from 'zod';
 
-const hubUrl = process.env['FDC_HUB_URL'] ?? 'https://fdc-hub.flare.network';
+function getHubUrl(): string {
+  return process.env['FDC_HUB_URL'] ?? 'https://fdc-hub.flare.network';
+}
 
 const submitResponseSchema = z.object({
   requestId: z.string(),
@@ -59,7 +61,7 @@ export async function submitAndWaitForProof(
 
   const start = Date.now();
   while (Date.now() - start < maxWaitMs) {
-    const response = await axios.get(`${hubUrl}/attestation/status/${requestId}`);
+    const response = await axios.get(`${getHubUrl()}/attestation/status/${requestId}`);
     const data = statusResponseSchema.parse(response.data);
 
     if (data.status === 'finalized') {
@@ -83,7 +85,7 @@ async function submitWithRetries(request: AttestationRequest, maxRetries: number
   let lastError: unknown = null;
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
-      const response = await axios.post(`${hubUrl}/attestation/request`, request);
+      const response = await axios.post(`${getHubUrl()}/attestation/request`, request);
       const data = submitResponseSchema.parse(response.data);
       return data.requestId;
     } catch (error) {

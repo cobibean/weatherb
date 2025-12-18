@@ -118,6 +118,26 @@ contract WeatherMarketTest is Test {
         market.resolveMarket(marketId, proof, attestationData);
     }
 
+    function test_getMarketCountIncrements() public {
+        assertEq(market.getMarketCount(), 0);
+        vm.prank(owner);
+        market.createMarket(cityId, uint64(block.timestamp + 2 hours), 853, address(0));
+        assertEq(market.getMarketCount(), 1);
+    }
+
+    function test_cancelMarketBySettlerAfterResolveTime() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.cancelMarketBySettler(marketId);
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertEq(uint256(m.status), uint256(IWeatherMarket.MarketStatus.Cancelled));
+    }
+
     function testFuzz_PayoutMathNoOverflow(uint128 yesPool, uint128 noPool, uint128 stake) public {
         vm.assume(yesPool > 0);
         vm.assume(noPool > 0);

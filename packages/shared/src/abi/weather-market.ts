@@ -1,0 +1,65 @@
+export const WEATHER_MARKET_ABI = [
+  {
+    type: 'function',
+    name: 'createMarket',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'cityId', type: 'bytes32' },
+      { name: 'resolveTime', type: 'uint64' },
+      { name: 'thresholdTenths', type: 'uint256' },
+      { name: 'currency', type: 'address' },
+    ],
+    outputs: [{ name: 'marketId', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'resolveMarket',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'marketId', type: 'uint256' },
+      { name: 'proof', type: 'bytes' },
+      { name: 'attestationData', type: 'bytes' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'cancelMarketBySettler',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'marketId', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'getMarket',
+    stateMutability: 'view',
+    inputs: [{ name: 'marketId', type: 'uint256' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'cityId', type: 'bytes32' },
+          { name: 'resolveTime', type: 'uint64' },
+          { name: 'bettingDeadline', type: 'uint64' },
+          { name: 'thresholdTenths', type: 'uint256' },
+          { name: 'currency', type: 'address' },
+          { name: 'status', type: 'uint8' },
+          { name: 'yesPool', type: 'uint256' },
+          { name: 'noPool', type: 'uint256' },
+          { name: 'totalFees', type: 'uint256' },
+          { name: 'resolvedTempTenths', type: 'uint256' },
+          { name: 'observedTimestamp', type: 'uint64' },
+          { name: 'outcome', type: 'bool' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'getMarketCount',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;

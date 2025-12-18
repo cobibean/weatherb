@@ -110,6 +110,25 @@ See `.env.example` for required environment variables.
 
 ---
 
+## Automation (Epic 4)
+
+Prereqs:
+
+- Redis running (`REDIS_URL`)
+- Deployed `WeatherMarket` (`CONTRACT_ADDRESS`) and RPC (`RPC_URL`)
+- Scheduler wallet is contract owner (`SCHEDULER_PRIVATE_KEY`)
+- Settler wallet is contract settler (`SETTLER_PRIVATE_KEY`)
+
+Run scheduler:
+
+- `pnpm -C services/scheduler dev`
+
+Run settler:
+
+- `pnpm -C services/settler dev`
+
+---
+
 ## License
 
 MIT

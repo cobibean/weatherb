@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./abi": "./src/abi/index.ts",
     "./providers": "./src/providers/index.ts",
     "./types": "./src/types/index.ts",
     "./constants": "./src/constants/index.ts"

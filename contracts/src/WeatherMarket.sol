@@ -72,6 +72,13 @@ contract WeatherMarket is IWeatherMarket, FDCVerifier {
         _status = _NOT_ENTERED;
     }
 
+    /// @notice Transfer ownership to a new address (scheduler/admin).
+    /// @param newOwner New owner address.
+    function transferOwnership(address newOwner) external onlyOwner {
+        if (newOwner == address(0)) revert ZeroAddress();
+        owner = newOwner;
+    }
+
     /// @notice Create a new market for a city/time/threshold.
     /// @param cityId City identifier (bytes32).
     /// @param resolveTime Unix timestamp when the market can be resolved.
@@ -118,6 +125,18 @@ contract WeatherMarket is IWeatherMarket, FDCVerifier {
         _updateClosedStatus(market);
         if (market.status == MarketStatus.Resolved || market.status == MarketStatus.Cancelled)
             revert InvalidStatus();
+        market.status = MarketStatus.Cancelled;
+        emit MarketCancelled(marketId);
+    }
+
+    /// @notice Cancel a market as the automation settler (used after max retries/outage).
+    /// @param marketId Market id to cancel.
+    function cancelMarketBySettler(uint256 marketId) external onlySettler {
+        Market storage market = _getMarketStorage(marketId);
+        _updateClosedStatus(market);
+        if (market.status == MarketStatus.Resolved || market.status == MarketStatus.Cancelled)
+            revert InvalidStatus();
+        if (block.timestamp < market.resolveTime) revert TooEarly();
         market.status = MarketStatus.Cancelled;
         emit MarketCancelled(marketId);
     }
@@ -279,6 +298,12 @@ contract WeatherMarket is IWeatherMarket, FDCVerifier {
     function getMarket(uint256 marketId) external view returns (Market memory) {
         if (marketId >= markets.length) revert InvalidMarket();
         return markets[marketId];
+    }
+
+    /// @notice Get the number of markets created so far.
+    /// @return count Total market count.
+    function getMarketCount() external view returns (uint256 count) {
+        return markets.length;
     }
 
     /// @notice Get a bettor's position for a market.

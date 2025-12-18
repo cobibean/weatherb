@@ -58,9 +58,13 @@ interface IWeatherMarket {
 
     function cancelMarket(uint256 marketId) external;
 
+    function cancelMarketBySettler(uint256 marketId) external;
+
     function withdrawFees(address token, address recipient) external;
 
     function setSettler(address settler) external;
+
+    function transferOwnership(address newOwner) external;
 
     function setMinBet(uint256 minBetWei) external;
 
@@ -79,10 +83,11 @@ interface IWeatherMarket {
 
     function getMarket(uint256 marketId) external view returns (Market memory);
 
+    function getMarketCount() external view returns (uint256);
+
     function getPosition(uint256 marketId, address bettor) external view returns (Position memory);
 
     function calculatePayout(uint256 marketId, address bettor) external view returns (uint256);
 
     function getImpliedPrices(uint256 marketId) external view returns (uint256 yesPrice, uint256 noPrice);
 }
-

@@ -4,6 +4,20 @@
 
 ---
 
+## Status (Implemented)
+
+As of 2025-12-18:
+
+- Scheduler service implemented in `services/scheduler/src/*` (cron + BullMQ)
+- Settler service implemented in `services/settler/src/*` (polling + BullMQ worker)
+- Outage controller implemented (5-min health checks) via Redis flag `weatherb:outage`
+- On-chain helpers added for automation:
+  - `WeatherMarket.getMarketCount()`
+  - `WeatherMarket.cancelMarketBySettler()`
+
+Notes:
+- Settlement uses the existing FDC client for proof acquisition; the exact Web2Json payload/attestation binding is still pending finalization (see Epic 3).
+
 ## Decisions Made (Reversible)
 
 | Decision | Choice | Rationale |
@@ -252,31 +266,31 @@ setInterval(runHealthCheck, 5 * 60 * 1000);
 ## Tasks
 
 ### 4.1 Set Up Service Infrastructure
-- [ ] Create `services/scheduler/` with TypeScript config
-- [ ] Create `services/settler/` with TypeScript config
-- [ ] Add BullMQ and Redis dependencies
-- [ ] Create shared queue configuration
-- [ ] Add environment variable handling
+- [x] Create `services/scheduler/` with TypeScript config
+- [x] Create `services/settler/` with TypeScript config
+- [x] Add BullMQ and Redis dependencies
+- [x] Create shared queue configuration
+- [x] Add environment variable handling
 
 ### 4.2 Implement Scheduler
-- [ ] Create daily cron job
-- [ ] Implement market selection logic
-- [ ] Implement threshold calculation (forecast → rounded whole °F → tenths)
-- [ ] Integrate with contract `createMarket()`
-- [ ] Add health check gate
+- [x] Create daily cron job
+- [x] Implement market selection logic
+- [x] Implement threshold calculation (forecast → rounded whole °F → tenths)
+- [x] Integrate with contract `createMarket()`
+- [x] Add health check gate
 
 ### 4.3 Implement Settler
-- [ ] Create market polling logic
-- [ ] Implement settlement job queue
-- [ ] Integrate FDC client (from Epic 3)
-- [ ] Implement retry logic with exponential backoff
-- [ ] Implement cancel/refund on max retries
+- [x] Create market polling logic
+- [x] Implement settlement job queue
+- [x] Integrate FDC client (from Epic 3)
+- [x] Implement retry logic with exponential backoff
+- [x] Implement cancel/refund on max retries
 
 ### 4.4 Implement Outage Controller
-- [ ] Create health check loop (5-min interval)
-- [ ] Implement outage mode state machine
-- [ ] Implement market cancellation for outages
-- [ ] Implement status broadcast (update DB/API)
+- [x] Create health check loop (5-min interval)
+- [x] Implement outage mode state machine
+- [x] Implement market cancellation for outages
+- [x] Implement status broadcast (Redis flag; DB/API deferred)
 
 ### 4.5 Add Monitoring & Alerts
 - [ ] Log all operations with structured logging
@@ -346,4 +360,3 @@ RPC_URL=https://coston2-api.flare.network/ext/C/rpc
 | Monitoring & alerts | 3 hours |
 | E2E testing | 4 hours |
 | **Total** | **~28 hours** |
-
