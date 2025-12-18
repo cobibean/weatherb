@@ -39,7 +39,7 @@ export type SubmitOptions = {
 
 export function prepareAttestationRequest(params: { weatherUrl: string }): AttestationRequest {
   return {
-    attestationType: '0x576562324a736f6e00000000000000000000000000000000', // "Web2Json" padded
+    attestationType: '0x576562324a736f6e000000000000000000000000000000000000000000000000', // "Web2Json" padded
     sourceId: '0x0000000000000000000000000000000000000000000000000000000000000001',
     requestBody: {
       url: params.weatherUrl,

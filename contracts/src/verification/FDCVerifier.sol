@@ -24,4 +24,3 @@ abstract contract FDCVerifier {
         return abi.decode(attestationData, (bytes32, uint64, uint256));
     }
 }
-

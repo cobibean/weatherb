@@ -133,7 +133,8 @@ export const main: SettlerMain = async () => {
             'settle',
             { marketId: market.marketId.toString() },
             {
-              jobId: `settle:${market.marketId.toString()}`,
+              // BullMQ requires either no `:` or exactly 3 segments (legacy repeatable-job compat).
+              jobId: `settle:${market.marketId.toString()}:0`,
               attempts: config.MAX_SETTLEMENT_RETRIES,
               backoff: { type: 'exponential', delay: config.SETTLEMENT_BACKOFF_MS },
               removeOnComplete: true,
