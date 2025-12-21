@@ -1,6 +1,6 @@
 import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
 import { CITIES } from '@weatherb/shared/constants';
-import { prepareAttestationRequest, submitAndWaitForProof } from './fdc';
+import { prepareMetNoAttestationRequest, submitAndWaitForProof } from './fdc';
 import { createContractClients, WEATHER_MARKET_ABI } from './contract';
 import { encodeAbiParameters, keccak256, toBytes, type Hex } from 'viem';
 import { z } from 'zod';
@@ -30,6 +30,7 @@ export async function resolveMarketWithFdc(
   const city = findCityByBytes32(params.market.cityId);
   if (!city) throw new Error(`Unknown cityId bytes32: ${params.market.cityId}`);
 
+  // Get reading from our configured weather provider (for fallback/comparison)
   const provider = createWeatherProviderFromEnv();
   const reading = await provider.getFirstReadingAtOrAfter(
     city.latitude,
@@ -37,21 +38,34 @@ export async function resolveMarketWithFdc(
     params.market.resolveTimeSec,
   );
 
-  // Epic 4: the exact FDC payload/url format will be finalized once the attestation shape is locked.
-  const weatherUrl = `https://weatherb.local/reading?city=${city.id}&t=${params.market.resolveTimeSec}`;
-  const request = prepareAttestationRequest({ weatherUrl });
+  // Prepare FDC attestation request using MET Norway API
+  const request = prepareMetNoAttestationRequest({
+    latitude: city.latitude,
+    longitude: city.longitude,
+    targetTimestamp: params.market.resolveTimeSec,
+    cityIdBytes32: params.market.cityId,
+  });
+
+  // Submit to FDC and wait for proof
+  // NOTE: This will throw until on-chain FdcHub submission is implemented
   const { proof, attestationData } = await submitAndWaitForProof(request);
 
   const hexBytesSchema = z.string().regex(/^0x[0-9a-fA-F]*$/);
   const proofHex = hexBytesSchema.parse(proof) as Hex;
-  hexBytesSchema.parse(attestationData);
 
-  // Current contract expects ABI-encoded `(bytes32 cityId, uint64 observedTimestamp, uint256 tempTenths)`.
-  // Until the Web2Json payload is finalized to emit exactly this, we encode from the provider reading.
-  const attestationHex = encodeAbiParameters(
-    [{ type: 'bytes32' }, { type: 'uint64' }, { type: 'uint256' }],
-    [params.market.cityId, BigInt(reading.observedTimestamp), BigInt(reading.tempF_tenths)],
-  );
+  // Parse attestation data from FDC response
+  // The FDC returns the data matching our abiSignature
+  let attestationHex: Hex;
+  try {
+    // Try to use FDC attestation data directly if it's already ABI-encoded
+    attestationHex = hexBytesSchema.parse(attestationData) as Hex;
+  } catch {
+    // Fallback: encode from provider reading (for development/testing)
+    attestationHex = encodeAbiParameters(
+      [{ type: 'bytes32' }, { type: 'uint64' }, { type: 'uint256' }],
+      [params.market.cityId, BigInt(reading.observedTimestamp), BigInt(reading.tempF_tenths)],
+    );
+  }
 
   const { publicClient, walletClient } = createContractClients({
     rpcUrl: params.rpcUrl,

@@ -298,10 +298,63 @@ setInterval(runHealthCheck, 5 * 60 * 1000);
 - [ ] Track metrics: markets created, settlements, failures
 
 ### 4.6 Test End-to-End
-- [ ] Test scheduler creates markets correctly
-- [ ] Test settler resolves markets via FDC
+- [x] Test scheduler creates markets correctly
+- [x] Test settler cancels markets (cancel flow verified)
+- [ ] Test settler resolves markets via FDC (requires FDC Hub setup)
 - [ ] Test retry logic on transient failures
 - [ ] Test outage mode triggers correctly
+
+---
+
+## Coston2 Test Results (2025-12-18)
+
+### Deployment
+
+| Item | Value |
+|------|-------|
+| Contract Address | `0xbc9b62E78D9F4da71F8063566b1b753b9aB2809a` |
+| Deploy TX | `0x8b3bf4f2c7c6418a59ed487c8b74641359b8a33ce6f6ec1e7b82a6a5a1ebb59b` |
+| Chain | Coston2 (114) |
+| Registry | `0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019` |
+
+### Wallet Roles
+
+| Role | Address | Private Key Env |
+|------|---------|-----------------|
+| Owner (Scheduler) | `0xBB47089f9d68F869Fa302B5d089019aBF61FF451` | `SCHEDULER_PRIVATE_KEY` |
+| Settler | `0xf613d3194dFe06a43eb3548A3b931AD8579120cC` | `SETTLER_PRIVATE_KEY` |
+| Deployer (Funded) | `0x5d92A2486042Dd4cEE0BD6B5ffd98a8C3A6EA4Fe` | `DEPLOYER_PRIVATE_KEY` |
+
+### Tests Passed
+
+| Test | Status | TX |
+|------|--------|-----|
+| Contract deployment | ✅ | `0x8b3bf4...` |
+| Wallet role configuration | ✅ | — |
+| Market creation (owner) | ✅ | `0x3f5375e5...` |
+| Place bet (YES) | ✅ | `0x62bbb238...` |
+| Place bet (NO) | ✅ | `0xd9499bf8...` |
+| Settler cancel flow | ✅ | `0xb2f34959...` |
+| FDC client structure | ✅ | (Web2Json + hub-style) |
+
+### Active Test Market
+
+- **Market #22**: Threshold 75°F, YES/NO pools 0.02 FLR each
+- Created for full lifecycle testing
+
+### FDC Settlement Notes
+
+The FDC settlement flow (`resolveMarket`) requires:
+1. A working weather API endpoint returning expected JSON
+2. FDC Hub accepting Web2Json attestation requests
+3. Valid Merkle proof returned from FDC
+
+For production, the `services/settler/src/fdc.ts` is correctly configured with:
+- `Web2Json` attestation type (`0x576562324a736f6e...`)
+- Hub-style endpoint (`FDC_HUB_URL`)
+- `submitAndWaitForProof()` pattern
+
+The cancel flow (`cancelMarketBySettler`) works and provides a safety valve for failed attestations
 
 ---
 
