@@ -8,101 +8,193 @@
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Framework | **Next.js 14+ (App Router)** | SSR, good Thirdweb support |
+| Framework | **Next.js 16.1.0 (App Router)** | Latest stable, React 19 support, SSR |
+| React | **React 19.2** | Latest stable version |
 | Styling | **TailwindCSS + shadcn/ui** | Beautiful, fast, customizable |
-| Wallet | **Thirdweb SDK** | Required per PRD, good DX |
+| Wallet | **Thirdweb SDK** | Required per PRD, custom "Log In" button wrapper |
 | State | **React Query + Zustand** | Simple, effective |
 | Price updates | **Polling (10s)** | Simple for V1, WebSocket later |
+| Animations | **Framer Motion** | Smooth, performant micro-interactions |
 
 ---
 
-## ⚠️ Get This Answered From User
+## Design System: "Nostalgic Futurism"
 
-| Question | Why It Matters | Options |
-|----------|----------------|---------|
-| **Domain name?** | Need for deployment | Custom / subdomain / TBD |
-| **Brand colors?** | Design system foundation | Blues / Greens / User choice |
-| **Mobile priority?** | Responsive strategy | Mobile-first / Desktop-first |
+**Visual Language:**
+- **Light, airy, minimal** with rich textures
+- **Sky gradient aesthetic** — bright blues to soft pinks/oranges
+- **Ethereal particle effects** for micro-interactions
+- **Glass morphism** — frosted glass headers/cards with backdrop blur
+- **Vintage meets modern** — clean typography with optional texture overlays
+
+**Color Palette:**
+- Primary: Sky blues (`#5BA5E5`, `#87CEEB`)
+- Cloud whites: (`#FFFFFF`, `#F8FBFF`)
+- Sunset accents: Warm oranges/pinks (`#FFB347`, `#FF9AB3`) for CTAs
+- Neutrals: Soft grays with film grain texture
+
+**Effects:**
+- Subtle noise/grain overlays
+- Soft gradients (no harsh edges)
+- Sparkle/particle systems on hover/interaction
+- Liquid glass with backdrop blur
+- Reflective surfaces (inspired by water/glass)
+
+**Typography:**
+- Clean sans-serif base (system fonts for performance)
+- Optional texture overlays for hero text
+- Generous whitespace
+
+See `/docs/design-system.md` for detailed guidelines.
 
 ---
 
-## Design Philosophy
-
-**Weather betting should feel:**
-- **Clean** — Like a weather app, not a casino
-- **Trustworthy** — Clear rules, transparent odds
-- **Fast** — No page reloads, instant feedback
-- **Accessible** — Works on mobile, clear typography
-
----
-
-## Pages & Components
+## Pages & Routes
 
 ### Page Structure
 
 ```
 apps/web/src/app/
 ├── layout.tsx                 # Root layout + wallet provider
-├── page.tsx                   # Home / Market list
-├── markets/
-│   └── [id]/
-│       └── page.tsx          # Market detail (may use drawer instead)
+├── page.tsx                   # Home: Hero carousel + market grid
 ├── positions/
-│   └── page.tsx              # My positions
+│   └── page.tsx              # Active bets + paginated history
 └── api/
-    └── markets/
-        └── route.ts          # API routes for indexed data
+    ├── markets/
+    │   └── route.ts          # GET active markets
+    └── positions/
+        └── route.ts          # GET user positions by wallet
 ```
 
-### Key Components
+**Removed:** Dedicated `/markets/[id]` page (using modals/drawers instead)
+
+### Homepage Layout (Revised)
+
+```
+┌─────────────────────────────────────────────────┐
+│  HEADER (liquid glass, auto-hide on scroll)     │
+│  Logo | Nav Links | "Log In" (custom wallet)    │
+└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  HERO CAROUSEL                                   │
+│  Wide cards (different design) - cycle thru 5    │
+│  markets with smooth transitions                 │
+└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  MARKET GRID                                     │
+│  Compact cards - same 5 markets in grid layout   │
+└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  FOOTER                                          │
+│  Links, status, project info                     │
+└─────────────────────────────────────────────────┘
+```
+
+### Positions Page Layout
+
+```
+┌─────────────────────────────────────────────────┐
+│  ACTIVE POSITIONS                                │
+│  Cards for open markets user has bets in         │
+│  Empty state if no active positions              │
+└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  HISTORY (collapsible, default closed)           │
+│  Resolved/cancelled markets (10 per page)        │
+│  "Next" button for pagination if > 10            │
+└─────────────────────────────────────────────────┘
+```
+
+### Component Structure (Revised)
 
 ```
 apps/web/src/components/
 ├── layout/
-│   ├── header.tsx            # Logo, nav, wallet button
+│   ├── header.tsx            # Liquid glass header, auto-hide scroll
 │   ├── footer.tsx            # Links, status
-│   └── status-banner.tsx     # Provider health, outage alerts
+│   ├── wallet-button.tsx     # Custom "Log In" wrapper (Thirdweb)
+│   └── status-banner.tsx     # Provider health alerts
 ├── markets/
-│   ├── market-card.tsx       # Individual market display
-│   ├── market-list.tsx       # Grid of market cards
-│   ├── market-drawer.tsx     # Detail view (lat/long, rules)
-│   ├── odds-display.tsx      # YES/NO price bars
+│   ├── hero-carousel.tsx     # NEW: Wide card carousel
+│   ├── hero-card.tsx         # NEW: Wide card variant
+│   ├── market-card.tsx       # Compact grid card
+│   ├── market-grid.tsx       # Grid container
+│   ├── market-drawer.tsx     # Detail modal (lat/long, rules)
+│   ├── odds-display.tsx      # Liquid Scale visualization (isolated!)
 │   └── countdown.tsx         # Time until resolution
 ├── betting/
 │   ├── bet-modal.tsx         # Amount input, confirmation
 │   ├── bet-button.tsx        # YES/NO buttons
 │   └── bet-success.tsx       # Confirmation animation
 ├── positions/
-│   ├── position-card.tsx     # Single position
-│   ├── position-list.tsx     # All user positions
+│   ├── active-positions.tsx  # Current open bets
+│   ├── position-history.tsx  # NEW: Collapsible history w/ pagination
+│   ├── position-card.tsx     # Single position display
 │   └── claim-button.tsx      # Claim winnings
 └── ui/                        # shadcn components
     ├── button.tsx
     ├── card.tsx
+    ├── carousel.tsx           # NEW: For hero carousel
     ├── dialog.tsx
     └── ...
 ```
 
 ---
 
-## Market Card Design
+## Odds Display: "Liquid Scale"
+
+**Concept:** Dynamic balance visualization that shifts left/right based on pool imbalance.
+
+**Design Principles:**
+- Central fulcrum at 50/50 equilibrium
+- Liquid/gradient fills toward heavier side (YES = left, NO = right)
+- Particle effects flow toward dominant side
+- Uses sky gradient colors (blue → pink/orange)
+- Smooth animations on odds updates
+
+**Isolation:** Component is self-contained in `odds-display.tsx` with props:
+```typescript
+interface OddsDisplayProps {
+  yesPool: bigint;
+  noPool: bigint;
+  variant?: 'liquid-scale' | 'future-alternative'; // Easy to swap later
+}
+```
+
+This allows easy replacement with different visualization later without touching parent components.
+
+---
+
+## Card Designs
+
+### Grid Card (Compact)
 
 ```
 ┌─────────────────────────────────────┐
-│  🌡️  NEW YORK CITY                  │
+│  NEW YORK CITY                      │
+│  Will it be ≥ 72°F at 2:00 PM EST?  │
 │                                     │
-│      Will it be ≥ 72°F?             │
-│      at 2:00 PM EST                 │
+│  [Liquid Scale Odds Visualization]  │
 │                                     │
-│  ┌─────────────┬─────────────┐      │
-│  │    YES      │     NO      │      │
-│  │    62%      │    38%      │      │
-│  │  ████████░░ │ ████░░░░░░  │      │
-│  └─────────────┴─────────────┘      │
-│                                     │
-│  [ Bet YES ]  [ Bet NO ]   [Details]│
-│                              FLR 💎 │
+│  Resolves in: 4h 23m                │
+│  [ Bet YES ]  [ Bet NO ]            │
 └─────────────────────────────────────┘
+```
+
+### Hero Card (Wide)
+
+```
+┌───────────────────────────────────────────────────────┐
+│                                                       │
+│  🌡️ NEW YORK CITY                                     │
+│  Will it be ≥ 72°F?                                   │
+│  Resolves: 2:00 PM EST • 4h 23m remaining             │
+│                                                       │
+│  [Wider Liquid Scale Visualization]                   │
+│                                                       │
+│  Total Pool: 1,234 FLR    [ Bet YES ]  [ Bet NO ]    │
+│                                                       │
+└───────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -268,26 +360,37 @@ export function useClaim() {
 - [ ] Set up React Query
 - [ ] Create base layout with wallet connection
 
-### 5.2 Market Display
-- [ ] Implement MarketCard component
-- [ ] Implement MarketList with grid layout
-- [ ] Implement OddsDisplay (visual bars)
+### 5.2 Layout & Header
+- [ ] Implement liquid glass Header component
+- [ ] Add auto-hide scroll behavior
+- [ ] Create custom WalletButton ("Log In" styling)
+- [ ] Implement Footer component
+
+### 5.3 Market Display
+- [ ] Implement HeroCarousel component
+- [ ] Implement HeroCard (wide variant)
+- [ ] Implement MarketCard (compact grid variant)
+- [ ] Implement MarketGrid layout
+- [ ] Implement OddsDisplay with Liquid Scale visualization (isolated!)
 - [ ] Implement Countdown timer
 - [ ] Add market detail drawer/modal
 
-### 5.3 Betting Flow
+### 5.4 Betting Flow
 - [ ] Implement BetModal with amount input
 - [ ] Calculate and display potential payout
 - [ ] Handle "already bet" error gracefully
 - [ ] Add success/error toasts
 - [ ] Disable betting after deadline
 
-### 5.4 Positions Page
-- [ ] Create /positions page
+### 5.5 Positions Page
+- [ ] Create /positions page layout
+- [ ] Implement ActivePositions component
+- [ ] Implement PositionHistory component (collapsible, paginated)
 - [ ] Show open bets with current value
 - [ ] Show resolved positions with outcome
 - [ ] Implement ClaimButton
 - [ ] Show claim transaction status
+- [ ] Add pagination (10 per page, "Next" button)
 
 ### 5.5 Status & Health
 - [ ] Implement StatusBanner for outages
