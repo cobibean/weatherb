@@ -3,6 +3,16 @@
   "buildCommand": "pnpm --filter @weatherb/shared build && pnpm --filter @weatherb/web build",
   "installCommand": "pnpm install",
   "framework": "nextjs",
-  "outputDirectory": "apps/web/.next"
+  "outputDirectory": "apps/web/.next",
+  "crons": [
+    {
+      "path": "/api/cron/schedule-daily",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/settle-markets",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }
 

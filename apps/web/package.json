@@ -18,10 +18,11 @@
   "dependencies": {
     "@prisma/client": "^6.2.1",
     "@radix-ui/react-slot": "^1.1.1",
-    "dotenv": "^16.4.7",
+    "@upstash/redis": "^1.35.8",
     "@weatherb/shared": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.562.0",
     "next": "^16.1.0",
