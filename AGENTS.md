@@ -32,9 +32,11 @@ weatherb/
 | Layer | Choice | Rationale |
 |-------|--------|-----------|
 | Contracts | Foundry + Solidity 0.8.24+ | Faster tests, better DX |
-| Frontend | Next.js 14+ (App Router) | SSR, good Thirdweb support |
+| Frontend | **Next.js 16.1.0** (App Router) | Latest stable, React 19 support, SSR |
+| React | **React 19.0** | Latest stable version |
 | Wallet | Thirdweb + WalletConnect | Per PRD requirement |
 | Styling | TailwindCSS + shadcn/ui | Fast, beautiful, customizable |
+| Animations | **Framer Motion** | Smooth, performant micro-interactions |
 | Database | PostgreSQL + Prisma | Reliable, good for indexing |
 | Queue | BullMQ + Redis | Job scheduling, retries |
 | Package Manager | pnpm | Fast, workspace support |
@@ -161,6 +163,10 @@ When making architectural decisions, document them here:
 | 2024-12 | 10-minute betting buffer | Reduces timing exploits; admin-adjustable | Yes |
 | 2024-12 | No bug bounty in V1 | Keep scope tight; SECURITY.md inbox only | Yes |
 | 2024-12 | Single admin wallet for V1 | Move to multi-sig when TVL justifies | Yes |
+| 2024-12-20 | "Nostalgic Futurism" design system | Light, airy, minimal UI with sky gradients & textures | Yes |
+| 2024-12-20 | Liquid Scale odds visualization | Dynamic balance display instead of % bars | Yes |
+| 2024-12-20 | Custom "Log In" wallet button | More Web2-friendly than "Connect Wallet" | Yes |
+| 2024-12-20 | Hero carousel + grid layout | Showcase markets in 2 formats on homepage | Yes |
 
 ---
 
@@ -179,6 +185,46 @@ When making architectural decisions, document them here:
 - Test full flow on Coston2 before mainnet
 - Abstract weather provider behind interface
 - Validate in UI AND contract (defense in depth)
+
+---
+
+## Epic Progress Status
+
+### Epics 0-4: ✅ Complete
+- **Epic 0:** Monorepo scaffolding, CI/CD, shared types
+- **Epic 1:** Weather provider layer (MET Norway, NWS, Open-Meteo)
+- **Epic 2:** Smart contracts (`WeatherMarket.sol`)
+- **Epic 3:** FDC verification layer
+- **Epic 4:** Scheduler + Settler automation services
+
+### Epic 5: 🚧 In Progress (Web App UI)
+
+**Completed:**
+- ✅ Upgraded to Next.js 16.1.0 + React 19.0
+- ✅ Installed Framer Motion for animations
+- ✅ Created design system documentation (`/docs/design-system.md`)
+- ✅ Optimized hero background (5.2MB → 178KB JPEG)
+- ✅ Optimized textures (paper grain 43KB, halftone 94KB)
+- ✅ Built ParticleSystem component (`/src/components/ui/particle-system.tsx`)
+- ✅ Documented all assets (`/apps/web/public/ASSETS_README.md`)
+
+**Assets Ready:**
+- `/public/backgrounds/hero-clouds.jpg` (178KB)
+- `/public/textures/paper-grain.jpg` (43KB)
+- `/public/textures/halftone-blue.jpg` (94KB)
+- `/public/particles/cloudsvg1.svg` (236KB, 9 clouds)
+
+**Next Up:**
+1. Build liquid glass Header component with auto-hide scroll
+2. Create custom WalletButton ("Log In" styling)
+3. Implement HeroCarousel + HeroCard (wide cards)
+4. Build MarketCard (compact grid variant)
+5. Create OddsDisplay with "Liquid Scale" visualization
+
+**See:**
+- `/docs/epics/epic-5-webapp.md` for full Epic 5 plan
+- `/docs/design-system.md` for "Nostalgic Futurism" design language
+- `/apps/web/public/ASSETS_README.md` for asset usage examples
 
 ---
 
