@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // DATABASE_URL: Use pooled connection (port 6543) for runtime
+  // DIRECT_URL: Use direct connection (port 5432) for migrations
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// System-wide configuration (singleton pattern with id="default")
+model SystemConfig {
+  id            String   @id @default("default")
+  cadence       Int      @default(5)       // minutes between market resolve times
+  testMode      Boolean  @default(true)    // single city only when enabled
+  dailyCount    Int      @default(5)       // markets created per day (max 5)
+  bettingBuffer Int      @default(600)     // seconds before resolve to close betting
+  isPaused      Boolean  @default(false)   // global pause state
+  settlerPaused Boolean  @default(false)   // settlement pause state
+  updatedAt     DateTime @updatedAt
+}
+
+// Allowlisted cities for market creation
+model City {
+  id        String   @id @default(cuid())
+  name      String
+  latitude  Float
+  longitude Float
+  timezone  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// Audit log for admin actions
+model AdminLog {
+  id        String   @id @default(cuid())
+  wallet    String   // admin wallet address (lowercase)
+  action    String   // e.g. "PAUSE", "UNPAUSE", "CANCEL_MARKET", "UPDATE_SETTINGS"
+  details   Json?    // additional context (marketId, old/new values, etc.)
+  createdAt DateTime @default(now())
+
+  @@index([wallet])
+  @@index([createdAt])
+  @@index([action])
+}
+
+// Admin sessions for wallet-based auth
+model AdminSession {
+  id        String   @id @default(cuid())
+  wallet    String   // lowercase wallet address
+  nonce     String   // random nonce for signature verification
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([wallet])
+  @@index([expiresAt])
+}
+

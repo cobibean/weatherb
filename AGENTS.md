@@ -190,41 +190,42 @@ When making architectural decisions, document them here:
 
 ## Epic Progress Status
 
-### Epics 0-4: ✅ Complete
+### Epics 0-5: ✅ Complete
 - **Epic 0:** Monorepo scaffolding, CI/CD, shared types
 - **Epic 1:** Weather provider layer (MET Norway, NWS, Open-Meteo)
 - **Epic 2:** Smart contracts (`WeatherMarket.sol`)
 - **Epic 3:** FDC verification layer
 - **Epic 4:** Scheduler + Settler automation services
+- **Epic 5:** Web App UI (Next.js 16.1.0 + React 19.0)
 
-### Epic 5: 🚧 In Progress (Web App UI)
+### Epic 6: ✅ Complete (Admin Panel)
 
-**Completed:**
-- ✅ Upgraded to Next.js 16.1.0 + React 19.0
-- ✅ Installed Framer Motion for animations
-- ✅ Created design system documentation (`/docs/design-system.md`)
-- ✅ Optimized hero background (5.2MB → 178KB JPEG)
-- ✅ Optimized textures (paper grain 43KB, halftone 94KB)
-- ✅ Built ParticleSystem component (`/src/components/ui/particle-system.tsx`)
-- ✅ Documented all assets (`/apps/web/public/ASSETS_README.md`)
+**Implemented:**
+- ✅ Prisma + PostgreSQL schema (SystemConfig, City, AdminLog, AdminSession)
+- ✅ Wallet-allowlist authentication with signature verification
+- ✅ Middleware protection for `/admin/**` routes
+- ✅ Admin dashboard with stats cards and system status
+- ✅ Settings page (cadence, test mode, daily count, betting buffer)
+- ✅ City management (add/activate/deactivate)
+- ✅ Markets page with emergency controls
+- ✅ Activity logs with filtering and pagination
+- ✅ All admin actions logged to database
 
-**Assets Ready:**
-- `/public/backgrounds/hero-clouds.jpg` (178KB)
-- `/public/textures/paper-grain.jpg` (43KB)
-- `/public/textures/halftone-blue.jpg` (94KB)
-- `/public/particles/cloudsvg1.svg` (236KB, 9 clouds)
+**Files Created:**
+- `/apps/web/prisma/schema.prisma` - Database schema
+- `/apps/web/src/middleware.ts` - Route protection
+- `/apps/web/src/lib/admin-session.ts` - Session management
+- `/apps/web/src/lib/admin-data.ts` - Data access layer
+- `/apps/web/src/app/admin/**` - Admin pages and API routes
+- `/apps/web/src/components/admin/**` - Admin UI components
 
-**Next Up:**
-1. Build liquid glass Header component with auto-hide scroll
-2. Create custom WalletButton ("Log In" styling)
-3. Implement HeroCarousel + HeroCard (wide cards)
-4. Build MarketCard (compact grid variant)
-5. Create OddsDisplay with "Liquid Scale" visualization
+**To Activate:**
+1. Set `DATABASE_URL` in `.env` pointing to PostgreSQL
+2. Set `ADMIN_WALLETS` as comma-separated lowercase addresses
+3. Run `pnpm db:push` to sync schema to database
 
 **See:**
-- `/docs/epics/epic-5-webapp.md` for full Epic 5 plan
-- `/docs/design-system.md` for "Nostalgic Futurism" design language
-- `/apps/web/public/ASSETS_README.md` for asset usage examples
+- `/docs/epics/epic-6-admin.md` for full Epic 6 plan
 
 ---
 

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Header, Footer } from '@/components/layout';
 
 // Our design system colors with pre-calculated percentages
 const designColors = [
@@ -24,7 +23,7 @@ const colorData = designColors.map(c => ({
   percentage: ((c.value / total) * 100).toFixed(1),
 }));
 
-function PieChart() {
+export function ColorPalettePieChart(): React.ReactElement {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [segments, setSegments] = useState<Array<{
     name: string;
@@ -65,8 +64,8 @@ function PieChart() {
       {/* SVG Pie Chart - added overflow visible and extra padding in viewBox */}
       <div className="relative">
         <svg 
-          width="280" 
-          height="280" 
+          width="240" 
+          height="240" 
           viewBox="-20 -20 280 280"
           style={{ overflow: 'visible' }}
         >
@@ -119,7 +118,7 @@ function PieChart() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute -bottom-16 left-1/2 -translate-x-1/2 bg-neutral-800 text-white px-4 py-2 rounded-lg text-sm font-body whitespace-nowrap"
+            className="absolute -bottom-12 left-1/2 -translate-x-1/2 bg-neutral-800 text-white px-4 py-2 rounded-lg text-sm font-body whitespace-nowrap"
           >
             <span className="font-semibold">{segments[hoveredIndex].name}</span>
             <span className="text-neutral-300 ml-2">{segments[hoveredIndex].percentage}%</span>
@@ -128,11 +127,11 @@ function PieChart() {
       </div>
 
       {/* Legend */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         {colorData.map((color, index) => (
           <div
             key={color.name}
-            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+            className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
               hoveredIndex === index ? 'bg-black/5' : ''
             }`}
             onMouseEnter={() => setHoveredIndex(index)}
@@ -157,89 +156,19 @@ function PieChart() {
   );
 }
 
-// Stats cards
-const stats = [
-  { label: 'Active Markets', value: '5', change: '+2 today' },
-  { label: 'Total Volume', value: '12,450 FLR', change: '+18%' },
-  { label: 'Cumulative Vol.', value: '847,320 FLR', change: 'All-time' },
-  { label: 'Users', value: '342', change: '+12 this week' },
-  { label: 'Resolved', value: '23', change: '100% success' },
-  { label: 'Fees Earned', value: '8,473 FLR', change: '1% of losing pools' },
-];
-
-export default function AdminPage() {
+export function ColorSwatches(): React.ReactElement {
   return (
-    <div className="min-h-screen flex flex-col bg-cloud-off">
-      <Header />
-
-      <main className="flex-1 pt-24 pb-12">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="font-display text-4xl font-extrabold text-neutral-800 mb-2">
-              Admin Panel
-            </h1>
-            <p className="font-body text-neutral-600">
-              Manage markets, view analytics, and monitor the platform.
-            </p>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                className="card"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <p className="font-body text-sm text-neutral-500 mb-1">{stat.label}</p>
-                <p className="font-display text-2xl font-bold text-neutral-800">{stat.value}</p>
-                <p className="font-body text-xs text-success-soft mt-1">{stat.change}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Design System Colors */}
-          <motion.div
-            className="card-hero mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <h2 className="font-display text-2xl font-bold text-neutral-800 mb-6">
-              Design System Colors
-            </h2>
-            <PieChart />
-          </motion.div>
-
-          {/* Color Swatches */}
-          <motion.div
-            className="card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <h2 className="font-display text-xl font-bold text-neutral-800 mb-4">
-              Color Palette
-            </h2>
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-              {colorData.map((color) => (
-                <div key={color.name} className="text-center">
-                  <div
-                    className="w-full aspect-square rounded-xl mb-2 shadow-sm"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  <p className="font-mono text-xs text-neutral-600">{color.hex}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+    <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+      {colorData.map((color) => (
+        <div key={color.name} className="text-center">
+          <div
+            className="w-full aspect-square rounded-xl mb-2 shadow-sm"
+            style={{ backgroundColor: color.hex }}
+          />
+          <p className="font-mono text-xs text-neutral-600">{color.hex}</p>
         </div>
-      </main>
-
-      <Footer />
+      ))}
     </div>
   );
 }
+

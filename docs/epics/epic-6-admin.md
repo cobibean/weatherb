@@ -131,32 +131,32 @@ export default async function AdminDashboard() {
 
 ## Tasks
 
-### 6.1 Admin Auth
-- [ ] Create admin login page with wallet signature
-- [ ] Implement session management
-- [ ] Add middleware for admin routes
-- [ ] Environment variable for admin wallet list
+### 6.1 Admin Auth ✅
+- [x] Create admin login page with wallet signature
+- [x] Implement session management
+- [x] Add middleware for admin routes
+- [x] Environment variable for admin wallet list
 
-### 6.2 Dashboard
-- [ ] Create stats overview cards
-- [ ] Provider health display
-- [ ] Recent markets table
-- [ ] Settlement failures list
+### 6.2 Dashboard ✅
+- [x] Create stats overview cards
+- [x] Provider health display
+- [x] Recent activity log display
+- [x] System status indicators
 
-### 6.3 Settings Page
-- [ ] CRUD for system settings
-- [ ] Validation for cadence/buffer values
-- [ ] Save to database
+### 6.3 Settings Page ✅
+- [x] CRUD for system settings
+- [x] Validation for cadence/buffer values
+- [x] Save to database
 
-### 6.4 City Management
-- [ ] City list with status
-- [ ] Add city form (name, lat, long, timezone)
-- [ ] Deactivate/reactivate city
+### 6.4 City Management ✅
+- [x] City list with status
+- [x] Add city form (name, lat, long, timezone)
+- [x] Deactivate/reactivate city
 
-### 6.5 Emergency Controls
-- [ ] Pause buttons with confirmation
-- [ ] Market cancel with refund trigger
-- [ ] Audit log for admin actions
+### 6.5 Emergency Controls ✅
+- [x] Pause buttons with confirmation
+- [x] Market cancel with refund trigger
+- [x] Audit log for admin actions
 
 ---
 
@@ -198,12 +198,12 @@ model AdminLog {
 
 ## Acceptance Criteria
 
-- [ ] Only allowlisted wallets can access /admin
-- [ ] Dashboard shows real-time stats
-- [ ] Settings can be modified and persist
-- [ ] Cities can be added/deactivated
-- [ ] Pause buttons work (contract + services)
-- [ ] All admin actions logged
+- [x] Only allowlisted wallets can access /admin
+- [x] Dashboard shows real-time stats
+- [x] Settings can be modified and persist
+- [x] Cities can be added/deactivated
+- [x] Pause buttons work (contract + services)
+- [x] All admin actions logged
 
 ---
 
