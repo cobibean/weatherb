@@ -73,7 +73,7 @@ interface IWeatherMarket {
     function pause() external;
     function unpause() external;
 
-    function resolveMarket(uint256 marketId, bytes calldata proof, bytes calldata attestationData) external;
+    function resolveMarket(uint256 marketId, uint256 tempTenths, uint64 observedTimestamp) external;
 
     function placeBet(uint256 marketId, bool isYes) external payable;
 

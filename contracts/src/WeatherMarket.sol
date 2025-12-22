@@ -3,9 +3,11 @@ pragma solidity ^0.8.24;
 
 import {IWeatherMarket} from "./interfaces/IWeatherMarket.sol";
 import {PayoutMath} from "./libraries/PayoutMath.sol";
-import {FDCVerifier} from "./verification/FDCVerifier.sol";
 
-contract WeatherMarket is IWeatherMarket, FDCVerifier {
+/// @title WeatherMarket
+/// @notice Simple prediction market for temperature outcomes on Flare
+/// @dev Settlement is trusted to the settler address (no FDC proofs)
+contract WeatherMarket is IWeatherMarket {
     error NotOwner();
     error NotSettler();
     error Paused();
@@ -20,9 +22,6 @@ contract WeatherMarket is IWeatherMarket, FDCVerifier {
     error NotResolved();
     error NotCancelled();
     error NothingToClaim();
-    error InvalidAttestation();
-    error CityMismatch();
-    error ReadingTooEarly();
     error InvalidParams();
     error ZeroAddress();
 
@@ -63,8 +62,7 @@ contract WeatherMarket is IWeatherMarket, FDCVerifier {
         _status = _NOT_ENTERED;
     }
 
-    constructor(address registryAddress) FDCVerifier(registryAddress) {
-        if (registryAddress == address(0)) revert ZeroAddress();
+    constructor() {
         owner = msg.sender;
         settler = msg.sender;
         bettingBufferSeconds = 600;
@@ -184,25 +182,24 @@ contract WeatherMarket is IWeatherMarket, FDCVerifier {
         isPaused = false;
     }
 
-    /// @notice Resolve a market using an FDC proof + decoded attestation payload.
+    /// @notice Resolve a market with temperature data from the trusted settler.
+    /// @dev Only the settler address can call this. The settler fetches weather data
+    ///      from trusted APIs (MET Norway, NWS, Open-Meteo) and submits the result.
     /// @param marketId Market id to resolve.
-    /// @param proof FDC Merkle proof blob.
-    /// @param attestationData ABI-encoded `(bytes32 cityId, uint64 observedTimestamp, uint256 tempTenths)`.
+    /// @param tempTenths Observed temperature in 0.1°F units (e.g. 853 = 85.3°F).
+    /// @param observedTimestamp Unix timestamp when the temperature was observed.
     function resolveMarket(
         uint256 marketId,
-        bytes calldata proof,
-        bytes calldata attestationData
+        uint256 tempTenths,
+        uint64 observedTimestamp
     ) external onlySettler nonReentrant {
         Market storage market = _getMarketStorage(marketId);
         _updateClosedStatus(market);
         if (market.status != MarketStatus.Open && market.status != MarketStatus.Closed) revert InvalidStatus();
         if (block.timestamp < market.resolveTime) revert TooEarly();
 
-        if (!_verifyAttestation(proof)) revert InvalidAttestation();
-
-        (bytes32 cityId, uint64 observedTimestamp, uint256 tempTenths) = _decodeWeatherAttestation(attestationData);
-        if (cityId != market.cityId) revert CityMismatch();
-        if (observedTimestamp < market.resolveTime) revert ReadingTooEarly();
+        // Validate observation is at or after resolve time
+        if (observedTimestamp < market.resolveTime) revert TooEarly();
 
         bool outcome = tempTenths >= market.thresholdTenths;
         uint256 winningPool = outcome ? market.yesPool : market.noPool;

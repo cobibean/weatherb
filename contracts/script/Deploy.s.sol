@@ -8,10 +8,8 @@ import {WeatherMarket} from "../src/WeatherMarket.sol";
 contract DeployScript is Script {
     function run() external returns (WeatherMarket deployed) {
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        address registry = vm.envAddress("FLARE_CONTRACT_REGISTRY_ADDRESS");
-        require(registry != address(0), "Registry address required");
         vm.startBroadcast(deployerKey);
-        deployed = new WeatherMarket(registry);
+        deployed = new WeatherMarket();
         vm.stopBroadcast();
         console2.log("WeatherMarket deployed at:", address(deployed));
     }

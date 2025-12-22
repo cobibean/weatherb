@@ -5,13 +5,9 @@ import "forge-std/Test.sol";
 import {WeatherMarket} from "../src/WeatherMarket.sol";
 import {IWeatherMarket} from "../src/interfaces/IWeatherMarket.sol";
 import {PayoutMath} from "../src/libraries/PayoutMath.sol";
-import {MockRegistry} from "./mocks/MockRegistry.sol";
-import {MockFdcVerification} from "./mocks/MockFdcVerification.sol";
 
 contract WeatherMarketTest is Test {
     WeatherMarket internal market;
-    MockRegistry internal registry;
-    MockFdcVerification internal verifier;
 
     address internal owner = address(0xA11CE);
     address internal settler = address(0xB0B);
@@ -21,12 +17,8 @@ contract WeatherMarketTest is Test {
     bytes32 internal cityId = keccak256("nyc");
 
     function setUp() public {
-        registry = new MockRegistry();
-        verifier = new MockFdcVerification();
-        registry.setVerifier(address(verifier));
-
         vm.prank(owner);
-        market = new WeatherMarket(address(registry));
+        market = new WeatherMarket();
 
         vm.prank(owner);
         market.setSettler(settler);
@@ -73,12 +65,10 @@ contract WeatherMarketTest is Test {
 
         vm.warp(resolveTime);
 
-        verifier.setOk(true);
-        bytes memory proof = hex"1234";
-        bytes memory attestationData = abi.encode(cityId, uint64(resolveTime), uint256(900));
-
+        // Settler submits temperature directly (no FDC proof)
+        // temp 900 = 90.0°F, threshold 850 = 85.0°F → YES wins
         vm.prank(settler);
-        market.resolveMarket(marketId, proof, attestationData);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
 
         uint256 aliceBefore = alice.balance;
         vm.prank(alice);
@@ -97,7 +87,7 @@ contract WeatherMarketTest is Test {
         assertEq(owner.balance - ownerBefore, 0.02 ether);
     }
 
-    function test_invalidFdcProofReverts() public {
+    function test_nonSettlerCannotResolve() public {
         uint64 resolveTime = uint64(block.timestamp + 2 hours);
         vm.prank(owner);
         uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
@@ -109,13 +99,46 @@ contract WeatherMarketTest is Test {
 
         vm.warp(resolveTime);
 
-        verifier.setOk(false);
-        bytes memory proof = hex"1234";
-        bytes memory attestationData = abi.encode(cityId, uint64(resolveTime), uint256(900));
+        // Random user cannot resolve
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotSettler.selector);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+    }
 
+    function test_cannotResolveWithEarlyTimestamp() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.warp(resolveTime);
+
+        // Observation timestamp before resolve time should fail
         vm.prank(settler);
-        vm.expectRevert(WeatherMarket.InvalidAttestation.selector);
-        market.resolveMarket(marketId, proof, attestationData);
+        vm.expectRevert(WeatherMarket.TooEarly.selector);
+        market.resolveMarket(marketId, 900, uint64(resolveTime - 1));
+    }
+
+    function test_thresholdTie_yesWins() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+
+        // temp == threshold → YES wins (per spec: temp >= threshold)
+        vm.prank(settler);
+        market.resolveMarket(marketId, 850, uint64(resolveTime));
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertTrue(m.outcome); // YES wins
     }
 
     function test_getMarketCountIncrements() public {
@@ -138,7 +161,24 @@ contract WeatherMarketTest is Test {
         assertEq(uint256(m.status), uint256(IWeatherMarket.MarketStatus.Cancelled));
     }
 
-    function testFuzz_PayoutMathNoOverflow(uint128 yesPool, uint128 noPool, uint128 stake) public {
+    function test_refundAfterCancel() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.prank(owner);
+        market.cancelMarket(marketId);
+
+        uint256 aliceBefore = alice.balance;
+        vm.prank(alice);
+        market.refund(marketId);
+        assertEq(alice.balance - aliceBefore, 1 ether);
+    }
+
+    function testFuzz_PayoutMathNoOverflow(uint128 yesPool, uint128 noPool, uint128 stake) public pure {
         vm.assume(yesPool > 0);
         vm.assume(noPool > 0);
         vm.assume(stake > 0 && stake <= yesPool);

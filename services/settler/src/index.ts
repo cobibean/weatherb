@@ -8,7 +8,7 @@ import { getSettlerConfig } from './config';
 import { logError, logInfo } from './log';
 import { createSettlerQueues } from './queue';
 import { fetchPendingMarkets } from './fetch-markets';
-import { resolveMarketWithFdc } from './resolve';
+import { resolveMarket } from './resolve';
 import { OutageController } from './outage-controller';
 import { createContractClients, WEATHER_MARKET_ABI } from './contract';
 import { cancelEligibleMarkets } from './cancel-eligible';
@@ -46,7 +46,7 @@ export const main: SettlerMain = async () => {
         return;
       }
 
-      const result = await resolveMarketWithFdc({
+      const result = await resolveMarket({
         rpcUrl: config.RPC_URL,
         contractAddress: hexAddressSchema.parse(config.CONTRACT_ADDRESS) as Hex,
         privateKey: hexPrivateKeySchema.parse(config.SETTLER_PRIVATE_KEY) as Hex,

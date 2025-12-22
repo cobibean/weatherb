@@ -19,7 +19,7 @@ weatherb/
 │   └── web/            # Next.js 14+ — User-facing betting app
 ├── services/
 │   ├── scheduler/      # Market creation cron job
-│   ├── settler/        # Settlement bot (FDC proofs)
+│   ├── settler/        # Settlement bot (trusted settler, direct API → contract)
 │   └── admin/          # Admin API (optional, can be in web)
 ├── packages/
 │   └── shared/         # Types, ABIs, constants, utils
@@ -167,6 +167,7 @@ When making architectural decisions, document them here:
 | 2024-12-20 | Liquid Scale odds visualization | Dynamic balance display instead of % bars | Yes |
 | 2024-12-20 | Custom "Log In" wallet button | More Web2-friendly than "Connect Wallet" | Yes |
 | 2024-12-20 | Hero carousel + grid layout | Showcase markets in 2 formats on homepage | Yes |
+| 2024-12-21 | Drop FDC for trusted settler | Simpler V1; FDC adds complexity without proportional benefit | Yes |
 
 ---
 
@@ -194,9 +195,26 @@ When making architectural decisions, document them here:
 - **Epic 0:** Monorepo scaffolding, CI/CD, shared types
 - **Epic 1:** Weather provider layer (MET Norway, NWS, Open-Meteo)
 - **Epic 2:** Smart contracts (`WeatherMarket.sol`)
-- **Epic 3:** FDC verification layer
+- **Epic 3:** ~~FDC verification layer~~ → **Simplified to trusted settler** (Dec 2024)
 - **Epic 4:** Scheduler + Settler automation services
 - **Epic 5:** Web App UI (Next.js 16.1.0 + React 19.0)
+
+### Settlement Architecture (Updated Dec 2024)
+The original Epic 3 used Flare Data Connector (FDC) for trustless proofs. This was **simplified** to a trusted settler pattern:
+
+```
+Weather API (MET Norway/NWS/Open-Meteo)
+         ↓
+    Settler Service (off-chain)
+         ↓ resolveMarket(marketId, tempTenths, observedTimestamp)
+    WeatherMarket.sol (on-chain, onlySettler)
+```
+
+**Why simplified:**
+- FDC adds complexity without proportional benefit for V1
+- Settler address is trusted (controlled by us)
+- Weather APIs are already reliable sources
+- Can re-add FDC proofs later if needed (`fdc.ts` kept for reference)
 
 ### Epic 6: ✅ Complete (Admin Panel)
 

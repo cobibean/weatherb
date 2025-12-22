@@ -1,9 +1,7 @@
 import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
 import { CITIES } from '@weatherb/shared/constants';
-import { prepareMetNoAttestationRequest, submitAndWaitForProof } from './fdc';
 import { createContractClients, WEATHER_MARKET_ABI } from './contract';
-import { encodeAbiParameters, keccak256, toBytes, type Hex } from 'viem';
-import { z } from 'zod';
+import { keccak256, toBytes, type Hex } from 'viem';
 
 import type { MarketOnChain } from './fetch-markets';
 
@@ -24,13 +22,24 @@ function findCityByBytes32(cityId: Hex) {
   return CITIES.find((c) => keccak256(toBytes(c.id)) === cityId) ?? null;
 }
 
-export async function resolveMarketWithFdc(
+/**
+ * Resolve a market by fetching weather data from the configured provider
+ * and submitting the result directly to the smart contract.
+ *
+ * Flow:
+ * 1. Look up city coordinates from cityId
+ * 2. Fetch first weather reading at or after resolve time from provider
+ * 3. Submit temperature + timestamp to contract via resolveMarket()
+ *
+ * The settler address is trusted by the contract (onlySettler modifier).
+ */
+export async function resolveMarket(
   params: ResolveMarketParams,
 ): Promise<ResolveMarketResult> {
   const city = findCityByBytes32(params.market.cityId);
   if (!city) throw new Error(`Unknown cityId bytes32: ${params.market.cityId}`);
 
-  // Get reading from our configured weather provider (for fallback/comparison)
+  // Get reading from configured weather provider (MET Norway, NWS, or Open-Meteo)
   const provider = createWeatherProviderFromEnv();
   const reading = await provider.getFirstReadingAtOrAfter(
     city.latitude,
@@ -38,45 +47,21 @@ export async function resolveMarketWithFdc(
     params.market.resolveTimeSec,
   );
 
-  // Prepare FDC attestation request using MET Norway API
-  const request = prepareMetNoAttestationRequest({
-    latitude: city.latitude,
-    longitude: city.longitude,
-    targetTimestamp: params.market.resolveTimeSec,
-    cityIdBytes32: params.market.cityId,
-  });
-
-  // Submit to FDC and wait for proof
-  // NOTE: This will throw until on-chain FdcHub submission is implemented
-  const { proof, attestationData } = await submitAndWaitForProof(request);
-
-  const hexBytesSchema = z.string().regex(/^0x[0-9a-fA-F]*$/);
-  const proofHex = hexBytesSchema.parse(proof) as Hex;
-
-  // Parse attestation data from FDC response
-  // The FDC returns the data matching our abiSignature
-  let attestationHex: Hex;
-  try {
-    // Try to use FDC attestation data directly if it's already ABI-encoded
-    attestationHex = hexBytesSchema.parse(attestationData) as Hex;
-  } catch {
-    // Fallback: encode from provider reading (for development/testing)
-    attestationHex = encodeAbiParameters(
-      [{ type: 'bytes32' }, { type: 'uint64' }, { type: 'uint256' }],
-      [params.market.cityId, BigInt(reading.observedTimestamp), BigInt(reading.tempF_tenths)],
-    );
-  }
-
   const { publicClient, walletClient } = createContractClients({
     rpcUrl: params.rpcUrl,
     privateKey: params.privateKey,
   });
 
+  // Call resolveMarket(marketId, tempTenths, observedTimestamp)
   const { request: txRequest } = await publicClient.simulateContract({
     address: params.contractAddress,
     abi: WEATHER_MARKET_ABI,
     functionName: 'resolveMarket',
-    args: [params.market.marketId, proofHex, attestationHex],
+    args: [
+      params.market.marketId,
+      BigInt(reading.tempF_tenths),
+      BigInt(reading.observedTimestamp),
+    ],
     account: walletClient.account,
   });
 

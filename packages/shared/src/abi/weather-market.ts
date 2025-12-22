@@ -17,8 +17,8 @@ export const WEATHER_MARKET_ABI = [
     stateMutability: 'nonpayable',
     inputs: [
       { name: 'marketId', type: 'uint256' },
-      { name: 'proof', type: 'bytes' },
-      { name: 'attestationData', type: 'bytes' },
+      { name: 'tempTenths', type: 'uint256' },
+      { name: 'observedTimestamp', type: 'uint64' },
     ],
     outputs: [],
   },
