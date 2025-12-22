@@ -7,6 +7,7 @@ import { OddsDisplay } from './odds-display';
 import { CountdownDetailed } from './countdown';
 import { formatEther } from 'viem';
 import { ThresholdTooltip } from '@/components/ui/threshold-tooltip';
+import { TemperatureDisplay } from '@/components/ui/temperature-display';
 import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
 
 interface HeroCardProps {
@@ -43,11 +44,6 @@ export function HeroCard({ market, onBetYes, onBetNo, className }: HeroCardProps
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
     >
-      {/* Temperature icon */}
-      <div className="absolute top-4 right-4 md:top-5 md:right-5 text-3xl md:text-4xl">
-        🌡️
-      </div>
-
       {/* City name */}
       <h2 className="font-display text-3xl md:text-4xl font-extrabold text-neutral-800 mb-1 tracking-tight">
         {market.cityName}
@@ -56,7 +52,7 @@ export function HeroCard({ market, onBetYes, onBetNo, className }: HeroCardProps
       {/* Question */}
       <p className="font-body text-base md:text-lg text-neutral-600 mb-0.5">
         Will it be <ThresholdTooltip threshold={thresholdDisplay} />{' '}
-        <span className="font-bold text-neutral-800">{thresholdDisplay}°F</span>?
+        <TemperatureDisplay fahrenheit={thresholdDisplay} size="lg" className="font-bold" />?
       </p>
 
       {/* Resolve time */}
@@ -72,13 +68,14 @@ export function HeroCard({ market, onBetYes, onBetNo, className }: HeroCardProps
         <CountdownDetailed resolveTime={market.resolveTime} />
       </div>
 
-      {/* Odds Display */}
+      {/* Odds Display with multipliers */}
       <div className="mb-5">
         <OddsDisplay
           yesPool={market.yesPool}
           noPool={market.noPool}
           variant="liquid-scale"
           size="wide"
+          showMultipliers
         />
       </div>
 

@@ -7,6 +7,7 @@ import { OddsDisplay } from './odds-display';
 import { Countdown } from './countdown';
 import { ParticleSystem } from '@/components/ui/particle-system';
 import { ThresholdTooltip } from '@/components/ui/threshold-tooltip';
+import { TemperatureDisplay } from '@/components/ui/temperature-display';
 import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
 
 interface MarketCardProps {
@@ -50,18 +51,18 @@ export function MarketCard({ market, onBetYes, onBetNo, className }: MarketCardP
             </h3>
             <p className="font-body text-sm text-neutral-600">
               Will it be <ThresholdTooltip threshold={thresholdDisplay} />{' '}
-              <span className="font-semibold text-neutral-800">{thresholdDisplay}°F</span>?
+              <TemperatureDisplay fahrenheit={thresholdDisplay} size="sm" />?
             </p>
           </div>
-          <span className="text-2xl">🌡️</span>
         </div>
 
-        {/* Odds Display - Compact variant */}
+        {/* Odds Display - Compact variant with multipliers */}
         <div className="mb-4">
           <OddsDisplay
             yesPool={market.yesPool}
             noPool={market.noPool}
             variant="compact"
+            showMultipliers
           />
         </div>
 

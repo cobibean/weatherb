@@ -8,7 +8,9 @@
     "./abi": "./src/abi/index.ts",
     "./providers": "./src/providers/index.ts",
     "./types": "./src/types/index.ts",
-    "./constants": "./src/constants/index.ts"
+    "./constants": "./src/constants/index.ts",
+    "./utils/payout": "./src/utils/payout.ts",
+    "./utils/temperature": "./src/utils/temperature.ts"
   },
   "scripts": {
     "lint": "eslint .",

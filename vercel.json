@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter @weatherb/shared build && pnpm --filter @weatherb/web build",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "outputDirectory": "apps/web/.next"
+}
+

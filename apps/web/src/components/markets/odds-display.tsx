@@ -2,6 +2,7 @@
 
 import { motion, useSpring, useTransform } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
+import { getImpliedMultipliers, formatMultiplier } from '@weatherb/shared/utils/payout';
 import { cn } from '@/lib/utils';
 
 type OddsVariant = 'liquid-scale' | 'compact';
@@ -12,6 +13,7 @@ interface OddsDisplayProps {
   variant?: OddsVariant;
   size?: 'compact' | 'wide';
   showLabels?: boolean;
+  showMultipliers?: boolean;
   className?: string;
 }
 
@@ -30,13 +32,22 @@ export function OddsDisplay({
   variant = 'liquid-scale',
   size = 'wide',
   showLabels = true,
+  showMultipliers = false,
   className,
 }: OddsDisplayProps) {
   // Calculate pool ratio (0 = all NO, 1 = all YES)
-  const { yesPercent, noPercent, ratio } = useMemo(() => {
+  const { yesPercent, noPercent, ratio, yesMultiplier, noMultiplier } = useMemo(() => {
     const totalPool = yesPool + noPool;
+    const multipliers = getImpliedMultipliers(yesPool, noPool);
+    
     if (totalPool === 0n) {
-      return { yesPercent: 50, noPercent: 50, ratio: 0.5 };
+      return { 
+        yesPercent: 50, 
+        noPercent: 50, 
+        ratio: 0.5,
+        yesMultiplier: multipliers.yesMultiplier,
+        noMultiplier: multipliers.noMultiplier,
+      };
     }
     
     // Convert to numbers for percentage calculation
@@ -49,6 +60,8 @@ export function OddsDisplay({
       yesPercent: Math.round(ratioVal * 100),
       noPercent: Math.round((1 - ratioVal) * 100),
       ratio: ratioVal,
+      yesMultiplier: multipliers.yesMultiplier,
+      noMultiplier: multipliers.noMultiplier,
     };
   }, [yesPool, noPool]);
 
@@ -67,6 +80,9 @@ export function OddsDisplay({
       <CompactOdds
         yesPercent={yesPercent}
         noPercent={noPercent}
+        yesMultiplier={yesMultiplier}
+        noMultiplier={noMultiplier}
+        showMultipliers={showMultipliers}
         {...(className !== undefined && { className })}
       />
     );
@@ -77,8 +93,22 @@ export function OddsDisplay({
       {/* Labels */}
       {showLabels && (
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-semibold text-sky-medium">YES</span>
-          <span className="text-sm font-semibold text-sunset-coral">NO</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-sky-medium">YES</span>
+            {showMultipliers && (
+              <span className="text-xs font-mono font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded">
+                {formatMultiplier(yesMultiplier)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {showMultipliers && (
+              <span className="text-xs font-mono font-bold text-sunset-coral bg-sunset-pink/20 px-1.5 py-0.5 rounded">
+                {formatMultiplier(noMultiplier)}
+              </span>
+            )}
+            <span className="text-sm font-semibold text-sunset-coral">NO</span>
+          </div>
         </div>
       )}
 
@@ -155,39 +185,59 @@ export function OddsDisplay({
 function CompactOdds({
   yesPercent,
   noPercent,
+  yesMultiplier,
+  noMultiplier,
+  showMultipliers = false,
   className,
 }: {
   yesPercent: number;
   noPercent: number;
+  yesMultiplier: number;
+  noMultiplier: number;
+  showMultipliers?: boolean;
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-center gap-3', className)}>
-      {/* YES percentage */}
-      <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-sky-medium to-sky-light" />
-        <span className="font-mono text-sm font-semibold text-sky-deep">
-          {yesPercent}%
-        </span>
-      </div>
+    <div className={cn('space-y-1.5', className)}>
+      <div className="flex items-center gap-3">
+        {/* YES percentage */}
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-gradient-to-br from-sky-medium to-sky-light" />
+          <span className="font-mono text-sm font-semibold text-sky-deep">
+            {yesPercent}%
+          </span>
+        </div>
 
-      {/* Mini bar */}
-      <div className="flex-1 h-2 rounded-full overflow-hidden bg-neutral-200">
-        <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-sky-medium to-sky-light"
-          initial={{ width: '50%' }}
-          animate={{ width: `${yesPercent}%` }}
-          transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-        />
-      </div>
+        {/* Mini bar */}
+        <div className="flex-1 h-2 rounded-full overflow-hidden bg-neutral-200">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-sky-medium to-sky-light"
+            initial={{ width: '50%' }}
+            animate={{ width: `${yesPercent}%` }}
+            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+          />
+        </div>
 
-      {/* NO percentage */}
-      <div className="flex items-center gap-1.5">
-        <span className="font-mono text-sm font-semibold text-sunset-coral">
-          {noPercent}%
-        </span>
-        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-sunset-orange to-sunset-pink" />
+        {/* NO percentage */}
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-sm font-semibold text-sunset-coral">
+            {noPercent}%
+          </span>
+          <div className="w-3 h-3 rounded-full bg-gradient-to-br from-sunset-orange to-sunset-pink" />
+        </div>
       </div>
+      
+      {/* Multiplier badges */}
+      {showMultipliers && (
+        <div className="flex justify-between text-xs">
+          <span className="font-mono font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded">
+            {formatMultiplier(yesMultiplier)}
+          </span>
+          <span className="font-mono font-bold text-sunset-coral bg-sunset-pink/20 px-1.5 py-0.5 rounded">
+            {formatMultiplier(noMultiplier)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

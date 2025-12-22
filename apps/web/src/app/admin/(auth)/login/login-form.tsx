@@ -7,8 +7,12 @@ import { useActiveAccount, ConnectButton } from 'thirdweb/react';
 import { createThirdwebClient } from 'thirdweb';
 import { Shield, LogIn, AlertCircle, Loader2 } from 'lucide-react';
 
+if (!process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) {
+  throw new Error('NEXT_PUBLIC_THIRDWEB_CLIENT_ID environment variable is required');
+}
+
 const client = createThirdwebClient({
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || 'demo-client-id',
+  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
 });
 
 type AuthState = 'idle' | 'requesting' | 'signing' | 'verifying' | 'success' | 'error';

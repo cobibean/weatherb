@@ -1,4 +1,4 @@
-# WeatherB 🌡️
+# WeatherB
 
 A simple prediction market on **Flare** where users bet YES/NO on temperature outcomes.
 

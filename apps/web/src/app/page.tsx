@@ -1,49 +1,15 @@
-'use client';
+import { fetchMarketsFromContract } from '@/lib/contract-data';
+import { HomeClient } from '@/components/home';
 
-import { useState } from 'react';
-import type { Market } from '@weatherb/shared/types';
-import { Header, Footer } from '@/components/layout';
-import { HeroCarousel, MarketGrid } from '@/components/markets';
-import { mockMarkets } from '@/lib/mock-data';
+// Revalidate every 30 seconds to pick up new markets/bets
+export const revalidate = 30;
 
-export default function HomePage() {
-  const [selectedMarket, setSelectedMarket] = useState<{ market: Market; side: 'yes' | 'no' } | null>(null);
+export default async function HomePage() {
+  const { markets, error } = await fetchMarketsFromContract();
 
-  const handleBetYes = (market: Market) => {
-    setSelectedMarket({ market, side: 'yes' });
-    // TODO: Open bet modal
-    console.log('Bet YES on', market.cityName);
-  };
+  if (error) {
+    console.error('Failed to fetch markets:', error);
+  }
 
-  const handleBetNo = (market: Market) => {
-    setSelectedMarket({ market, side: 'no' });
-    // TODO: Open bet modal
-    console.log('Bet NO on', market.cityName);
-  };
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      {/* Main content - header floats over hero */}
-      <main className="flex-1">
-        {/* Hero Carousel Section */}
-        <HeroCarousel
-          markets={mockMarkets}
-          onBetYes={handleBetYes}
-          onBetNo={handleBetNo}
-        />
-
-        {/* Market Grid Section */}
-        <MarketGrid
-          markets={mockMarkets}
-          onBetYes={handleBetYes}
-          onBetNo={handleBetNo}
-          className="bg-cloud-off"
-        />
-      </main>
-
-      <Footer />
-    </div>
-  );
+  return <HomeClient markets={markets} />;
 }

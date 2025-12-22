@@ -7,26 +7,33 @@ import { lightTheme } from 'thirdweb/react';
 import { LogIn, User } from 'lucide-react';
 import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
 
-// Define Flare chain manually since it may not be in the default exports
-const flareChain = defineChain({
-  id: 14,
-  name: 'Flare',
+// Get chain ID from env (114 = Coston2 testnet, 14 = Flare mainnet)
+const chainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '114', 10);
+const isTestnet = chainId === 114;
+
+// Define chain based on environment
+const appChain = defineChain({
+  id: chainId,
+  name: isTestnet ? 'Coston2' : 'Flare',
   nativeCurrency: {
-    name: 'Flare',
-    symbol: 'FLR',
+    name: isTestnet ? 'Coston2 FLR' : 'Flare',
+    symbol: isTestnet ? 'C2FLR' : 'FLR',
     decimals: 18,
   },
   blockExplorers: [
     {
-      name: 'Flare Explorer',
-      url: 'https://flare-explorer.flare.network',
+      name: isTestnet ? 'Coston2 Explorer' : 'Flare Explorer',
+      url: isTestnet ? 'https://coston2-explorer.flare.network' : 'https://flare-explorer.flare.network',
     },
   ],
 });
 
-// Create client - in production, use NEXT_PUBLIC_THIRDWEB_CLIENT_ID env var
+if (!process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) {
+  throw new Error('NEXT_PUBLIC_THIRDWEB_CLIENT_ID environment variable is required');
+}
+
 const client = createThirdwebClient({
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || 'demo-client-id',
+  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
 });
 
 // Custom theme matching our design system
@@ -49,7 +56,7 @@ export function WalletButton() {
   return (
     <ConnectButton
       client={client}
-      chain={flareChain}
+      chain={appChain}
       connectButton={{
         label: 'Log In',
         className: 'interactive-login-button',
@@ -102,7 +109,7 @@ export function CustomWalletButton() {
   return (
     <ConnectButton
       client={client}
-      chain={flareChain}
+      chain={appChain}
       connectButton={{
         label: 'Log In',
         className: 'interactive-login-button',
