@@ -1,17 +1,49 @@
-import { CITIES } from '@weatherb/shared/constants';
+'use client';
 
-export default function HomePage(): JSX.Element {
-  const city = CITIES[0];
+import { useState } from 'react';
+import type { Market } from '@weatherb/shared/types';
+import { Header, Footer } from '@/components/layout';
+import { HeroCarousel, MarketGrid } from '@/components/markets';
+import { mockMarkets } from '@/lib/mock-data';
+
+export default function HomePage() {
+  const [selectedMarket, setSelectedMarket] = useState<{ market: Market; side: 'yes' | 'no' } | null>(null);
+
+  const handleBetYes = (market: Market) => {
+    setSelectedMarket({ market, side: 'yes' });
+    // TODO: Open bet modal
+    console.log('Bet YES on', market.cityName);
+  };
+
+  const handleBetNo = (market: Market) => {
+    setSelectedMarket({ market, side: 'no' });
+    // TODO: Open bet modal
+    console.log('Bet NO on', market.cityName);
+  };
+
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <h1 className="text-2xl font-semibold">WeatherB</h1>
-      <p className="mt-2 text-sm text-slate-600">Automated weather prediction markets on Flare.</p>
-      <div className="mt-6 rounded border p-4">
-        <div className="text-sm font-medium">Example city</div>
-        <div className="text-sm text-slate-700">
-          {city?.name} ({city?.latitude}, {city?.longitude})
-        </div>
-      </div>
-    </main>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+
+      {/* Main content - header floats over hero */}
+      <main className="flex-1">
+        {/* Hero Carousel Section */}
+        <HeroCarousel
+          markets={mockMarkets}
+          onBetYes={handleBetYes}
+          onBetNo={handleBetNo}
+        />
+
+        {/* Market Grid Section */}
+        <MarketGrid
+          markets={mockMarkets}
+          onBetYes={handleBetYes}
+          onBetNo={handleBetNo}
+          className="bg-cloud-off"
+        />
+      </main>
+
+      <Footer />
+    </div>
   );
 }

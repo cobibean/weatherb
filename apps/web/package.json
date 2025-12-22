@@ -16,12 +16,14 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.26",
+    "lucide-react": "^0.562.0",
     "next": "^16.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
-    "thirdweb": "^5.88.2"
+    "thirdweb": "^5.88.2",
+    "viem": "^2.21.57"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",

@@ -4,4 +4,269 @@
 
 :root {
   color-scheme: light;
+  
+  /* CSS Variables for design system */
+  --sky-light: #87CEEB;
+  --sky-medium: #5BA5E5;
+  --sky-deep: #4A90D9;
+  
+  --cloud-white: #FFFFFF;
+  --cloud-off: #F8FBFF;
+  --cloud-soft: #F0F4F8;
+  
+  --sunset-orange: #FFB347;
+  --sunset-pink: #FF9AB3;
+  --sunset-coral: #FF8C94;
+  
+  --success-soft: #A8E6CF;
+  --error-soft: #FFB3B3;
+  
+  --neutral-100: #FAFBFC;
+  --neutral-200: #E8ECEF;
+  --neutral-400: #B0B8C0;
+  --neutral-600: #6B7280;
+  --neutral-800: #374151;
+  
+  /* Animation timing */
+  --ease-natural: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+}
+
+@layer base {
+  body {
+    @apply bg-cloud-off text-neutral-800 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Glass morphism effects */
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/30;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+  
+  .liquid-glass {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 251, 255, 0.6));
+    backdrop-filter: blur(16px) saturate(200%);
+    @apply border border-sky-medium/20;
+  }
+  
+  /* Gradient backgrounds */
+  .gradient-sky-vertical {
+    background: linear-gradient(180deg, #5BA5E5 0%, #87CEEB 40%, #FFB347 80%, #FF9AB3 100%);
+  }
+  
+  .gradient-sky-horizontal {
+    background: linear-gradient(90deg, #87CEEB 0%, #F8FBFF 50%, #FFB347 100%);
+  }
+  
+  .gradient-spotlight {
+    background: radial-gradient(circle at 50% 20%, rgba(255, 179, 71, 0.3), rgba(91, 165, 229, 0.1), transparent 70%);
+  }
+  
+  /* Button variants */
+  .btn-primary {
+    @apply relative px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200;
+    background: linear-gradient(135deg, #FFB347, #FF9AB3);
+    box-shadow: 0 4px 12px rgba(255, 154, 179, 0.3);
+  }
+  
+  .btn-primary:hover {
+    box-shadow: 0 8px 24px rgba(255, 154, 179, 0.4);
+    transform: translateY(-1px);
+  }
+  
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+  
+  .btn-secondary {
+    @apply px-6 py-3 rounded-xl font-semibold border-2 border-sky-medium text-sky-medium bg-transparent transition-all duration-200;
+  }
+  
+  .btn-secondary:hover {
+    @apply bg-sky-medium/10;
+  }
+  
+  .btn-glass {
+    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-200;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    @apply border border-white/40 text-neutral-800;
+  }
+  
+  .btn-glass:hover {
+    background: rgba(255, 255, 255, 0.8);
+  }
+  
+  /* Interactive Login Button - slide animation matching InteractiveHoverButton */
+  .interactive-login-button {
+    position: relative !important;
+    overflow: hidden !important;
+    padding: 8px 24px !important;
+    border-radius: 9999px !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    font-family: var(--font-jakarta), system-ui, sans-serif !important;
+    background: linear-gradient(135deg, #FF9AB3, #FFB347) !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 12px rgba(255, 154, 179, 0.3) !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  .interactive-login-button:hover {
+    transform: scale(1.03) !important;
+    box-shadow: 0 8px 24px rgba(255, 154, 179, 0.45) !important;
+  }
+  
+  .interactive-login-button:active {
+    transform: scale(0.98) !important;
+  }
+  
+  /* Slide animation for login button text */
+  .interactive-login-button span {
+    display: inline-block !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  .interactive-login-button:hover span {
+    transform: translateX(-4px) !important;
+  }
+  
+  .interactive-login-button::after {
+    content: '→' !important;
+    position: absolute !important;
+    right: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) translateX(20px) !important;
+    opacity: 0 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    font-weight: 700 !important;
+  }
+  
+  .interactive-login-button:hover::after {
+    transform: translateY(-50%) translateX(0) !important;
+    opacity: 1 !important;
+  }
+  
+  /* Card variants */
+  .card {
+    @apply bg-cloud-off rounded-2xl p-6 transition-all duration-300;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  }
+  
+  .card:hover {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+  }
+  
+  .card-hero {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 251, 255, 0.7));
+    backdrop-filter: blur(8px);
+    @apply border border-white/50 p-5 md:p-6 rounded-2xl md:rounded-3xl;
+  }
+  
+  /* Texture overlays */
+  .grain-overlay {
+    @apply relative;
+  }
+  
+  .grain-overlay::before {
+    content: "";
+    @apply absolute inset-0 pointer-events-none;
+    background-image: url('/textures/paper-grain.jpg');
+    background-size: 512px 512px;
+    opacity: 0.03;
+    mix-blend-mode: overlay;
+  }
+  
+  /* Floating pill header - inspired by apigen.ca */
+  .header-floating {
+    @apply rounded-full;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.06),
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+}
+
+@layer utilities {
+  /* Focus styles */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-medium focus-visible:ring-offset-2;
+  }
+  
+  /* Text gradient - solid pink matching "Temp" */
+  .text-gradient {
+    color: #FF9AB3;
+  }
+  
+  /* Alternative gradient for accents */
+  .text-gradient-warm {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #FF9AB3, #FFB347);
+  }
+  
+  /* Text shadow for better contrast on images */
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Hero text with strong contrast */
+  .hero-title {
+    text-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  .hero-subtitle {
+    text-shadow: 
+      0 1px 4px rgba(0, 0, 0, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Hero gradient - punchy and vibrant */
+  .text-gradient-hero {
+    color: #FFD93D;
+    text-shadow: 
+      0 0 20px rgba(255, 217, 61, 0.5),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
