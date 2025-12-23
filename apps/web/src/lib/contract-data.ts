@@ -4,19 +4,39 @@ import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { CITIES } from '@weatherb/shared/constants';
 import type { MarketStatus } from '@weatherb/shared/types';
 
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as Hex;
-
-if (!CONTRACT_ADDRESS) {
-  throw new Error('NEXT_PUBLIC_CONTRACT_ADDRESS environment variable is required');
+/**
+ * Get contract address from environment variables.
+ * Checks at runtime (not module load) to allow Next.js to load env vars first.
+ */
+function getContractAddress(): Hex {
+  const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as Hex | undefined;
+  if (!address) {
+    throw new Error('NEXT_PUBLIC_CONTRACT_ADDRESS environment variable is required');
+  }
+  return address;
 }
 
-const RPC_URL =
-  process.env.RPC_URL || 'https://coston2-api.flare.network/ext/C/rpc';
+/**
+ * Get RPC URL from environment variables.
+ * Checks at runtime (not module load) to allow Next.js to load env vars first.
+ */
+function getRpcUrl(): string {
+  const url = process.env.RPC_URL;
+  if (!url) {
+    throw new Error('RPC_URL environment variable is required');
+  }
+  return url;
+}
 
-const client = createPublicClient({
-  chain: flareTestnet,
-  transport: http(RPC_URL),
-});
+/**
+ * Create viem client lazily to ensure env vars are loaded.
+ */
+function getClient() {
+  return createPublicClient({
+    chain: flareTestnet,
+    transport: http(getRpcUrl()),
+  });
+}
 
 // Map cityId bytes32 to city info
 function findCityByBytes32(cityIdHex: Hex): { id: string; name: string; latitude: number; longitude: number } | null {
@@ -79,8 +99,11 @@ export type FetchMarketsResult = {
  */
 export async function fetchMarketsFromContract(): Promise<FetchMarketsResult> {
   try {
+    const client = getClient();
+    const contractAddress = getContractAddress();
+    
     const count = await client.readContract({
-      address: CONTRACT_ADDRESS,
+      address: contractAddress,
       abi: WEATHER_MARKET_ABI,
       functionName: 'getMarketCount',
     });
@@ -89,7 +112,7 @@ export async function fetchMarketsFromContract(): Promise<FetchMarketsResult> {
 
     for (let i = 0n; i < count; i++) {
       const marketData = await client.readContract({
-        address: CONTRACT_ADDRESS,
+        address: contractAddress,
         abi: WEATHER_MARKET_ABI,
         functionName: 'getMarket',
         args: [i],

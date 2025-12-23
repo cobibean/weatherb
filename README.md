@@ -112,20 +112,18 @@ See `.env.example` for required environment variables.
 
 ## Automation (Epic 4)
 
-Prereqs:
+Market creation and settlement are handled by Vercel Cron jobs:
 
-- Redis running (`REDIS_URL`)
-- Deployed `WeatherMarket` (`CONTRACT_ADDRESS`) and RPC (`RPC_URL`)
-- Scheduler wallet is contract owner (`SCHEDULER_PRIVATE_KEY`)
-- Settler wallet is contract settler (`SETTLER_PRIVATE_KEY`)
+- **Schedule Daily** (`/api/cron/schedule-daily`) - Creates 5 markets at 6 AM UTC
+- **Settle Markets** (`/api/cron/settle-markets`) - Settles eligible markets every 5 minutes
 
-Run scheduler:
-
-- `pnpm -C services/scheduler dev`
-
-Run settler:
-
-- `pnpm -C services/settler dev`
+Required environment variables:
+- `RPC_URL` - Flare RPC endpoint
+- `NEXT_PUBLIC_CONTRACT_ADDRESS` - Deployed WeatherMarket address
+- `SCHEDULER_PRIVATE_KEY` - Wallet key for market creation (must be contract owner)
+- `SETTLER_PRIVATE_KEY` - Wallet key for settlement (must be contract settler)
+- `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` - For city rotation state
+- `CRON_SECRET` - Vercel Cron authentication
 
 ---
 

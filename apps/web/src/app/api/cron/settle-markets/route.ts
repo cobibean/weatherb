@@ -149,14 +149,14 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   // Parse environment variables
   const rpcUrl = process.env.RPC_URL;
-  const contractAddress = process.env.CONTRACT_ADDRESS as Hex | undefined;
+  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as Hex | undefined;
   const privateKey = process.env.SETTLER_PRIVATE_KEY as Hex | undefined;
 
   // Validate required env vars
   if (!rpcUrl || !contractAddress || !privateKey) {
-    console.error('Missing required environment variables: RPC_URL, CONTRACT_ADDRESS, SETTLER_PRIVATE_KEY');
+    console.error('Missing required environment variables: RPC_URL, NEXT_PUBLIC_CONTRACT_ADDRESS, SETTLER_PRIVATE_KEY');
     return NextResponse.json(
-      { success: false, error: 'Missing configuration' },
+      { success: false, error: 'Missing configuration: RPC_URL, NEXT_PUBLIC_CONTRACT_ADDRESS, SETTLER_PRIVATE_KEY' },
       { status: 500 }
     );
   }

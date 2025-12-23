@@ -342,3 +342,19 @@ export async function sendTestResults(suggestionId: string, results: TestResult[
 | Weekly cron | 2 hours |
 | **Total** | **~16 hours** |
 
+---
+
+## GitHub Actions CI Setup
+
+**Note:** The CI workflow runs `pnpm build` which requires environment variables. To prevent "run failed" emails, configure GitHub repository secrets:
+
+1. Go to repository → **Settings** → **Secrets and variables** → **Actions**
+2. Add the following secrets (required for build to pass):
+   - `NEXT_PUBLIC_CONTRACT_ADDRESS` - Contract address (can use dummy `0x0000000000000000000000000000000000000000` for CI)
+   - `NEXT_PUBLIC_CHAIN_ID` - Chain ID (e.g., `114` for Coston2)
+   - `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` - Thirdweb client ID (can use dummy value for CI)
+
+**Alternative:** Update `.github/workflows/ci.yml` to skip web build or provide dummy env vars during CI runs.
+
+**Priority:** Should be done before Epic 8 to avoid CI failures blocking PRs.
+

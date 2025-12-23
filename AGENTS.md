@@ -15,32 +15,26 @@ That's it. No sports, no politics, no crypto prices — just weather.
 ```
 weatherb/
 ├── contracts/           # Foundry — Solidity smart contracts
-├── apps/
-│   └── web/            # Next.js 14+ — User-facing betting app
-├── services/
-│   ├── scheduler/      # Market creation cron job
-│   ├── settler/        # Settlement bot (trusted settler, direct API → contract)
-│   └── admin/          # Admin API (optional, can be in web)
-├── packages/
-│   └── shared/         # Types, ABIs, constants, utils
-├── docs/
-│   └── epics/          # Detailed build plans per epic
+├── apps/web/            # Next.js 16.1.0 — User-facing betting app + Admin panel
+├── services/            # Legacy (migrated to Vercel Cron)
+│   ├── scheduler/      # → /api/cron/schedule-daily
+│   └── settler/        # → /api/cron/settle-markets
+├── packages/shared/     # Types, ABIs, constants, utils
+├── docs/epics/          # Detailed build plans per epic
 └── infra/              # Docker, deployment configs
 ```
 
-### Tech Stack (Decided)
+### Tech Stack
 | Layer | Choice | Rationale |
 |-------|--------|-----------|
 | Contracts | Foundry + Solidity 0.8.24+ | Faster tests, better DX |
-| Frontend | **Next.js 16.1.0** (App Router) | Latest stable, React 19 support, SSR |
-| React | **React 19.0** | Latest stable version |
+| Frontend | Next.js 16.1.0 (App Router) | Latest stable, React 19 support |
+| React | React 19.0 | Latest stable version |
 | Wallet | Thirdweb + WalletConnect | Per PRD requirement |
 | Styling | TailwindCSS + shadcn/ui | Fast, beautiful, customizable |
-| Animations | **Framer Motion** | Smooth, performant micro-interactions |
+| Animations | Framer Motion | Smooth, performant micro-interactions |
 | Database | PostgreSQL + Prisma | Reliable, good for indexing |
-| Queue | BullMQ + Redis | Job scheduling, retries |
-| Package Manager | pnpm | Fast, workspace support |
-| Deployment | Vercel (web) + Railway (services) | Simple, scalable |
+| Deployment | Vercel (web + cron) | Simple, scalable, serverless |
 | Weather (Primary) | MET Norway (api.met.no) | Free, high-quality, ~5-min nowcast |
 | Weather (Fallback) | NOAA/NWS (US-only) | Free, reliable for US markets |
 | Weather (Dev/Test) | Open-Meteo | Free tier for local testing only |
@@ -114,8 +108,12 @@ NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
 # Private (server only)
 DATABASE_URL=postgresql://...
 SETTLER_PRIVATE_KEY=0x...      # NEVER expose
+SCHEDULER_PRIVATE_KEY=0x...    # For market creation
 ADMIN_REPORT_EMAIL=...         # Weekly AI reports destination
 ADMIN_WALLETS=0x...,0x...      # Comma-separated admin allowlist
+RPC_URL=...                    # Flare RPC endpoint
+UPSTASH_REDIS_REST_URL=...     # For cron state management
+UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 ```
 
 ### Environments
@@ -147,12 +145,13 @@ ADMIN_WALLETS=0x...,0x...      # Comma-separated admin allowlist
 | `contracts/src/WeatherMarket.sol` | Core betting contract |
 | `packages/shared/src/types/` | Canonical TypeScript types |
 | `packages/shared/src/abi/` | Contract ABIs (auto-generated) |
+| `apps/web/src/app/api/cron/` | Vercel Cron routes (scheduler/settler) |
+| `apps/web/prisma/schema.prisma` | Database schema (admin panel) |
+| `vercel.json` | Vercel deployment + cron config |
 
 ---
 
 ## Decision Log
-
-When making architectural decisions, document them here:
 
 | Date | Decision | Rationale | Reversible? |
 |------|----------|-----------|-------------|
@@ -168,6 +167,7 @@ When making architectural decisions, document them here:
 | 2024-12-20 | Custom "Log In" wallet button | More Web2-friendly than "Connect Wallet" | Yes |
 | 2024-12-20 | Hero carousel + grid layout | Showcase markets in 2 formats on homepage | Yes |
 | 2024-12-21 | Drop FDC for trusted settler | Simpler V1; FDC adds complexity without proportional benefit | Yes |
+| 2024-12 | Vercel Cron over Railway | Serverless, simpler deployment, integrated with web app | Yes |
 
 ---
 
@@ -191,21 +191,22 @@ When making architectural decisions, document them here:
 
 ## Epic Progress Status
 
-### Epics 0-5: ✅ Complete
+### Epics 0-6: ✅ Complete
 - **Epic 0:** Monorepo scaffolding, CI/CD, shared types
 - **Epic 1:** Weather provider layer (MET Norway, NWS, Open-Meteo)
 - **Epic 2:** Smart contracts (`WeatherMarket.sol`)
 - **Epic 3:** ~~FDC verification layer~~ → **Simplified to trusted settler** (Dec 2024)
-- **Epic 4:** Scheduler + Settler automation services
+- **Epic 4:** Scheduler + Settler automation (migrated to Vercel Cron)
 - **Epic 5:** Web App UI (Next.js 16.1.0 + React 19.0)
+- **Epic 6:** Admin Panel (Prisma + PostgreSQL, wallet auth, settings, city management)
 
-### Settlement Architecture (Updated Dec 2024)
-The original Epic 3 used Flare Data Connector (FDC) for trustless proofs. This was **simplified** to a trusted settler pattern:
+### Settlement Architecture
+Simplified from FDC to trusted settler pattern:
 
 ```
 Weather API (MET Norway/NWS/Open-Meteo)
          ↓
-    Settler Service (off-chain)
+    Settler Service (Vercel Cron)
          ↓ resolveMarket(marketId, tempTenths, observedTimestamp)
     WeatherMarket.sol (on-chain, onlySettler)
 ```
@@ -214,36 +215,13 @@ Weather API (MET Norway/NWS/Open-Meteo)
 - FDC adds complexity without proportional benefit for V1
 - Settler address is trusted (controlled by us)
 - Weather APIs are already reliable sources
-- Can re-add FDC proofs later if needed (`fdc.ts` kept for reference)
+- Can re-add FDC proofs later if needed
 
-### Epic 6: ✅ Complete (Admin Panel)
-
-**Implemented:**
-- ✅ Prisma + PostgreSQL schema (SystemConfig, City, AdminLog, AdminSession)
-- ✅ Wallet-allowlist authentication with signature verification
-- ✅ Middleware protection for `/admin/**` routes
-- ✅ Admin dashboard with stats cards and system status
-- ✅ Settings page (cadence, test mode, daily count, betting buffer)
-- ✅ City management (add/activate/deactivate)
-- ✅ Markets page with emergency controls
-- ✅ Activity logs with filtering and pagination
-- ✅ All admin actions logged to database
-
-**Files Created:**
-- `/apps/web/prisma/schema.prisma` - Database schema
-- `/apps/web/src/middleware.ts` - Route protection
-- `/apps/web/src/lib/admin-session.ts` - Session management
-- `/apps/web/src/lib/admin-data.ts` - Data access layer
-- `/apps/web/src/app/admin/**` - Admin pages and API routes
-- `/apps/web/src/components/admin/**` - Admin UI components
-
-**To Activate:**
-1. Set `DATABASE_URL` in `.env` pointing to PostgreSQL
-2. Set `ADMIN_WALLETS` as comma-separated lowercase addresses
-3. Run `pnpm db:push` to sync schema to database
-
-**See:**
-- `/docs/epics/epic-6-admin.md` for full Epic 6 plan
+### Deployment Architecture
+- **Web App:** Vercel (Next.js)
+- **Cron Jobs:** Vercel Cron (`/api/cron/schedule-daily`, `/api/cron/settle-markets`)
+- **State:** Upstash Redis (city rotation index, outage flags)
+- **Database:** PostgreSQL (admin panel, future indexing)
 
 ---
 
@@ -253,4 +231,3 @@ Weather API (MET Norway/NWS/Open-Meteo)
 2. **docs/epics/** — "How do we build it?"
 3. **AGENTS.md** — "What are the rules?"
 4. **Code comments** — "Why was this done this way?"
-

@@ -157,16 +157,16 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   // Parse environment variables
   const rpcUrl = process.env.RPC_URL;
-  const contractAddress = process.env.CONTRACT_ADDRESS as Hex | undefined;
+  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as Hex | undefined;
   const privateKey = process.env.SCHEDULER_PRIVATE_KEY as Hex | undefined;
   const dailyMarketCount = parseInt(process.env.DAILY_MARKET_COUNT ?? '5', 10);
   const marketSpacingHours = parseFloat(process.env.MARKET_SPACING_HOURS ?? '3');
 
   // Validate required env vars
   if (!rpcUrl || !contractAddress || !privateKey) {
-    console.error('Missing required environment variables: RPC_URL, CONTRACT_ADDRESS, SCHEDULER_PRIVATE_KEY');
+    console.error('Missing required environment variables: RPC_URL, NEXT_PUBLIC_CONTRACT_ADDRESS, SCHEDULER_PRIVATE_KEY');
     return NextResponse.json(
-      { success: false, error: 'Missing configuration' },
+      { success: false, error: 'Missing configuration: RPC_URL, NEXT_PUBLIC_CONTRACT_ADDRESS, SCHEDULER_PRIVATE_KEY' },
       { status: 500 }
     );
   }

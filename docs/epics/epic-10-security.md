@@ -271,6 +271,13 @@ export async function criticalAlert(message: string, data?: Record<string, any>)
 - [ ] Document key management procedures
 - [ ] Create `SECURITY.md` with vulnerability disclosure instructions (use admin email as inbox for now)
 
+### 10.7 Next.js Middleware Migration
+- [ ] Resolve middleware deprecation warning (`apps/web/src/middleware.ts`)
+- [ ] Next.js 16+ deprecates `middleware.ts` convention in favor of `proxy.ts`
+- [ ] Migrate admin auth middleware to new proxy pattern
+- [ ] Update `next.config.mjs` if needed
+- [ ] Test admin route protection still works after migration
+
 ### 10.6 Pre-Launch Review
 - [ ] Complete security checklist
 - [ ] Peer review of all contracts
