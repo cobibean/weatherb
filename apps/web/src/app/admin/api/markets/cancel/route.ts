@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAdminSession, logAdminAction } from '@/lib/admin-session';
+import { cancelMarketOnChain } from '@/lib/admin-contract';
 
 const cancelMarketSchema = z.object({
   marketId: z.number().int().nonnegative(),
@@ -25,19 +26,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { marketId } = parseResult.data;
 
-    // Log the action (contract call would happen here in production)
-    await logAdminAction(session.wallet, 'CANCEL_MARKET', { marketId });
+    // Call contract to cancel market
+    let txHash: string;
+    try {
+      txHash = await cancelMarketOnChain(marketId);
+    } catch (contractError) {
+      console.error('Contract call failed:', contractError);
+      const errorMessage = contractError instanceof Error ? contractError.message : 'Unknown contract error';
 
-    // TODO: Call contract cancelMarket function
-    // This requires:
-    // 1. Admin wallet to be the contract owner
-    // 2. Private key to sign transaction
-    // For now, we just log and return success
+      // Check for common errors
+      if (errorMessage.includes('OwnableUnauthorizedAccount')) {
+        return NextResponse.json(
+          { error: 'Admin wallet is not the contract owner' },
+          { status: 403 }
+        );
+      }
+      if (errorMessage.includes('MarketNotOpen')) {
+        return NextResponse.json(
+          { error: 'Market is not in Open status and cannot be cancelled' },
+          { status: 400 }
+        );
+      }
 
-    return NextResponse.json({ 
-      success: true, 
+      return NextResponse.json(
+        { error: 'Contract call failed', details: errorMessage },
+        { status: 500 }
+      );
+    }
+
+    // Log the successful action
+    await logAdminAction(session.wallet, 'CANCEL_MARKET', { marketId, txHash });
+
+    return NextResponse.json({
+      success: true,
       marketId,
-      message: 'Market cancellation logged. Contract call pending implementation.' 
+      txHash,
+      message: 'Market cancelled successfully'
     });
   } catch (error) {
     console.error('Cancel market error:', error);
