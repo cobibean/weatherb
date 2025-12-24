@@ -20,9 +20,7 @@
 
 | Feature | Description | Priority | Complexity |
 |---------|-------------|----------|------------|
-| **Recent Markets Table** | List with status, city, threshold, volume, time remaining | High | Medium |
 | **Create Market Form** | Manual market creation (override scheduler) | Medium | High |
-| **Pause/Cancel Market** | Emergency controls with confirmation | High | Medium |
 | **Market Queue Preview** | Upcoming scheduled markets | Medium | Low |
 | **Edit Market Threshold** | Adjust threshold before betting starts | Low | Medium |
 
@@ -33,7 +31,6 @@
 | Feature | Description | Priority | Complexity |
 |---------|-------------|----------|------------|
 | **Top Bettors Leaderboard** | Whales & most active users | Medium | Medium |
-| **Wallet Distribution** | Pie chart of bet sizes | Low | Low |
 | **User Search** | Find user by wallet address | Medium | Low |
 | **User Activity Log** | Bet history for specific user | Low | Medium |
 
@@ -66,7 +63,6 @@
 | Feature | Description | Priority | Complexity |
 |---------|-------------|----------|------------|
 | **Admin Wallet Allowlist** | Manage authorized admin wallets | High | Low |
-| **Audit Log** | Track admin actions | Medium | Medium |
 | **2FA for Admin Actions** | Extra confirmation for critical ops | Low | High |
 
 ---
@@ -85,18 +81,22 @@
 ## Implementation Notes
 
 ### Already Built ✅
-- Stats cards (Active Markets, Total Volume, Cumulative Vol., Users, Resolved, Fees Earned)
+- Dashboard stats (provider status, markets today, pending settlements, fees 24h, total volume, total users)
+- Emergency controls (pause betting, pause settlement)
+- System status panel + recent activity feed
+- Markets management (active/past lists, cancel with confirmation)
+- Activity logs (audit log with filters + pagination)
+- City management (add/activate/deactivate)
+- Settings (cadence, daily count, betting buffer, test mode)
 - Design system color pie chart with interactive legend
 - Color palette swatches
 
 ### Next Steps
-1. **Recent Markets Table** — Most practical, high value
-2. **Volume Over Time Chart** — Visual impact, good for demos
-3. **Settler Bot Status** — Critical for operations
+1. **Volume Over Time Chart** — Visual impact, good for demos
+2. **Settler Bot Status** — Critical for operations
+3. **Market Queue Preview** — Helps validate scheduler output
 
 ---
 
 *Last updated: December 2024*
-
-
 
