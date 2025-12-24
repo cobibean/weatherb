@@ -74,7 +74,7 @@ weatherb/
 3. Environment:
 
    ```bash
-   cp .env.example .env.local
+   cp .env.example .env
    ```
 
    `FLARE_CONTRACT_REGISTRY_ADDRESS` (Coston2 + Flare mainnet): `0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019`

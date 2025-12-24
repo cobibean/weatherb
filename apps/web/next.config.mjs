@@ -6,7 +6,7 @@ const nextConfig = {
     qualities: [75, 85],
   },
   // Environment variables are set directly in Vercel dashboard
-  // or loaded from .env.local for local development
+  // or loaded from .env for local development
 };
 
 export default nextConfig;

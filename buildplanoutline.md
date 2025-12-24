@@ -8,7 +8,7 @@
 
 - Create monorepo structure: `contracts/`, `apps/web/`, `services/scheduler/`, `services/settler/`, `packages/shared/`, `docs/`, `infra/`
 - Toolchain: pnpm workspaces, Foundry for contracts, Next.js 14+ for web
-- Add env + secrets strategy (`.env.local` for dev, encrypted secrets for prod)
+- Add env + secrets strategy (`.env` for dev, encrypted secrets for prod)
 - Database: PostgreSQL + Prisma for indexing/voting storage
 - Add shared types: Market params, Resolution payload, Currency enum, Provider interface
 - CI pipeline: lint, format, unit tests, contract compile/test, typecheck

@@ -9,10 +9,10 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "db:generate": "dotenv -e ../../.env -e ../../.env.local -e .env -e .env.local -- prisma generate",
-    "db:push": "dotenv -e ../../.env -e ../../.env.local -e .env -e .env.local -- prisma db push",
-    "db:migrate": "dotenv -e ../../.env -e ../../.env.local -e .env -e .env.local -- prisma migrate dev",
-    "db:studio": "dotenv -e ../../.env -e ../../.env.local -e .env -e .env.local -- prisma studio",
+    "db:generate": "dotenv -e ../../.env -- prisma generate",
+    "db:push": "dotenv -e ../../.env -- prisma db push",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
     "postinstall": "prisma generate"
   },
   "dependencies": {
