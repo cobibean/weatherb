@@ -85,6 +85,11 @@ weatherb/
 
 ## Environment Variables
 
+**IMPORTANT:** This project uses `.env` in the root directory, NOT `.env.local`.
+- Always reference `.env` (not `.env.local`) when discussing environment setup
+- The `.env` file is gitignored and contains all secrets
+- Use `.env.example` as the template
+
 Key variables needed for full functionality:
 - `RPC_URL` - Flare RPC endpoint
 - `NEXT_PUBLIC_CONTRACT_ADDRESS` - Deployed contract
