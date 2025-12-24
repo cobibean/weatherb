@@ -188,4 +188,431 @@ contract WeatherMarketTest is Test {
         assertGe(payout, uint256(stake));
         assertEq(fee, (uint256(noPool) * 100) / 10_000);
     }
+
+    // ========== Access Control Tests ==========
+
+    function test_onlyOwnerCanCreateMarket() public {
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        market.createMarket(cityId, uint64(block.timestamp + 2 hours), 850, address(0));
+    }
+
+    function test_onlyOwnerCanCancelMarket() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        market.cancelMarket(marketId);
+    }
+
+    function test_onlyOwnerCanSetSettler() public {
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        market.setSettler(bob);
+    }
+
+    function test_onlyOwnerCanPause() public {
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        market.pause();
+    }
+
+    function test_onlyOwnerCanWithdrawFees() public {
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        market.withdrawFees(address(0), alice);
+    }
+
+    function test_onlyOwnerCanTransferOwnership() public {
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        market.transferOwnership(alice);
+    }
+
+    // ========== Market Creation Validation Tests ==========
+
+    function test_createMarket_rejectsNonNativeCurrency() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.OnlyNativeCurrency.selector);
+        market.createMarket(cityId, uint64(block.timestamp + 2 hours), 850, address(0x1));
+    }
+
+    function test_createMarket_rejectsResolveTimeInPast() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        market.createMarket(cityId, uint64(block.timestamp - 1), 850, address(0));
+    }
+
+    function test_createMarket_rejectsResolveTimeTooSoon() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        market.createMarket(cityId, uint64(block.timestamp + 500), 850, address(0));
+    }
+
+    function test_createMarket_rejectsZeroThreshold() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        market.createMarket(cityId, uint64(block.timestamp + 2 hours), 0, address(0));
+    }
+
+    function test_createMarket_rejectsZeroCityId() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        market.createMarket(bytes32(0), uint64(block.timestamp + 2 hours), 850, address(0));
+    }
+
+    // ========== Betting Edge Cases ==========
+
+    function test_placeBet_rejectsBelowMinimum() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.BetTooSmall.selector);
+        market.placeBet{value: 0.001 ether}(marketId, true);
+    }
+
+    function test_placeBet_rejectsWhenPaused() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(owner);
+        market.pause();
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.Paused.selector);
+        market.placeBet{value: 1 ether}(marketId, true);
+    }
+
+    function test_placeBet_rejectsOnResolvedMarket() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        vm.prank(bob);
+        vm.expectRevert(WeatherMarket.BettingClosed.selector);
+        market.placeBet{value: 1 ether}(marketId, false);
+    }
+
+    function test_placeBet_rejectsOnCancelledMarket() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(owner);
+        market.cancelMarket(marketId);
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.InvalidStatus.selector);
+        market.placeBet{value: 1 ether}(marketId, true);
+    }
+
+    // ========== Resolution Edge Cases ==========
+
+    function test_resolve_yesWinsWhenTempAboveThreshold() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertTrue(m.outcome);
+        assertEq(m.resolvedTempTenths, 900);
+    }
+
+    function test_resolve_noWinsWhenTempBelowThreshold() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 800, uint64(resolveTime));
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertFalse(m.outcome);
+    }
+
+    function test_resolve_cancelsIfNoWinners() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertEq(uint256(m.status), uint256(IWeatherMarket.MarketStatus.Cancelled));
+    }
+
+    function test_resolve_rejectsAlreadyResolved() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        vm.prank(settler);
+        vm.expectRevert(WeatherMarket.InvalidStatus.selector);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+    }
+
+    // ========== Claim/Refund Tests ==========
+
+    function test_claim_loserCannotClaim() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 800, uint64(resolveTime));
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NothingToClaim.selector);
+        market.claim(marketId);
+    }
+
+    function test_claim_cannotDoubleClaim() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        vm.prank(alice);
+        market.claim(marketId);
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NothingToClaim.selector);
+        market.claim(marketId);
+    }
+
+    function test_claim_rejectsOnUnresolvedMarket() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotResolved.selector);
+        market.claim(marketId);
+    }
+
+    function test_refund_rejectsOnNonCancelledMarket() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotCancelled.selector);
+        market.refund(marketId);
+    }
+
+    function test_refund_cannotDoubleRefund() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.prank(owner);
+        market.cancelMarket(marketId);
+
+        vm.prank(alice);
+        market.refund(marketId);
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NothingToClaim.selector);
+        market.refund(marketId);
+    }
+
+    // ========== Admin Function Tests ==========
+
+    function test_setMinBet_works() public {
+        vm.prank(owner);
+        market.setMinBet(0.1 ether);
+        assertEq(market.minBetWei(), 0.1 ether);
+    }
+
+    function test_setMinBet_rejectsZero() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        market.setMinBet(0);
+    }
+
+    function test_setBettingBuffer_works() public {
+        vm.prank(owner);
+        market.setBettingBuffer(1800);
+        assertEq(market.bettingBufferSeconds(), 1800);
+    }
+
+    function test_setBettingBuffer_rejectsZero() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        market.setBettingBuffer(0);
+    }
+
+    function test_transferOwnership_works() public {
+        vm.prank(owner);
+        market.transferOwnership(alice);
+        assertEq(market.owner(), alice);
+    }
+
+    function test_transferOwnership_rejectsZeroAddress() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.ZeroAddress.selector);
+        market.transferOwnership(address(0));
+    }
+
+    function test_setSettler_rejectsZeroAddress() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.ZeroAddress.selector);
+        market.setSettler(address(0));
+    }
+
+    function test_pauseUnpause_works() public {
+        vm.prank(owner);
+        market.pause();
+        assertTrue(market.isPaused());
+
+        vm.prank(owner);
+        market.unpause();
+        assertFalse(market.isPaused());
+    }
+
+    // ========== Fee Accounting Tests ==========
+
+    function test_feeCalculation_accurate() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+        vm.prank(bob);
+        market.placeBet{value: 2 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        assertEq(market.accruedFees(address(0)), 0.02 ether);
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertEq(m.totalFees, 0.02 ether);
+    }
+
+    function test_withdrawFees_sendsCorrectAmount() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        address recipient = address(0x999);
+        uint256 expectedFee = 0.01 ether;
+
+        vm.prank(owner);
+        market.withdrawFees(address(0), recipient);
+
+        assertEq(recipient.balance, expectedFee);
+        assertEq(market.accruedFees(address(0)), 0);
+    }
+
+    function test_withdrawFees_rejectsZeroRecipient() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.ZeroAddress.selector);
+        market.withdrawFees(address(0), address(0));
+    }
+
+    // ========== Multi-Bettor Scenarios ==========
+
+    function test_multipleBettors_payoutsProportional() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        address charlie = address(0x333);
+        vm.deal(charlie, 10 ether);
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+        vm.prank(charlie);
+        market.placeBet{value: 3 ether}(marketId, true);
+        vm.prank(bob);
+        market.placeBet{value: 4 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        uint256 aliceBefore = alice.balance;
+        vm.prank(alice);
+        market.claim(marketId);
+        assertEq(alice.balance - aliceBefore, 1.99 ether);
+
+        uint256 charlieBefore = charlie.balance;
+        vm.prank(charlie);
+        market.claim(marketId);
+        assertEq(charlie.balance - charlieBefore, 5.97 ether);
+    }
 }
