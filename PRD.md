@@ -1,7 +1,9 @@
 # PRD — Weather-Only Temperature Prediction Market (V1)
 
+**Status:** Epics 0-6 Complete (Dec 2024) | Next: Epic 7 (User Voting)
+
 ## 0) One-liner
-An automated, low-maintenance prediction market on **temperature** that lists **5 total binary markets/day** (across the entire app), lets users bet YES/NO on “temp ≥ threshold,” and auto-settles via a Web2→proof→contract verification flow (Flare FDC-style). Runs mostly unattended, with a lightweight weekly admin email loop for growth decisions.
+An automated, low-maintenance prediction market on **temperature** that lists **5 total binary markets/day** (across the entire app), lets users bet YES/NO on "temp ≥ threshold," and auto-settles via trusted settler pattern. Runs mostly unattended on Vercel, with a lightweight weekly admin email loop for growth decisions.
 
 ---
 
@@ -76,8 +78,13 @@ An automated, low-maintenance prediction market on **temperature** that lists **
 
 ## 5) Market Generation (Automated)
 
+**Implementation:** Vercel Cron job runs daily at 6 AM UTC (`/api/cron/schedule-daily`)
+
 ### Daily scheduler
-- Creates exactly **5 markets/day**.
+- Creates exactly **5 markets/day** on-chain
+- Uses city rotation (tracked in Upstash Redis)
+- Fetches forecast from weather provider
+- Calculates threshold dynamically around forecast
 
 ### Market selection inputs
 - City
@@ -112,19 +119,21 @@ An automated, low-maintenance prediction market on **temperature** that lists **
 
 ## 7) Settlement (Automation-only)
 
-- Settlement bot/service only entity that resolves markets in V1.
-- Uses “proof + decoded data” to update market outcome.
-- Stores:
-  - resolved temp (0.1°F)
+**Implementation:** Vercel Cron job runs every 5 minutes (`/api/cron/settle-markets`)
+
+- Settlement service is the only entity that resolves markets in V1 (trusted settler pattern)
+- Fetches actual temperature from weather provider (MET Norway primary)
+- Calls contract `resolveMarket()` with:
+  - resolved temp (0.1°F precision as tenths)
   - timestamp used (first reading at/after T)
-  - outcome boolean
+  - outcome boolean calculated on-chain via `temp >= threshold`
 
 ### Outage behavior
 If provider/API down:
-- Cancel/refund affected markets.
-- Automated user status message.
-- Health checks every 5 minutes.
-- Pause new market creation until green.
+- Settler detects failure and logs error
+- Admin can manually cancel/refund affected markets via admin panel
+- Future: Automated cancellation after timeout threshold
+- Health monitoring via admin dashboard
 
 ---
 
@@ -148,18 +157,26 @@ If provider/API down:
 
 ## 9) Admin Panel
 
-Must-have settings:
-- Cadence (start: 5 minutes, adjustable)
-- Market count/day (fixed at 5 in V1; leave config hook)
-- City allowlist
-- Currency enablement toggles (future-proof)
-- Emergency pause
+**Status:** ✅ Complete (Epic 6)
 
-Observability:
-- Provider uptime + latency
-- Settlement queue/backlog
-- Failed settlement logs
-- Volume + fees
+**Implementation:** `/admin` routes with wallet-based authentication
+
+Must-have settings (✅ implemented):
+- Emergency pause (contract-level via pause/unpause)
+- Settler pause (controls Cron job behavior)
+- City management (add/remove cities)
+- System configuration (database-backed)
+- Market cancellation (contract call)
+
+Observability (✅ implemented):
+- Admin dashboard with system stats
+- Action logs (all admin operations tracked)
+- Market logs viewer
+
+Future enhancements:
+- Provider uptime monitoring
+- Real-time contract stats (requires indexing)
+- Fee/volume analytics
 
 ---
 
@@ -179,6 +196,29 @@ Contract supports:
 
 ---
 
-## 11) Remaining research work (explicit)
-- Evaluate weather providers by cost, coverage, uptime, and update frequency sufficient for “first reading at/after T.”
-- Build provider adapter layer for easy switching.
+## 11) Implementation Status
+
+### ✅ Completed (Epics 0-6)
+- **Epic 0-3:** Monorepo, contracts, weather providers (MET Norway, NWS, Open-Meteo), settlement
+- **Epic 4:** Automation via Vercel Cron (scheduler + settler)
+- **Epic 5:** Web app UI (Next.js 16.1, React 19, shadcn/ui)
+- **Epic 6:** Admin panel with wallet auth and contract integration
+
+**Key Simplifications Made:**
+- Settled on **trusted settler pattern** (removed FDC complexity)
+- **MET Norway** as primary provider (free, high-quality, 5-min nowcast)
+- **Vercel Cron** for automation (removed standalone services)
+- **Single contract** (not factory pattern)
+
+### 🚧 Pending (Epics 7-10)
+- **Epic 7:** User voting/suggestions for markets
+- **Epic 8:** AI-generated weekly admin reports (OpenAI + Resend)
+- **Epic 9:** Event indexing (subgraph or similar)
+- **Epic 10:** Security hardening, monitoring, alerts
+
+### 📝 Known Limitations (V1)
+- No permissionless settlement (admin/settler only)
+- FLR only (stablecoins planned for V2)
+- Single admin wallet (multi-sig planned)
+- Polling for price updates (WebSocket upgrade planned)
+- Mock data in admin dashboard (requires indexing)
