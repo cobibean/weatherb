@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter @weatherb/shared build && pnpm --filter @weatherb/web build",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm --filter @weatherb/shared build && pnpm --filter @weatherb/web build",
+  "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
   "crons": [
     {
