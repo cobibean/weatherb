@@ -1,8 +1,13 @@
-# Ignore everything except what we need
-*
-!apps/
-!packages/
-!pnpm-workspace.yaml
-!pnpm-lock.yaml
-!package.json
-!vercel.json
+# Ignore common files not needed for deployment
+node_modules
+.git
+.env
+.env.local
+*.log
+.DS_Store
+contracts
+services
+docs
+infra
+*.md
+!README.md
