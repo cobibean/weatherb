@@ -2,6 +2,9 @@ import { Suspense } from 'react';
 import { LoginForm } from './login-form';
 import { Loader2 } from 'lucide-react';
 
+// Force dynamic rendering to avoid build-time env var requirements
+export const dynamic = 'force-dynamic';
+
 function LoginFallback(): React.ReactElement {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-light via-cloud-off to-sunset-pink/20 p-4">

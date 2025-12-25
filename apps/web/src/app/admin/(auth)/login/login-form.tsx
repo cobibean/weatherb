@@ -7,13 +7,15 @@ import { useActiveAccount, ConnectButton } from 'thirdweb/react';
 import { createThirdwebClient } from 'thirdweb';
 import { Shield, LogIn, AlertCircle, Loader2 } from 'lucide-react';
 
-if (!process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) {
-  throw new Error('NEXT_PUBLIC_THIRDWEB_CLIENT_ID environment variable is required');
-}
-
-const client = createThirdwebClient({
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
-});
+// Lazy client creation to avoid build-time errors
+const getClient = () => {
+  if (!process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) {
+    return null;
+  }
+  return createThirdwebClient({
+    clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
+  });
+};
 
 type AuthState = 'idle' | 'requesting' | 'signing' | 'verifying' | 'success' | 'error';
 
@@ -21,12 +23,30 @@ export function LoginForm(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const account = useActiveAccount();
+  const client = getClient();
   
   const [authState, setAuthState] = useState<AuthState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const redirectTo = searchParams.get('redirect') || '/admin';
+
+  // Handle missing client configuration
+  if (!client) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-light via-cloud-off to-sunset-pink/20 p-4">
+        <div className="card-hero text-center">
+          <Shield className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+          <h1 className="font-display text-xl font-bold text-neutral-800 mb-2">
+            Configuration Required
+          </h1>
+          <p className="font-body text-neutral-600">
+            Wallet connection is not configured. Please contact the administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Reset state when account changes
   useEffect(() => {

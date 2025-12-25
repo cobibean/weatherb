@@ -13,10 +13,6 @@ import { cn } from '@/lib/utils';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 
-if (!CONTRACT_ADDRESS) {
-  throw new Error('NEXT_PUBLIC_CONTRACT_ADDRESS environment variable is required');
-}
-
 // Coston2 testnet chain
 const coston2Chain = defineChain({
   id: 114,
@@ -26,13 +22,15 @@ const coston2Chain = defineChain({
   rpcUrls: { default: { http: ['https://coston2-api.flare.network/ext/C/rpc'] } },
 });
 
-if (!process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) {
-  throw new Error('NEXT_PUBLIC_THIRDWEB_CLIENT_ID environment variable is required');
-}
-
-const client = createThirdwebClient({
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
-});
+// Lazy client creation to avoid build-time errors
+const getClient = () => {
+  if (!process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) {
+    return null;
+  }
+  return createThirdwebClient({
+    clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
+  });
+};
 
 interface BetModalProps {
   market: Market;
@@ -46,11 +44,15 @@ type TxState = 'idle' | 'pending' | 'success' | 'error';
 export function BetModal({ market, side, isOpen, onClose }: BetModalProps) {
   const account = useActiveAccount();
   const { mutateAsync: sendTransaction, isPending } = useSendTransaction();
+  const client = getClient();
   
   const [amount, setAmount] = useState('0.1');
   const [txState, setTxState] = useState<TxState>('idle');
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Check for missing configuration
+  const configError = !CONTRACT_ADDRESS || !client;
 
   const thresholdF = market.thresholdF_tenths / 10;
   const resolveDate = new Date(market.resolveTime);
@@ -94,6 +96,11 @@ export function BetModal({ market, side, isOpen, onClose }: BetModalProps) {
   }, [payoutPreview]);
 
   const handleBet = async () => {
+    if (configError || !client || !CONTRACT_ADDRESS) {
+      setError('Betting is not configured. Please try again later.');
+      return;
+    }
+
     if (!account) {
       setError('Please connect your wallet first');
       return;

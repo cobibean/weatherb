@@ -28,13 +28,15 @@ const appChain = defineChain({
   ],
 });
 
-if (!process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) {
-  throw new Error('NEXT_PUBLIC_THIRDWEB_CLIENT_ID environment variable is required');
-}
-
-const client = createThirdwebClient({
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
-});
+// Client is created lazily to avoid build-time errors
+const getClient = () => {
+  if (!process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) {
+    return null;
+  }
+  return createThirdwebClient({
+    clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
+  });
+};
 
 // Custom theme matching our design system
 const customTheme = lightTheme({
@@ -53,6 +55,19 @@ const customTheme = lightTheme({
 });
 
 export function WalletButton() {
+  const client = getClient();
+  
+  if (!client) {
+    return (
+      <button 
+        disabled 
+        className="px-4 py-2 rounded-full bg-gray-200 text-gray-400 cursor-not-allowed text-sm font-medium"
+      >
+        Wallet Unavailable
+      </button>
+    );
+  }
+
   return (
     <ConnectButton
       client={client}
@@ -89,6 +104,18 @@ export function WalletButton() {
  */
 export function CustomWalletButton() {
   const account = useActiveAccount();
+  const client = getClient();
+  
+  if (!client) {
+    return (
+      <button 
+        disabled 
+        className="px-4 py-2 rounded-full bg-gray-200 text-gray-400 cursor-not-allowed text-sm font-medium"
+      >
+        Wallet Unavailable
+      </button>
+    );
+  }
   
   if (account) {
     // Show connected state with truncated address
