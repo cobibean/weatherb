@@ -7,7 +7,21 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.test.ts'],
     coverage: {
-      reporter: ['text', 'json', 'html'],
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: [
+        'src/**/*.test.ts',
+        'src/**/__tests__/**',
+        'src/types/**',
+        'src/app/**', // Next.js app routes tested via integration tests
+      ],
+      thresholds: {
+        lines: 75,
+        functions: 75,
+        branches: 70,
+        statements: 75,
+      },
     },
   },
   resolve: {

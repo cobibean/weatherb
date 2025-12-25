@@ -615,4 +615,164 @@ contract WeatherMarketTest is Test {
         market.claim(marketId);
         assertEq(charlie.balance - charlieBefore, 5.97 ether);
     }
+
+    // ========== Additional Edge Cases for Branch Coverage ==========
+
+    function test_resolve_cancelsWhenOnlyYesBets() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        // NO wins (temp below threshold), but no NO bets → market cancelled
+        market.resolveMarket(marketId, 800, uint64(resolveTime));
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertEq(uint256(m.status), uint256(IWeatherMarket.MarketStatus.Cancelled));
+    }
+
+    function test_resolve_withNoBets() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.warp(resolveTime);
+        vm.prank(settler);
+        // No bets at all → should cancel
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertEq(uint256(m.status), uint256(IWeatherMarket.MarketStatus.Cancelled));
+    }
+
+    function test_getMarket_invalidMarketId() public {
+        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        market.getMarket(999);
+    }
+
+    function test_getPosition_invalidMarketId() public {
+        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        market.getPosition(999, alice);
+    }
+
+    function test_placeBet_invalidMarketId() public {
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        market.placeBet{value: 1 ether}(999, true);
+    }
+
+    function test_claim_invalidMarketId() public {
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        market.claim(999);
+    }
+
+    function test_refund_invalidMarketId() public {
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        market.refund(999);
+    }
+
+    function test_resolveMarket_invalidMarketId() public {
+        vm.prank(settler);
+        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        market.resolveMarket(999, 900, uint64(block.timestamp));
+    }
+
+    function test_cancelMarket_invalidMarketId() public {
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        market.cancelMarket(999);
+    }
+
+    function test_cancelMarketBySettler_invalidMarketId() public {
+        vm.prank(settler);
+        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        market.cancelMarketBySettler(999);
+    }
+
+    function test_cancelMarketBySettler_beforeResolveTime() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        // Settler cannot cancel before resolve time
+        vm.prank(settler);
+        vm.expectRevert(WeatherMarket.TooEarly.selector);
+        market.cancelMarketBySettler(marketId);
+    }
+
+    function test_cancelMarketBySettler_onlySettler() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.warp(resolveTime);
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotSettler.selector);
+        market.cancelMarketBySettler(marketId);
+    }
+
+    function test_cancelMarket_alreadyCancelled() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        vm.prank(owner);
+        market.cancelMarket(marketId);
+
+        vm.prank(owner);
+        vm.expectRevert(WeatherMarket.InvalidStatus.selector);
+        market.cancelMarket(marketId);
+    }
+
+    function test_unpause_onlyOwner() public {
+        vm.prank(owner);
+        market.pause();
+
+        vm.prank(alice);
+        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        market.unpause();
+    }
+
+    // ========== PayoutMath Library Tests ==========
+
+    function test_PayoutMath_impliedProbability() public pure {
+        (uint256 yesBps, uint256 noBps) = PayoutMath.impliedProbabilityBps(1 ether, 1 ether);
+        assertEq(yesBps, 5_000); // 50%
+        assertEq(noBps, 5_000); // 50%
+    }
+
+    function test_PayoutMath_impliedProbability_emptyPools() public pure {
+        (uint256 yesBps, uint256 noBps) = PayoutMath.impliedProbabilityBps(0, 0);
+        assertEq(yesBps, 5_000); // Default 50%
+        assertEq(noBps, 5_000); // Default 50%
+    }
+
+    function test_PayoutMath_impliedProbability_skewedOdds() public pure {
+        (uint256 yesBps, uint256 noBps) = PayoutMath.impliedProbabilityBps(9 ether, 1 ether);
+        assertEq(yesBps, 9_000); // 90%
+        assertEq(noBps, 1_000); // 10%
+    }
+
+    function test_PayoutMath_feeFromLosingPool() public pure {
+        uint256 fee = PayoutMath.feeFromLosingPool(100 ether);
+        assertEq(fee, 1 ether); // 1% of 100
+    }
+
+    function test_PayoutMath_payoutForWinner_zeroWinningPool() public pure {
+        (uint256 payout, uint256 fee) = PayoutMath.payoutForWinner(0, 10 ether, 1 ether);
+        assertEq(payout, 0); // No payout when winning pool is 0
+        assertEq(fee, 0.1 ether); // Fee still calculated
+    }
+
+    function test_PayoutMath_payoutForWinner_zeroStake() public pure {
+        (uint256 payout, uint256 fee) = PayoutMath.payoutForWinner(10 ether, 10 ether, 0);
+        assertEq(payout, 0); // No payout when stake is 0
+        assertEq(fee, 0.1 ether); // Fee still calculated
+    }
 }

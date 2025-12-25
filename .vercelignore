@@ -1,0 +1,8 @@
+# Ignore everything except what we need
+*
+!apps/
+!packages/
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!package.json
+!vercel.json

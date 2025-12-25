@@ -13,14 +13,14 @@ describe('verifyCronRequest', () => {
   });
 
   it('returns true in development mode', () => {
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
     const request = new Request('http://localhost/api/cron/test');
     expect(verifyCronRequest(request)).toBe(true);
   });
 
   it('returns true with valid CRON_SECRET', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.CRON_SECRET = 'test-secret-123';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).CRON_SECRET = 'test-secret-123';
 
     const request = new Request('http://localhost/api/cron/test', {
       headers: { 'Authorization': 'Bearer test-secret-123' },
@@ -30,8 +30,8 @@ describe('verifyCronRequest', () => {
   });
 
   it('returns false with invalid secret', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.CRON_SECRET = 'correct-secret';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).CRON_SECRET = 'correct-secret';
 
     const request = new Request('http://localhost/api/cron/test', {
       headers: { 'Authorization': 'Bearer wrong-secret' },
@@ -41,8 +41,8 @@ describe('verifyCronRequest', () => {
   });
 
   it('returns false with missing header', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.CRON_SECRET = 'test-secret';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).CRON_SECRET = 'test-secret';
 
     const request = new Request('http://localhost/api/cron/test');
     expect(verifyCronRequest(request)).toBe(false);
