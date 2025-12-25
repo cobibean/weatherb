@@ -1,9 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter @weatherb/shared build && cd apps/web && pnpm build",
+  "buildCommand": "cd ../.. && pnpm --filter @weatherb/shared build && pnpm --filter @weatherb/web build",
   "framework": "nextjs",
-  "outputDirectory": ".next",
   "crons": [
     {
       "path": "/api/cron/schedule-daily",
