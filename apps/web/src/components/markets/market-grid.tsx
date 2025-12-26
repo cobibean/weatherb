@@ -35,7 +35,7 @@ export function MarketGrid({ markets, onBetYes, onBetNo, className }: MarketGrid
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-2xl font-bold text-neutral-800">All Markets</h2>
+          <h2 className="text-2xl font-bold text-neutral-800">Active Markets</h2>
           <p className="text-neutral-600 mt-1">
             {markets.length} active {markets.length === 1 ? 'market' : 'markets'}
           </p>
@@ -78,4 +78,3 @@ export function MarketGrid({ markets, onBetYes, onBetNo, className }: MarketGrid
     </section>
   );
 }
-

@@ -104,7 +104,7 @@ weatherb/
 - Rationale: Simpler deployment, no separate infrastructure, better integration with Next.js app
 
 ### Known Issues
-- **Epic 5 UI**: Hydration errors, broken typecheck, missing `/positions` route (see `docs/epics/epic-5-ui-audit-report.md`)
+- **Epic 5 UI**: Potential hydration errors from particle system (see `docs/epics/epic-5-ui-audit-report.md`)
 - **Testing**: Some provider tests incomplete (see `docs/epics/epic-0-3-todo.md`)
 
 ---
