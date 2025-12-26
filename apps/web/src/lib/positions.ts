@@ -176,7 +176,10 @@ export async function fetchUserPositions(walletAddress: string): Promise<UserPos
       } else if (marketStatus === 'cancelled' && !position.claimed) {
         // For cancelled markets, refund is the full bet amount
         claimableAmount = betAmount;
+        console.log(`[DEBUG] Market ${i} cancelled - betAmount: ${betAmount}, claimableAmount: ${claimableAmount}`);
       }
+
+      console.log(`[DEBUG] Market ${i} - status: ${marketStatus}, claimableAmount: ${claimableAmount}, claimed: ${position.claimed}`);
 
       const status = determinePositionStatus(
         marketStatus,
