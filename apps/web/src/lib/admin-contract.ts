@@ -124,7 +124,7 @@ export async function getContractPausedState(): Promise<boolean> {
   const paused = await publicClient.readContract({
     address: contractAddress,
     abi,
-    functionName: 'paused',
+    functionName: 'isPaused',
   });
 
   return paused as boolean;
