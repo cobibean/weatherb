@@ -10,6 +10,7 @@ import { parseEther, formatEther } from 'viem';
 import type { Market } from '@weatherb/shared/types';
 import { calculatePotentialPayout, formatMultiplier, getImpliedMultipliers } from '@weatherb/shared/utils/payout';
 import { cn } from '@/lib/utils';
+import { decodeContractError } from '@/lib/contract-errors';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 
@@ -134,7 +135,7 @@ export function BetModal({ market, side, isOpen, onClose }: BetModalProps) {
       setTxState('success');
     } catch (err) {
       console.error('Bet failed:', err);
-      setError(err instanceof Error ? err.message : 'Transaction failed');
+      setError(decodeContractError(err));
       setTxState('error');
     }
   };

@@ -8,6 +8,7 @@ import { prepareContractCall, getContract, defineChain } from 'thirdweb';
 import { createThirdwebClient } from 'thirdweb';
 import { formatEther } from 'viem';
 import { cn } from '@/lib/utils';
+import { decodeContractError } from '@/lib/contract-errors';
 import type { UserPosition } from '@/types/positions';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
@@ -131,7 +132,7 @@ export function BulkClaimModal({
               ? {
                   ...p,
                   status: 'error',
-                  error: err instanceof Error ? err.message : 'Claim failed',
+                  error: decodeContractError(err),
                 }
               : p
           )

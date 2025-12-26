@@ -8,6 +8,7 @@ import { prepareContractCall, getContract, defineChain } from 'thirdweb';
 import { createThirdwebClient } from 'thirdweb';
 import { formatEther } from 'viem';
 import { cn } from '@/lib/utils';
+import { decodeContractError } from '@/lib/contract-errors';
 import type { UserPosition } from '@/types/positions';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
@@ -99,7 +100,7 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
       }, 1500);
     } catch (err) {
       console.error(`${isRefund ? 'Refund' : 'Claim'} failed:`, err);
-      setError(err instanceof Error ? err.message : 'Transaction failed');
+      setError(decodeContractError(err));
       setTxState('error');
     }
   };
