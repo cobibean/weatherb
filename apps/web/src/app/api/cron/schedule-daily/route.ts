@@ -10,6 +10,7 @@ import {
   getUpstashRedis,
   REDIS_KEYS,
 } from '@/lib/cron';
+import { recordProviderError, recordProviderSuccess } from '@/lib/provider-health';
 
 type MarketConfig = {
   city: City;
@@ -96,11 +97,18 @@ async function createMarketOnChain(
 ): Promise<CreateMarketResult> {
   // Get forecast temperature from weather provider
   const provider = createWeatherProviderFromEnv();
-  const forecastTempTenths = await provider.getForecast(
-    config.city.latitude,
-    config.city.longitude,
-    config.resolveTimeSec
-  );
+  let forecastTempTenths: number;
+  try {
+    forecastTempTenths = await provider.getForecast(
+      config.city.latitude,
+      config.city.longitude,
+      config.resolveTimeSec
+    );
+    await recordProviderSuccess();
+  } catch (error) {
+    await recordProviderError();
+    throw error;
+  }
   const thresholdTenths = forecastTenthsToThresholdTenths(forecastTempTenths);
 
   const { publicClient, walletClient } = createContractClients({
@@ -224,4 +232,3 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
 }
-

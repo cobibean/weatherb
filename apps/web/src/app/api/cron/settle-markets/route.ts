@@ -4,6 +4,7 @@ import { CITIES } from '@weatherb/shared/constants';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
 import { verifyCronRequest, unauthorizedResponse, createContractClients } from '@/lib/cron';
+import { recordProviderError, recordProviderSuccess } from '@/lib/provider-health';
 
 type MarketStatus = 'Open' | 'Closed' | 'Resolved' | 'Cancelled';
 
@@ -92,11 +93,18 @@ async function resolveMarket(params: {
 
   // Get actual temperature from weather provider
   const provider = createWeatherProviderFromEnv();
-  const reading = await provider.getFirstReadingAtOrAfter(
-    city.latitude,
-    city.longitude,
-    params.market.resolveTimeSec
-  );
+  let reading: { tempF_tenths: number; observedTimestamp: number };
+  try {
+    reading = await provider.getFirstReadingAtOrAfter(
+      city.latitude,
+      city.longitude,
+      params.market.resolveTimeSec
+    );
+    await recordProviderSuccess();
+  } catch (error) {
+    await recordProviderError();
+    throw error;
+  }
 
   const { publicClient, walletClient } = createContractClients({
     rpcUrl: params.rpcUrl,
@@ -229,4 +237,3 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
 }
-

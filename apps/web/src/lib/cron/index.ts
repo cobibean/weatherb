@@ -22,9 +22,9 @@ export function getUpstashRedis(): Redis | null {
 // Redis keys used by cron jobs
 export const REDIS_KEYS = {
   CITY_INDEX: 'weatherb:scheduler:cityIndex',
+  PROVIDER_HEALTH: 'weatherb:provider:health',
 } as const;
 
 // Re-export utilities
 export { verifyCronRequest, unauthorizedResponse } from './auth';
 export { createContractClients, WEATHER_MARKET_ABI } from './contract';
-

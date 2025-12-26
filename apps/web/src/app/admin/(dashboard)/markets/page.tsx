@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getSystemConfig } from '@/lib/admin-data';
+import { getAdminMarkets, getSystemConfig } from '@/lib/admin-data';
 import { MarketsClient } from './markets-client';
 
 export const dynamic = 'force-dynamic';
@@ -7,47 +7,11 @@ export const revalidate = 0;
 
 async function MarketsContent(): Promise<React.ReactElement> {
   const config = await getSystemConfig();
-  
-  // TODO: Fetch real market data from contract
-  // For now, use mock data
-  const mockMarkets = [
-    {
-      id: 0,
-      cityId: 'new-york',
-      cityName: 'New York',
-      resolveTime: Date.now() + 3600000,
-      thresholdTenths: 750,
-      status: 'Open',
-      yesPool: '125.5',
-      noPool: '89.2',
-    },
-    {
-      id: 1,
-      cityId: 'los-angeles',
-      cityName: 'Los Angeles',
-      resolveTime: Date.now() + 7200000,
-      thresholdTenths: 820,
-      status: 'Open',
-      yesPool: '45.0',
-      noPool: '67.8',
-    },
-    {
-      id: 2,
-      cityId: 'chicago',
-      cityName: 'Chicago',
-      resolveTime: Date.now() - 3600000,
-      thresholdTenths: 680,
-      status: 'Resolved',
-      yesPool: '200.0',
-      noPool: '150.0',
-      outcome: true,
-      resolvedTemp: 72,
-    },
-  ];
+  const markets = await getAdminMarkets();
 
   return (
     <MarketsClient 
-      markets={mockMarkets}
+      markets={markets}
       isPaused={config.isPaused}
       isSettlerPaused={config.settlerPaused}
     />
@@ -81,4 +45,3 @@ export default function MarketsPage(): React.ReactElement {
     </div>
   );
 }
-

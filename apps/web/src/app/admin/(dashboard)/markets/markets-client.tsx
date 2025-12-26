@@ -14,22 +14,10 @@ import {
   Thermometer,
 } from 'lucide-react';
 import { EmergencyControls } from '@/components/admin/emergency-controls';
-
-interface Market {
-  id: number;
-  cityId: string;
-  cityName: string;
-  resolveTime: number;
-  thresholdTenths: number;
-  status: string;
-  yesPool: string;
-  noPool: string;
-  outcome?: boolean;
-  resolvedTemp?: number;
-}
+import type { AdminMarket } from '@/lib/admin-data';
 
 interface MarketsClientProps {
-  markets: Market[];
+  markets: AdminMarket[];
   isPaused: boolean;
   isSettlerPaused: boolean;
 }
@@ -373,4 +361,3 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
     </div>
   );
 }
-
