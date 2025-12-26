@@ -1,4 +1,4 @@
-import { createPublicClient, decodeEventLog, http, keccak256, parseAbiItem, toBytes, type Hex } from 'viem';
+import { createPublicClient, decodeEventLog, http, keccak256, parseAbiItem, toBytes, type AbiEvent, type Hex } from 'viem';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { CITIES } from '@weatherb/shared/constants';
 import { formatFlr } from '@weatherb/shared/utils/payout';
@@ -244,7 +244,7 @@ async function fetchUniqueBettorCount(): Promise<number> {
   const contractAddress = getContractAddress();
   const betPlacedEvent = parseAbiItem(
     'event BetPlaced(uint256 indexed marketId, address indexed bettor, bool isYes, uint256 amount)'
-  );
+  ) as AbiEvent;
 
   const latestBlock = await client.getBlockNumber();
   const logs = await fetchLogsInBatches({
@@ -276,7 +276,7 @@ async function fetchUniqueBettorCount(): Promise<number> {
 async function fetchLogsInBatches(params: {
   client: ReturnType<typeof getClient>;
   address: Hex;
-  event: ReturnType<typeof parseAbiItem>;
+  event: AbiEvent;
   fromBlock: bigint;
   toBlock: bigint;
   maxRange: bigint;
