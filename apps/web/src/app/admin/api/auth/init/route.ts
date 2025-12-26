@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPendingSession, isAdminWallet } from '@/lib/admin-session';
+import { createPendingSession, isAdminWallet, getAdminWallets } from '@/lib/admin-session';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -13,8 +13,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Debug logging for admin auth
+    const adminWallets = getAdminWallets();
+    console.log('[Admin Auth Debug]', {
+      inputWallet: wallet,
+      inputNormalized: wallet.toLowerCase(),
+      adminWalletsEnv: process.env.ADMIN_WALLETS ? `set (${process.env.ADMIN_WALLETS.length} chars)` : 'NOT SET',
+      adminWalletsParsed: adminWallets,
+      isMatch: adminWallets.includes(wallet.toLowerCase()),
+    });
+
     // Check if wallet is in allowlist
     if (!isAdminWallet(wallet)) {
+      console.log('[Admin Auth] Wallet not authorized:', wallet);
       return NextResponse.json(
         { error: 'Wallet not authorized' },
         { status: 403 }

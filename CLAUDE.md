@@ -31,9 +31,11 @@
 ```
 weatherb/
 ├── contracts/           # Foundry smart contracts
-├── apps/web/            # Next.js app + admin panel
+├── apps/web/            # Next.js app + admin panel + Vercel Cron routes
 ├── packages/shared/     # Types, ABIs, constants
-└── docs/epics/          # Build plans per epic
+├── docs/epics/          # Build plans per epic
+├── infra/              # Docker compose (Postgres + Redis)
+└── scripts/            # Build and deployment scripts
 ```
 
 ---
@@ -55,9 +57,10 @@ weatherb/
 ## Current State (Dec 2024)
 
 ### Completed Epics
-- **Epic 0-3**: Foundations, weather providers, contracts, settlement
-- **Epic 4**: Automation (Vercel Cron for scheduling + settlement)
-- **Epic 5**: Web app UI
+- **Epic 0-2**: Foundations, weather providers, contracts
+- **Epic 3**: ~~FDC Integration~~ **Removed** (simplified to trusted settler pattern)
+- **Epic 4**: Automation (migrated from standalone services to Vercel Cron)
+- **Epic 5**: Web app UI (implemented; has known hydration issues per audit report)
 - **Epic 6**: Admin panel with wallet auth
 
 ### Pending Epics
@@ -65,6 +68,44 @@ weatherb/
 - **Epic 8**: AI weekly reports
 - **Epic 9**: Event indexing
 - **Epic 10**: Security hardening
+
+---
+
+## Deployment & Automation
+
+### Deployment
+- **Platform**: Vercel (web app + serverless cron)
+- **Database**: PostgreSQL (production)
+- **State**: Upstash Redis (city rotation tracking)
+- **Network**: Flare mainnet (production) / Coston2 testnet (development)
+
+### Cron Schedule
+- **Daily Scheduler** (`/api/cron/schedule-daily`)
+  - **Current**: Every 30 minutes (test configuration in `vercel.json`)
+  - **Production**: Intended to run at 6:00 AM UTC (see `PRD.md`)
+  - Creates exactly 5 markets per run
+  - Uses city rotation stored in Upstash Redis
+  - Fetches weather forecasts and calculates thresholds
+- **Market Settler** (`/api/cron/settle-markets`)
+  - **Current**: Every 5 minutes (configured in `vercel.json`)
+  - Checks for markets ready to resolve (past resolve time)
+  - Fetches actual temperature from weather provider
+  - Settles markets on-chain using trusted settler pattern
+
+### Architecture Decisions
+**FDC Integration Removed (Epic 3):**
+- Originally planned to use Flare Data Connector for trustless weather data verification
+- **Decision**: Simplified to trusted settler pattern for V1 (commit `d40fe39`)
+- Rationale: Faster iteration, simpler architecture, FDC can be added later if needed
+
+**Vercel Cron Migration (Epic 4):**
+- Originally implemented as standalone Node.js services (`services/scheduler/`, `services/settler/`)
+- **Decision**: Migrated to Vercel Cron API routes (serverless functions)
+- Rationale: Simpler deployment, no separate infrastructure, better integration with Next.js app
+
+### Known Issues
+- **Epic 5 UI**: Hydration errors, broken typecheck, missing `/positions` route (see `docs/epics/epic-5-ui-audit-report.md`)
+- **Testing**: Some provider tests incomplete (see `docs/epics/epic-0-3-todo.md`)
 
 ---
 
