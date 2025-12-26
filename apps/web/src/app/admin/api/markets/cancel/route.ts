@@ -35,16 +35,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const errorMessage = contractError instanceof Error ? contractError.message : 'Unknown contract error';
 
       // Check for common errors
-      if (errorMessage.includes('OwnableUnauthorizedAccount')) {
+      if (errorMessage.includes('NotOwner') || errorMessage.includes('Admin key does not match contract owner')) {
         return NextResponse.json(
           { error: 'Admin wallet is not the contract owner' },
           { status: 403 }
         );
       }
-      if (errorMessage.includes('MarketNotOpen')) {
+      if (errorMessage.includes('InvalidStatus')) {
         return NextResponse.json(
-          { error: 'Market is not in Open status and cannot be cancelled' },
+          { error: 'Market is not cancellable in its current status' },
           { status: 400 }
+        );
+      }
+      if (errorMessage.includes('InvalidMarket')) {
+        return NextResponse.json(
+          { error: 'Market does not exist' },
+          { status: 404 }
         );
       }
 
@@ -68,4 +74,3 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to cancel market' }, { status: 500 });
   }
 }
-

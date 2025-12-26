@@ -28,7 +28,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const errorMessage = contractError instanceof Error ? contractError.message : 'Unknown contract error';
 
       // Check for common errors
-      if (errorMessage.includes('OwnableUnauthorizedAccount')) {
+      if (errorMessage.includes('NotOwner') || errorMessage.includes('Admin key does not match contract owner')) {
         return NextResponse.json(
           { error: 'Admin wallet is not the contract owner' },
           { status: 403 }
@@ -92,4 +92,3 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to get pause state' }, { status: 500 });
   }
 }
-
