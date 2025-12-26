@@ -41,3 +41,6 @@ coverage/
 *.tsbuildinfo
 .turbo/
 .vercel
+
+# Local audit reports
+contract-audit.html
