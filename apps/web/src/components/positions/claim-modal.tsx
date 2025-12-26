@@ -51,6 +51,7 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
 
   const configError = !CONTRACT_ADDRESS || !client;
   const thresholdF = position.thresholdTenths / 10;
+  const isRefund = position.status === 'refundable';
   const claimableAmountFLR = position.claimableAmount
     ? Number(formatEther(position.claimableAmount))
     : 0;
@@ -79,9 +80,12 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
         address: CONTRACT_ADDRESS as `0x${string}`,
       });
 
+      // Use refund() for cancelled markets, claim() for resolved markets
       const transaction = prepareContractCall({
         contract,
-        method: 'function claim(uint256 marketId)',
+        method: isRefund
+          ? 'function refund(uint256 marketId)'
+          : 'function claim(uint256 marketId)',
         params: [BigInt(position.marketId)],
       });
 
@@ -94,7 +98,7 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
         onSuccess?.();
       }, 1500);
     } catch (err) {
-      console.error('Claim failed:', err);
+      console.error(`${isRefund ? 'Refund' : 'Claim'} failed:`, err);
       setError(err instanceof Error ? err.message : 'Transaction failed');
       setTxState('error');
     }
@@ -126,7 +130,12 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
           className="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="px-6 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
+          <div className={cn(
+            'px-6 py-4 text-white',
+            isRefund
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600'
+              : 'bg-gradient-to-r from-emerald-500 to-emerald-600'
+          )}>
             <button
               onClick={handleClose}
               className="absolute top-4 right-4 p-1 rounded-full hover:bg-white/20 transition-colors"
@@ -136,7 +145,7 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
             <div className="flex items-center gap-3">
               <CheckCircle className="w-6 h-6" />
               <div>
-                <h2 className="text-xl font-bold">Claim Winnings</h2>
+                <h2 className="text-xl font-bold">{isRefund ? 'Refund Bet' : 'Claim Winnings'}</h2>
                 <p className="text-sm opacity-90">{position.cityName}</p>
               </div>
             </div>
@@ -146,16 +155,21 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
           <div className="p-6 space-y-6">
             {txState === 'success' ? (
               <div className="text-center py-4">
-                <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+                <CheckCircle className={cn(
+                  'w-16 h-16 mx-auto mb-4',
+                  isRefund ? 'text-amber-500' : 'text-emerald-500'
+                )} />
                 <h3 className="text-xl font-bold text-neutral-800 mb-2">
-                  Winnings Claimed!
+                  {isRefund ? 'Refund Complete!' : 'Winnings Claimed!'}
                 </h3>
                 <p className="text-neutral-600 mb-1">
                   You received {claimableAmountFLR.toFixed(3)} FLR
                 </p>
-                <p className="text-sm text-emerald-600 font-semibold">
-                  Profit: +{profitFLR.toFixed(3)} FLR
-                </p>
+                {!isRefund && (
+                  <p className="text-sm text-emerald-600 font-semibold">
+                    Profit: +{profitFLR.toFixed(3)} FLR
+                  </p>
+                )}
                 {txHash && (
                   <a
                     href={`https://coston2-explorer.flare.network/tx/${txHash}`}
@@ -194,30 +208,42 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
                   )}
                 </div>
 
-                {/* Winnings Breakdown */}
-                <div className="bg-emerald-50 rounded-xl p-4 border-2 border-emerald-200">
+                {/* Winnings/Refund Breakdown */}
+                <div className={cn(
+                  'rounded-xl p-4 border-2',
+                  isRefund
+                    ? 'bg-amber-50 border-amber-200'
+                    : 'bg-emerald-50 border-emerald-200'
+                )}>
                   <div className="text-sm font-medium text-slate-700 mb-3">
-                    Your winnings:
+                    {isRefund ? 'Your refund:' : 'Your winnings:'}
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600">Total payout:</span>
-                      <span className="font-mono font-bold text-lg text-emerald-700">
+                      <span className="text-sm text-slate-600">{isRefund ? 'Refund amount:' : 'Total payout:'}</span>
+                      <span className={cn(
+                        'font-mono font-bold text-lg',
+                        isRefund ? 'text-amber-700' : 'text-emerald-700'
+                      )}>
                         {claimableAmountFLR.toFixed(3)} FLR
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600">Your stake:</span>
-                      <span className="font-mono text-slate-600">
-                        {Number(formatEther(position.betAmount)).toFixed(3)} FLR
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
-                      <span className="text-sm font-semibold text-slate-700">Profit:</span>
-                      <span className="font-mono font-bold text-emerald-600">
-                        +{profitFLR.toFixed(3)} FLR
-                      </span>
-                    </div>
+                    {!isRefund && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Your stake:</span>
+                          <span className="font-mono text-slate-600">
+                            {Number(formatEther(position.betAmount)).toFixed(3)} FLR
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+                          <span className="text-sm font-semibold text-slate-700">Profit:</span>
+                          <span className="font-mono font-bold text-emerald-600">
+                            +{profitFLR.toFixed(3)} FLR
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -239,18 +265,20 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
                 {/* Wallet Status */}
                 {!account && (
                   <p className="text-sm text-amber-600 bg-amber-50 px-4 py-3 rounded-xl">
-                    Connect your wallet to claim your winnings.
+                    Connect your wallet to {isRefund ? 'get your refund' : 'claim your winnings'}.
                   </p>
                 )}
 
-                {/* Claim Button */}
+                {/* Claim/Refund Button */}
                 <button
                   onClick={handleClaim}
                   disabled={!account || isPending || configError}
                   className={cn(
                     'w-full py-4 rounded-xl font-semibold text-white transition-all',
                     'flex items-center justify-center gap-2',
-                    'bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300',
+                    isRefund
+                      ? 'bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300'
+                      : 'bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300',
                     (isPending || !account || configError) && 'cursor-not-allowed'
                   )}
                 >
@@ -262,7 +290,7 @@ export function ClaimModal({ position, isOpen, onClose, onSuccess }: ClaimModalP
                   ) : (
                     <>
                       <CheckCircle className="w-5 h-5" />
-                      Claim {claimableAmountFLR.toFixed(3)} FLR
+                      {isRefund ? 'Refund' : 'Claim'} {claimableAmountFLR.toFixed(3)} FLR
                     </>
                   )}
                 </button>
