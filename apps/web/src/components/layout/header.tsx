@@ -2,19 +2,65 @@
 
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useActiveAccount } from 'thirdweb/react';
+import { formatEther } from 'viem';
 import { cn } from '@/lib/utils';
 import { WalletButton } from './wallet-button';
+import type { PositionsResponse } from '@/types/positions';
 
 const navLinks = [
   { href: '/', label: 'Markets' },
-  { href: '/positions', label: 'My Positions' },
+  { href: '/positions', label: 'My Positions', hasNotification: true },
 ];
 
 export function Header() {
   const [isHidden, setIsHidden] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [claimableCount, setClaimableCount] = useState(0);
+  const [claimableFLR, setClaimableFLR] = useState<string | null>(null);
   const { scrollY } = useScroll();
+  const account = useActiveAccount();
+
+  // Fetch claimable positions count for notification badge
+  useEffect(() => {
+    if (!account?.address) {
+      setClaimableCount(0);
+      setClaimableFLR(null);
+      return;
+    }
+
+    const fetchClaimable = async () => {
+      try {
+        const response = await fetch(`/api/positions?wallet=${account.address}`);
+        const data: PositionsResponse = await response.json();
+
+        if (!data.error) {
+          const claimable = data.positions.filter(
+            (p) => p.status === 'claimable' || p.status === 'refundable'
+          );
+          setClaimableCount(claimable.length);
+
+          if (claimable.length > 0) {
+            const total = claimable.reduce((sum, p) => {
+              return sum + BigInt(p.claimableAmount ?? '0');
+            }, 0n);
+            setClaimableFLR(Number(formatEther(total)).toFixed(2));
+          } else {
+            setClaimableFLR(null);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch claimable positions:', err);
+      }
+    };
+
+    fetchClaimable();
+
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchClaimable, 60000);
+    return () => clearInterval(interval);
+  }, [account?.address]);
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
     const previous = scrollY.getPrevious() ?? 0;
@@ -48,9 +94,22 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="font-body text-sm font-semibold text-neutral-600 hover:text-neutral-800 transition-colors focus-ring rounded-lg px-2 py-1"
+                className="relative font-body text-sm font-semibold text-neutral-600 hover:text-neutral-800 transition-colors focus-ring rounded-lg px-2 py-1"
+                title={
+                  link.hasNotification && claimableFLR
+                    ? `${claimableFLR} FLR to claim`
+                    : undefined
+                }
               >
                 {link.label}
+                {link.hasNotification && claimableCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-5 w-5 bg-emerald-500 text-white text-xs font-bold items-center justify-center">
+                      {claimableCount}
+                    </span>
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -116,9 +175,19 @@ export function Header() {
               key={link.href}
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-4 py-3 text-base font-semibold text-neutral-700 hover:text-neutral-900 hover:bg-white/50 rounded-xl transition-colors"
+              className="relative flex items-center justify-between px-4 py-3 text-base font-semibold text-neutral-700 hover:text-neutral-900 hover:bg-white/50 rounded-xl transition-colors"
             >
-              {link.label}
+              <span>{link.label}</span>
+              {link.hasNotification && claimableCount > 0 && (
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-xs text-emerald-600 font-semibold">
+                    {claimableFLR} FLR
+                  </span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold">
+                    {claimableCount}
+                  </span>
+                </span>
+              )}
             </Link>
           ))}
           <div className="pt-2 px-1">
