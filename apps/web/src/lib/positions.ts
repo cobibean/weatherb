@@ -173,6 +173,9 @@ export async function fetchUserPositions(walletAddress: string): Promise<UserPos
           functionName: 'calculatePayout',
           args: [i, walletAddress as Hex],
         });
+      } else if (marketStatus === 'cancelled' && !position.claimed) {
+        // For cancelled markets, refund is the full bet amount
+        claimableAmount = betAmount;
       }
 
       const status = determinePositionStatus(
