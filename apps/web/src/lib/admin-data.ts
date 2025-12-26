@@ -246,11 +246,14 @@ async function fetchUniqueBettorCount(): Promise<number> {
     'event BetPlaced(uint256 indexed marketId, address indexed bettor, bool isYes, uint256 amount)'
   );
 
-  const logs = await client.getLogs({
+  const latestBlock = await client.getBlockNumber();
+  const logs = await fetchLogsInBatches({
+    client,
     address: contractAddress,
     event: betPlacedEvent,
     fromBlock,
-    toBlock: 'latest',
+    toBlock: latestBlock,
+    maxRange: 30n,
   });
 
   const wallets = new Set<string>();
@@ -262,6 +265,36 @@ async function fetchUniqueBettorCount(): Promise<number> {
   }
 
   return wallets.size;
+}
+
+async function fetchLogsInBatches(params: {
+  client: ReturnType<typeof getClient>;
+  address: Hex;
+  event: ReturnType<typeof parseAbiItem>;
+  fromBlock: bigint;
+  toBlock: bigint;
+  maxRange: bigint;
+}) {
+  const logs: Awaited<ReturnType<typeof params.client.getLogs>> = [];
+  let start = params.fromBlock;
+
+  while (start <= params.toBlock) {
+    const end = start + params.maxRange - 1n <= params.toBlock
+      ? start + params.maxRange - 1n
+      : params.toBlock;
+
+    const batch = await params.client.getLogs({
+      address: params.address,
+      event: params.event,
+      fromBlock: start,
+      toBlock: end,
+    });
+
+    logs.push(...batch);
+    start = end + 1n;
+  }
+
+  return logs;
 }
 
 export function deriveProviderStatus(health: ProviderHealth | null, nowMs: number = Date.now()): AdminStats['providerStatus'] {
