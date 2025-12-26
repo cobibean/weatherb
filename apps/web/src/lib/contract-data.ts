@@ -58,8 +58,9 @@ function findCityByBytes32(cityIdHex: Hex): { id: string; name: string; latitude
 function toMarketStatus(statusNum: number): MarketStatus {
   switch (statusNum) {
     case 0:
-    case 1: // Open or Closed (betting ended but not resolved)
       return 'open';
+    case 1:
+      return 'closed';
     case 2:
       return 'resolved';
     case 3:

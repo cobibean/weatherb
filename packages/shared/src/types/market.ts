@@ -1,4 +1,4 @@
-export type MarketStatus = 'open' | 'resolved' | 'cancelled';
+export type MarketStatus = 'open' | 'closed' | 'resolved' | 'cancelled';
 export type BetSide = 'yes' | 'no';
 
 export type Market = {

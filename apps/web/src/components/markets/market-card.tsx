@@ -23,6 +23,7 @@ interface MarketCardProps {
  */
 export function MarketCard({ market, onBetYes, onBetNo, className }: MarketCardProps) {
   const thresholdDisplay = Math.round(market.thresholdF_tenths / 10);
+  const isClosed = market.status === 'closed';
 
   return (
     <motion.article
@@ -75,29 +76,38 @@ export function MarketCard({ market, onBetYes, onBetNo, className }: MarketCardP
           <Countdown resolveTime={market.resolveTime} size="sm" className="text-neutral-800" />
         </div>
 
-        {/* Bet buttons */}
-        <div className="flex gap-2">
-          <InteractiveHoverButton
-            text="YES"
-            variant="yes"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onBetYes();
-            }}
-            fullWidth
-          />
-          <InteractiveHoverButton
-            text="NO"
-            variant="no"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onBetNo();
-            }}
-            fullWidth
-          />
-        </div>
+        {/* Bet buttons or closed message */}
+        {isClosed ? (
+          <div className="flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+            <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span className="text-xs font-medium text-amber-800">Betting Closed</span>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <InteractiveHoverButton
+              text="YES"
+              variant="yes"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onBetYes();
+              }}
+              fullWidth
+            />
+            <InteractiveHoverButton
+              text="NO"
+              variant="no"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onBetNo();
+              }}
+              fullWidth
+            />
+          </div>
+        )}
       </div>
     </motion.article>
   );

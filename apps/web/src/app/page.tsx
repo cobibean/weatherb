@@ -6,7 +6,8 @@ export const revalidate = 30;
 
 export default async function HomePage() {
   const { markets, error } = await fetchMarketsFromContract();
-  const activeMarkets = markets.filter((market) => market.status === 'open');
+  // Active markets include both 'open' (can bet) and 'closed' (betting ended, waiting for resolution)
+  const activeMarkets = markets.filter((market) => market.status === 'open' || market.status === 'closed');
 
   if (error) {
     console.error('Failed to fetch markets:', error);

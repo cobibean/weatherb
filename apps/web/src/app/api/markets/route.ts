@@ -18,7 +18,8 @@ export async function GET(request: Request): Promise<NextResponse> {
       (market) => market.status === 'resolved' || market.status === 'cancelled'
     );
   } else if (status === 'active') {
-    filteredMarkets = markets.filter((market) => market.status === 'open');
+    // Active markets include both 'open' (can bet) and 'closed' (betting ended, waiting for resolution)
+    filteredMarkets = markets.filter((market) => market.status === 'open' || market.status === 'closed');
   }
 
   return NextResponse.json({ markets: filteredMarkets });

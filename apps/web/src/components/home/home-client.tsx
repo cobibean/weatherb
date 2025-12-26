@@ -29,10 +29,7 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
     () => deserializeMarkets(serializedMarkets),
     [serializedMarkets]
   );
-  const activeMarkets = useMemo(
-    () => markets.filter((market) => market.status === 'open'),
-    [markets]
-  );
+  // Markets are already filtered to active (open + closed) by the server
   const [selectedMarket, setSelectedMarket] = useState<{ market: Market; side: 'yes' | 'no' } | null>(null);
 
   const handleBetYes = (market: Market) => {
@@ -85,14 +82,14 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
       <main className="flex-1">
         {/* Hero Carousel Section */}
         <HeroCarousel
-          markets={activeMarkets}
+          markets={markets}
           onBetYes={handleBetYes}
           onBetNo={handleBetNo}
         />
 
         {/* Market Grid Section */}
         <MarketGrid
-          markets={activeMarkets}
+          markets={markets}
           onBetYes={handleBetYes}
           onBetNo={handleBetNo}
           className="bg-cloud-off"
