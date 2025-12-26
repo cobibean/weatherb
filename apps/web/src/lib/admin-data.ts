@@ -212,18 +212,21 @@ async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
 
 export async function getAdminMarkets(): Promise<AdminMarket[]> {
   const markets = await fetchAdminMarketsRaw();
-  return markets.map((market) => ({
-    id: market.id,
-    cityId: market.cityId,
-    cityName: market.cityName,
-    resolveTime: market.resolveTime,
-    thresholdTenths: market.thresholdTenths,
-    status: market.status,
-    yesPool: formatFlr(market.yesPool),
-    noPool: formatFlr(market.noPool),
-    outcome: market.outcome,
-    resolvedTemp: toResolvedTemp(market.resolvedTempTenths),
-  }));
+  return markets.map((market) => {
+    const resolvedTemp = toResolvedTemp(market.resolvedTempTenths);
+    return {
+      id: market.id,
+      cityId: market.cityId,
+      cityName: market.cityName,
+      resolveTime: market.resolveTime,
+      thresholdTenths: market.thresholdTenths,
+      status: market.status,
+      yesPool: formatFlr(market.yesPool),
+      noPool: formatFlr(market.noPool),
+      ...(market.outcome !== undefined ? { outcome: market.outcome } : {}),
+      ...(resolvedTemp !== undefined ? { resolvedTemp } : {}),
+    };
+  });
 }
 
 async function fetchUniqueBettorCount(): Promise<number> {
