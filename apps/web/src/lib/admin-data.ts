@@ -1,4 +1,4 @@
-import { createPublicClient, http, keccak256, parseAbiItem, toBytes, type Hex } from 'viem';
+import { createPublicClient, decodeEventLog, http, keccak256, parseAbiItem, toBytes, type Hex } from 'viem';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { CITIES } from '@weatherb/shared/constants';
 import { formatFlr } from '@weatherb/shared/utils/payout';
@@ -258,7 +258,13 @@ async function fetchUniqueBettorCount(): Promise<number> {
 
   const wallets = new Set<string>();
   for (const log of logs) {
-    const bettor = log.args?.bettor;
+    const decoded = decodeEventLog({
+      abi: WEATHER_MARKET_ABI,
+      data: log.data,
+      topics: log.topics,
+    });
+    if (decoded.eventName !== 'BetPlaced') continue;
+    const bettor = (decoded.args as { bettor?: string }).bettor;
     if (bettor) {
       wallets.add(bettor.toLowerCase());
     }
