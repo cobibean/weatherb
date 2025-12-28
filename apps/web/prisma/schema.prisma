@@ -54,6 +54,7 @@ model AdminSession {
 
   @@index([wallet])
   @@index([expiresAt])
+  @@index([wallet, expiresAt])  // NEW: Issue #5 - optimize session lookups
 }
 
 model game_sessions {
