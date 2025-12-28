@@ -33,7 +33,7 @@ weatherb/
 ├── contracts/           # Foundry smart contracts
 ├── apps/web/            # Next.js app + admin panel + Vercel Cron routes
 ├── packages/shared/     # Types, ABIs, constants
-├── docs/epics/          # Build plans per epic
+├── docs/                # Organized documentation (epics, reference, testing, etc.)
 ├── infra/              # Docker compose (Postgres + Redis)
 └── scripts/            # Build and deployment scripts
 ```

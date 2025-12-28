@@ -20,7 +20,11 @@ weatherb/
 │   ├── scheduler/      # → /api/cron/schedule-daily
 │   └── settler/        # → /api/cron/settle-markets
 ├── packages/shared/     # Types, ABIs, constants, utils
-├── docs/epics/          # Detailed build plans per epic
+├── docs/                # Organized documentation
+│   ├── epics/           # Build plans per epic
+│   ├── reference/       # Workflows & reference guides
+│   ├── testing/         # Test plans & verification
+│   └── [content, design, features, plans, prompts, security]
 └── infra/              # Docker, deployment configs
 ```
 
@@ -142,6 +146,8 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 | `PRD.md` | Source of truth for requirements |
 | `buildplanoutline.md` | High-level epic overview |
 | `docs/epics/*.md` | Detailed plans per epic |
+| `docs/reference/codebase-organization-workflow.md` | Organization workflow guide |
+| `docs/testing/test-plan.md` | Testing documentation |
 | `contracts/src/WeatherMarketV2.sol` | **Active** betting contract (UUPS upgradeable) |
 | `contracts/src/WeatherMarket.sol` | Legacy V1 contract (reference only) |
 | `packages/shared/src/abi/` | Contract ABIs |
@@ -235,5 +241,6 @@ Weather API → Settler Cron → resolveMarket() → on-chain
 
 1. **PRD.md** — "What should we build?"
 2. **docs/epics/** — "How do we build it?"
-3. **AGENTS.md** — "What are the rules?"
-4. **Code comments** — "Why was this done this way?"
+3. **docs/reference/** — "How to organize/clean up codebase?"
+4. **AGENTS.md** — "What are the rules?"
+5. **Code comments** — "Why was this done this way?"
