@@ -105,7 +105,7 @@ NEXT_PUBLIC_CONTRACT_ADDRESS="0x716186B29043840a165e1Faf49b85bc2101fAaC7" \
 SETTLER_PRIVATE_KEY="0x..." \
 WEATHER_PROVIDER="met-no" \
 MET_NO_USER_AGENT="WeatherB/1.0 (your@email.com)" \
-pnpm exec tsx scripts/test-e2e-flow.ts
+pnpm exec tsx scripts/test/test-e2e-flow.ts
 
 # Place new bet and test
 # (Same command, but remove SKIP_BET=true)
