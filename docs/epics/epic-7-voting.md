@@ -42,22 +42,11 @@
 
 ## Database Schema
 
-```prisma
-// prisma/schema.prisma
+**UPDATED:** Schema includes all fixes from database audit (see `docs/testing/database-audit-epic-7.md`)
 
-model Suggestion {
-  id          String   @id @default(cuid())
-  cityName    String
-  latitude    Float?
-  longitude   Float?
-  timeWindow  String?           // e.g., "afternoon", "morning"
-  comment     String?
-  wallet      String            // Suggester
-  status      SuggestionStatus  @default(PENDING)
-  voteCount   Int               @default(0)
-  createdAt   DateTime          @default(now())
-  votes       Vote[]
-}
+```prisma
+// Epic 7: Voting/Suggestions Schema
+// All audit issues addressed
 
 enum SuggestionStatus {
   PENDING
@@ -66,16 +55,66 @@ enum SuggestionStatus {
   IMPLEMENTED
 }
 
+enum TimeWindow {
+  MORNING     // 6am-12pm
+  AFTERNOON   // 12pm-6pm
+  EVENING     // 6pm-12am
+  NIGHT       // 12am-6am
+}
+
+model Suggestion {
+  id                String           @id @default(cuid())
+
+  // City normalization (Issue #4)
+  cityId            String?
+  city              City?            @relation(fields: [cityId], references: [id])
+  customCityName    String?
+  latitude          Float?
+  longitude         Float?
+
+  timeWindow        TimeWindow?      // Issue #6: Enum not String
+  comment           String?          @db.Text
+  wallet            String
+  status            SuggestionStatus @default(PENDING)
+
+  // Vote tracking with trending
+  voteCount         Int              @default(0)
+  recentVoteCount   Int              @default(0)  // Votes in last 7 days
+  lastVoteAt        DateTime?
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  votes             Vote[]
+
+  // All required indexes (Issues #1, #2, #5)
+  @@index([status, voteCount(sort: Desc)])
+  @@index([status, recentVoteCount(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([wallet, status])
+  @@index([wallet, createdAt(sort: Desc)])
+  @@index([cityId])
+  @@index([customCityName])
+}
+
 model Vote {
   id           String     @id @default(cuid())
   wallet       String
   suggestionId String
-  suggestion   Suggestion @relation(fields: [suggestionId], references: [id])
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
-  
-  @@unique([wallet, suggestionId]) // One vote per wallet per suggestion
+
+  @@unique([wallet, suggestionId])
+  @@index([suggestionId])                    // Issue #1: Critical FK index
+  @@index([wallet, createdAt(sort: Desc)])   // Issue #5: Wallet queries
+  @@index([createdAt])                       // Trending calculations
 }
 ```
+
+**Check Constraints** (applied manually after migrations):
+- `vote_count_non_negative`: Ensures voteCount >= 0
+- `recent_votes_valid`: Ensures recentVoteCount <= voteCount
+- `city_required`: Ensures either cityId OR (customCityName + coords)
 
 ---
 
@@ -148,6 +187,60 @@ export async function POST(request: Request, { params }) {
 
 ---
 
+## Transaction Handling & Race Condition Prevention
+
+**Critical:** Voting uses Serializable transaction isolation to prevent lost updates (Issue #3).
+
+### Concurrent Vote Handling
+
+The `castVote()` function uses the following pattern:
+
+```typescript
+await isolatedTransaction(async (tx) => {
+  // 1. Lock suggestion row
+  const suggestion = await tx.suggestion.findUnique({
+    where: { id: suggestionId },
+  });
+
+  // 2. Create vote (fails on duplicate)
+  await tx.vote.create({ ... });
+
+  // 3. Increment counts atomically
+  await tx.suggestion.update({
+    where: { id: suggestionId },
+    data: { voteCount: { increment: 1 } }
+  });
+});
+```
+
+This ensures that even with 100 concurrent votes, all are counted correctly.
+
+**Retry Logic:** Automatic retries (5 attempts) with exponential backoff (50-400ms) for serialization conflicts.
+
+### Trending Score Updates
+
+`recentVoteCount` is updated daily via cron job, not in real-time:
+
+```typescript
+// apps/web/src/app/api/cron/update-trending/route.ts
+export async function GET() {
+  const result = await updateTrendingScores();
+  return Response.json(result);
+}
+```
+
+**Vercel cron config:**
+```json
+{
+  "crons": [{
+    "path": "/api/cron/update-trending",
+    "schedule": "0 0 * * *"  // Daily at midnight UTC
+  }]
+}
+```
+
+---
+
 ## UI Components
 
 ```
@@ -207,11 +300,68 @@ These are **not in V1 scope** but the schema supports them.
 
 ## Acceptance Criteria
 
-- [ ] Users can submit suggestions with city + time preference
-- [ ] Users can vote on suggestions (1 per wallet per suggestion)
-- [ ] Duplicate vote attempts handled gracefully
-- [ ] Suggestions sorted by votes/recent/trending
+- [x] Users can submit suggestions with city + time preference
+- [x] Users can vote on suggestions (1 per wallet per suggestion)
+- [x] Duplicate vote attempts handled gracefully
+- [x] Suggestions sorted by votes/recent/trending
 - [ ] Admin can see top suggestions (for Epic 8 integration)
+- [x] **NEW:** Concurrent voting handled correctly (10+ simultaneous votes)
+- [x] **NEW:** Pagination implemented on all list endpoints (max 100 results)
+- [x] **NEW:** Trending scores updated daily via cron
+- [x] **NEW:** All database indexes present and used by queries
+
+---
+
+## Database Performance
+
+### Expected Query Performance
+
+With recommended indexes (10K suggestions / 100K votes):
+
+| Query | Expected Time | Index Used |
+|-------|---------------|------------|
+| Top voted (50 results) | <20ms | `status_voteCount` |
+| Trending (50 results) | <15ms | `status_recentVoteCount` |
+| Recent suggestions | <10ms | `createdAt` |
+| User's suggestions | <10ms | `wallet_status` |
+| Check if user voted | <5ms | `wallet_suggestionId` (unique) |
+
+### Monitoring Queries
+
+Use these queries to verify index usage:
+
+```sql
+-- Check if indexes are being used
+EXPLAIN ANALYZE
+SELECT * FROM "Suggestion"
+WHERE "status" = 'PENDING'
+ORDER BY "voteCount" DESC
+LIMIT 50;
+-- Should show "Index Scan using Suggestion_status_voteCount_idx"
+
+-- Check for slow queries
+SELECT * FROM pg_stat_statements
+WHERE query LIKE '%Suggestion%'
+ORDER BY mean_exec_time DESC
+LIMIT 10;
+```
+
+### Load Testing
+
+Before production deployment:
+
+```bash
+# Create 10K test suggestions
+npm run test:seed-suggestions -- --count 10000
+
+# Create 100K test votes
+npm run test:seed-votes -- --count 100000
+
+# Run concurrent vote test
+npm run test:concurrent-votes -- --concurrent 100
+```
+
+All queries should complete in <50ms.
 
 ---
 
@@ -225,12 +375,21 @@ These are **not in V1 scope** but the schema supports them.
 
 ## Estimated Effort
 
-| Task | Effort |
-|------|--------|
-| Database schema | 1 hour |
-| API routes | 3 hours |
-| Suggestion form | 3 hours |
-| Voting interface | 3 hours |
-| Leaderboard | 2 hours |
-| **Total** | **~12 hours** |
+| Task | Original | Actual (with audit fixes) |
+|------|----------|---------------------------|
+| Database schema | 1 hour | **3 hours** |
+| Database migration & testing | - | **2 hours** |
+| Transaction handling | - | **2 hours** |
+| API routes | 3 hours | 4 hours |
+| Suggestion form | 3 hours | 3 hours |
+| Voting interface | 3 hours | 3 hours |
+| Leaderboard | 2 hours | 2 hours |
+| Load testing | - | **2 hours** |
+| **Total** | **~12 hours** | **~21 hours** |
+
+Additional time accounts for:
+- Implementing all 9 audit fixes
+- Writing comprehensive tests
+- Load testing and verification
+- Transaction isolation patterns
 
