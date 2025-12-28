@@ -36,37 +36,54 @@ function findCityByBytes32(cityId: Hex): { id: string; name: string; latitude: n
 }
 
 /**
- * Fetch all pending (non-resolved, non-cancelled) markets from the contract.
+ * Fetch all pending (non-resolved, non-cancelled) markets from the contract using batched RPC calls.
  */
 async function fetchPendingMarkets(params: {
   rpcUrl: string;
   contractAddress: Hex;
 }): Promise<MarketOnChain[]> {
-  const client = createPublicClient({ transport: http(params.rpcUrl) });
-  
+  const client = createPublicClient({
+    transport: http(params.rpcUrl, {
+      batch: true,
+    }),
+  });
+
   const count = await client.readContract({
     address: params.contractAddress,
     abi: WEATHER_MARKET_ABI,
     functionName: 'getMarketCount',
   });
 
-  const pending: MarketOnChain[] = [];
-  for (let i = 0n; i < count; i += 1n) {
-    const market = await client.readContract({
+  if (count === 0n) {
+    return [];
+  }
+
+  // Batch all getMarket calls using Promise.all with batched transport
+  const marketPromises = Array.from({ length: Number(count) }, (_, i) =>
+    client.readContract({
       address: params.contractAddress,
       abi: WEATHER_MARKET_ABI,
       functionName: 'getMarket',
-      args: [i],
-    });
+      args: [BigInt(i)],
+    })
+  );
+
+  const marketResults = await Promise.all(marketPromises);
+
+  const pending: MarketOnChain[] = [];
+
+  for (let i = 0; i < marketResults.length; i++) {
+    const market = marketResults[i];
+    if (!market) continue;
 
     const statusIdx = Number(market.status);
     const status = STATUS_MAP[statusIdx] ?? 'Open';
-    
+
     // Skip already resolved or cancelled markets
     if (status === 'Resolved' || status === 'Cancelled') continue;
 
     pending.push({
-      marketId: i,
+      marketId: BigInt(i),
       cityId: market.cityId,
       resolveTimeSec: Number(market.resolveTime),
       bettingDeadlineSec: Number(market.bettingDeadline),

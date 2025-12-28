@@ -125,7 +125,9 @@ function getRpcUrl(): string {
 
 function getClient() {
   return createPublicClient({
-    transport: http(getRpcUrl()),
+    transport: http(getRpcUrl(), {
+      batch: true,
+    }),
   });
 }
 
@@ -163,16 +165,28 @@ async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
     functionName: 'getMarketCount',
   });
 
-  const markets: AdminMarketRaw[] = [];
-  const nowSec = Math.floor(Date.now() / 1000);
+  if (count === 0n) {
+    return [];
+  }
 
-  for (let i = 0n; i < count; i += 1n) {
-    const marketData = await client.readContract({
+  // Batch all getMarket calls using Promise.all with batched transport
+  const marketPromises = Array.from({ length: Number(count) }, (_, i) =>
+    client.readContract({
       address: contractAddress,
       abi: WEATHER_MARKET_ABI,
       functionName: 'getMarket',
-      args: [i],
-    });
+      args: [BigInt(i)],
+    })
+  );
+
+  const marketResults = await Promise.all(marketPromises);
+
+  const markets: AdminMarketRaw[] = [];
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  for (let i = 0; i < marketResults.length; i++) {
+    const marketData = marketResults[i];
+    if (!marketData) continue;
 
     const city = findCityByBytes32(marketData.cityId);
     if (!city) {
@@ -186,7 +200,7 @@ async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
     );
 
     const market: AdminMarketRaw = {
-      id: Number(i),
+      id: i,
       cityId: city.id,
       cityName: city.name,
       resolveTime: Number(marketData.resolveTime) * 1000,

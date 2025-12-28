@@ -4,6 +4,54 @@
 
 ---
 
+## Known Issues to Address
+
+### RPC Rate Limiting (Fixed Dec 2024)
+
+**Issue:** The "My Markets" page (`/api/positions`) was experiencing intermittent HTTP 429 errors from the Flare RPC endpoint when fetching user positions.
+
+**Root Cause:** The `fetchUserPositions` function made sequential RPC calls:
+- 1 call to `getMarketCount()`
+- N calls to `getPosition()` for each market
+- M calls to `getMarket()` for each position found
+- P calls to `calculatePayout()` for resolved/cancelled positions
+
+With 100+ markets, this could trigger 200+ sequential RPC calls, causing rate limiting.
+
+**Temporary Fix (Dec 2024):**
+Implemented HTTP-level batching across the entire app to reduce RPC load:
+
+**Files Updated:**
+- `apps/web/src/lib/positions.ts:120` - User positions fetching
+- `apps/web/src/lib/contract-data.ts:101` - Market data for homepage
+- `apps/web/src/lib/admin-data.ts:157` - Admin dashboard data
+- `apps/web/src/app/api/cron/settle-markets/route.ts:41` - Settlement cron job
+
+**Approach:**
+Since Flare Coston2 doesn't have the multicall3 contract deployed, we used viem's HTTP-level batching:
+1. Enable `batch: true` in transport config
+2. Replace sequential `for` loops with `Promise.all()` + array of promises
+3. Viem batches these into fewer HTTP requests automatically
+
+**Impact:**
+- Reduces ~100 sequential RPC calls to ~10-20 batched HTTP requests
+- Eliminates rate limiting on all endpoints
+- Maintains same functionality without requiring smart contract deployment
+
+**Permanent Solution (Epic 9):**
+Once the indexer is implemented, the `/api/positions` endpoint should query the indexed database instead of making direct contract calls. This will:
+- Eliminate RPC rate limiting entirely
+- Provide instant response times
+- Enable complex queries (filtering, sorting, pagination)
+- Support real-time position updates via WebSocket/SSE
+
+**References:**
+- Fixed in commit: [see git log]
+- Related file: `apps/web/src/lib/positions.ts`
+- API route: `apps/web/src/app/api/positions/route.ts`
+
+---
+
 ## Decisions Made (Reversible)
 
 | Decision | Choice | Rationale |

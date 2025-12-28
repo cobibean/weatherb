@@ -34,12 +34,14 @@ function getRpcUrl(): string {
 }
 
 /**
- * Create viem client lazily
+ * Create viem client lazily with batching enabled
  */
 function getClient() {
   return createPublicClient({
     chain: flareTestnet,
-    transport: http(getRpcUrl()),
+    transport: http(getRpcUrl(), {
+      batch: true,
+    }),
   });
 }
 
@@ -115,7 +117,7 @@ function determinePositionStatus(
 }
 
 /**
- * Fetch all positions for a specific wallet address
+ * Fetch all positions for a specific wallet address using multicall batching
  */
 export async function fetchUserPositions(walletAddress: string): Promise<UserPosition[]> {
   try {
@@ -129,30 +131,101 @@ export async function fetchUserPositions(walletAddress: string): Promise<UserPos
       functionName: 'getMarketCount',
     });
 
-    const positions: UserPosition[] = [];
+    if (marketCount === 0n) {
+      return [];
+    }
 
-    // Check each market for user's position
-    for (let i = 0n; i < marketCount; i++) {
-      // Get user's position for this market
-      const position = await client.readContract({
+    // Batch 1: Get all positions using Promise.all with batched transport
+    const positionPromises = Array.from({ length: Number(marketCount) }, (_, i) =>
+      client.readContract({
         address: contractAddress,
         abi: WEATHER_MARKET_ABI,
         functionName: 'getPosition',
-        args: [i, walletAddress as Hex],
-      });
+        args: [BigInt(i), walletAddress as Hex],
+      })
+    );
 
-      // Skip if user has no position in this market
-      if (position.yesAmount === 0n && position.noAmount === 0n) {
-        continue;
+    const positionResults = await Promise.all(positionPromises);
+
+    // Filter to only markets where user has a position
+    const marketIndicesWithPositions: number[] = [];
+    positionResults.forEach((position, index) => {
+      if (position.yesAmount > 0n || position.noAmount > 0n) {
+        marketIndicesWithPositions.push(index);
       }
+    });
 
-      // Get market details
-      const market = await client.readContract({
+    if (marketIndicesWithPositions.length === 0) {
+      return [];
+    }
+
+    // Batch 2: Get market details for positions we found using Promise.all
+    const marketPromises = marketIndicesWithPositions.map((i) =>
+      client.readContract({
         address: contractAddress,
         abi: WEATHER_MARKET_ABI,
         functionName: 'getMarket',
-        args: [i],
-      });
+        args: [BigInt(i)],
+      })
+    );
+
+    const marketResults = await Promise.all(marketPromises);
+
+    // Batch 3: Get payouts for resolved/cancelled markets
+    const payoutCalls: Array<{
+      address: Hex;
+      abi: typeof WEATHER_MARKET_ABI;
+      functionName: 'calculatePayout';
+      args: [bigint, Hex];
+    }> = [];
+    const payoutIndices: number[] = [];
+
+    marketIndicesWithPositions.forEach((marketIndex, resultIndex) => {
+      const market = marketResults[resultIndex];
+      const position = positionResults[marketIndex];
+
+      // Type guards
+      if (!market || !position) return;
+
+      const marketStatus = toMarketStatus(market.status);
+
+      if ((marketStatus === 'resolved' || marketStatus === 'cancelled') && !position.claimed) {
+        payoutCalls.push({
+          address: contractAddress,
+          abi: WEATHER_MARKET_ABI,
+          functionName: 'calculatePayout',
+          args: [BigInt(marketIndex), walletAddress as Hex],
+        });
+        payoutIndices.push(resultIndex);
+      }
+    });
+
+    const payoutResults = payoutCalls.length > 0
+      ? await Promise.all(
+          payoutCalls.map((call) =>
+            client.readContract({
+              address: call.address,
+              abi: call.abi,
+              functionName: call.functionName,
+              args: call.args,
+            })
+          )
+        )
+      : [];
+
+    // Build the positions array
+    const positions: UserPosition[] = [];
+    let payoutResultIndex = 0;
+
+    for (let i = 0; i < marketIndicesWithPositions.length; i++) {
+      const marketIndex = marketIndicesWithPositions[i];
+      if (marketIndex === undefined) continue;
+
+      const position = positionResults[marketIndex];
+      const market = marketResults[i];
+
+      // Type guards
+      if (!position || !market) continue;
 
       // Get city info
       const city = findCityByBytes32(market.cityId);
@@ -164,22 +237,20 @@ export async function fetchUserPositions(walletAddress: string): Promise<UserPos
       const betSide = position.yesAmount > 0n ? 'YES' : 'NO';
       const betAmount = position.yesAmount > 0n ? position.yesAmount : position.noAmount;
 
-      // Calculate payout if applicable
+      // Get claimable amount if this market had a payout call
       let claimableAmount: bigint | undefined;
-      if (marketStatus === 'resolved' && !position.claimed) {
-        claimableAmount = await client.readContract({
-          address: contractAddress,
-          abi: WEATHER_MARKET_ABI,
-          functionName: 'calculatePayout',
-          args: [i, walletAddress as Hex],
-        });
-      } else if (marketStatus === 'cancelled' && !position.claimed) {
-        // For cancelled markets, refund is the full bet amount
-        claimableAmount = betAmount;
-        console.log(`[DEBUG] Market ${i} cancelled - betAmount: ${betAmount.toString()}, claimableAmount: ${claimableAmount.toString()}`);
+      if (payoutIndices.includes(i)) {
+        const payoutResult = payoutResults[payoutResultIndex];
+        if (payoutResult !== undefined) {
+          claimableAmount = payoutResult;
+        }
+        payoutResultIndex++;
       }
 
-      console.log(`[DEBUG] Market ${i} - status: ${marketStatus}, claimableAmount: ${claimableAmount?.toString()}, claimed: ${position.claimed}`);
+      // For cancelled markets without payout, use bet amount
+      if (marketStatus === 'cancelled' && !position.claimed && claimableAmount === undefined) {
+        claimableAmount = betAmount;
+      }
 
       const status = determinePositionStatus(
         marketStatus,
@@ -200,7 +271,7 @@ export async function fetchUserPositions(walletAddress: string): Promise<UserPos
       }
 
       const userPosition: UserPosition = {
-        marketId: i.toString(),
+        marketId: marketIndex.toString(),
         cityName: city.name,
         cityId: city.id,
         latitude: city.latitude,
