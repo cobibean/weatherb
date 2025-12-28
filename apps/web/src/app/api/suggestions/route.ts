@@ -92,12 +92,12 @@ export async function POST(request: NextRequest) {
     const suggestion = await prisma.suggestion.create({
       data: {
         wallet,
-        cityId: input.cityId,
-        customCityName: input.customCityName,
-        latitude: input.latitude,
-        longitude: input.longitude,
-        timeWindow: input.timeWindow,
-        comment: input.comment,
+        ...(input.cityId && { cityId: input.cityId }),
+        ...(input.customCityName && { customCityName: input.customCityName }),
+        ...(input.latitude !== undefined && { latitude: input.latitude }),
+        ...(input.longitude !== undefined && { longitude: input.longitude }),
+        ...(input.timeWindow && { timeWindow: input.timeWindow }),
+        ...(input.comment && { comment: input.comment }),
         status: 'PENDING',
       },
       include: {
