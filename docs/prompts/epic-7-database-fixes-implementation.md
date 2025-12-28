@@ -9,7 +9,7 @@
 **Project:** WeatherB - Temperature prediction market on Flare blockchain
 
 **Current Situation:**
-- A comprehensive database audit has been completed (`docs/database-audit-epic-7.md`)
+- A comprehensive database audit has been completed (`docs/testing/database-audit-epic-7.md`)
 - 9 total issues identified (3 critical, 3 important, 3 minor)
 - Epic 7 (Voting/Suggestions) implementation is blocked until critical issues are fixed
 - Current Epic 7 plan needs updating with the improved schema
@@ -23,7 +23,7 @@ Implement ALL 9 database fixes from the audit, then update the Epic 7 plan with 
 
 **MUST READ FIRST (in this order):**
 
-1. **Database Audit Report:** `docs/database-audit-epic-7.md`
+1. **Database Audit Report:** `docs/testing/database-audit-epic-7.md`
    - Contains all 9 issues with detailed fixes
    - Includes recommended Prisma schema
    - Has performance implications and testing checklist
@@ -37,7 +37,7 @@ Implement ALL 9 database fixes from the audit, then update the Epic 7 plan with 
    - Existing database schema
    - Need to understand current state before adding Epic 7 tables
 
-4. **Security Recommendations:** `docs/security-recommendations.md`
+4. **Security Recommendations:** `docs/security/security-recommendations.md`
    - Security patterns to follow during implementation
 
 ---

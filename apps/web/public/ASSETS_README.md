@@ -208,4 +208,4 @@ All assets follow the "Nostalgic Futurism" design language:
 - **Animation:** Subtle, 3-7 second float cycles
 - **Opacity:** 30-70% for ethereal effect
 
-See `/docs/design-system.md` for full guidelines.
+See `/docs/design/design-system.md` for full guidelines.

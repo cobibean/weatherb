@@ -476,9 +476,9 @@ The data will tell you.
 
 **You have these ready-to-use files:**
 
-1. `/Users/cobibean/DEV/weatherb/docs/CONTENT_STRATEGY.md` — Full strategic framework
-2. `/Users/cobibean/DEV/weatherb/docs/TWITTER_LAUNCH_PLAYBOOK.md` — Copy-paste ready templates
-3. `/Users/cobibean/DEV/weatherb/docs/METRICS_DASHBOARD.md` — Tracking & measurement
+1. `/Users/cobibean/DEV/weatherb/docs/content/CONTENT_STRATEGY.md` — Full strategic framework
+2. `/Users/cobibean/DEV/weatherb/docs/content/TWITTER_LAUNCH_PLAYBOOK.md` — Copy-paste ready templates
+3. `/Users/cobibean/DEV/weatherb/docs/content/METRICS_DASHBOARD.md` — Tracking & measurement
 
 **Recommended reading order**:
 1. This summary (5 min) — Get the overview

@@ -45,7 +45,7 @@ Net: The UI direction is right, but it needs a focused hardening pass (SSR deter
 
 ### Docs
 
-- `docs/design-system.md`
+- `docs/design/design-system.md`
 - `docs/epics/epic-5-webapp.md`
 - `apps/web/public/ASSETS_README.md`
 
@@ -173,7 +173,7 @@ Net: The UI direction is right, but it needs a focused hardening pass (SSR deter
   - Asset:
     - `apps/web/public/particles/cloudsvg1.svg` declares `width="1000" height="666.66669"` (L4-L9) and contains multiple sprites.
 - **Design/asset note**:
-  - `cloudsvg1.svg` is **236KB**, above the design-system “max 200KB per asset” guideline (`docs/design-system.md`).
+  - `cloudsvg1.svg` is **236KB**, above the design-system "max 200KB per asset" guideline (`docs/design/design-system.md`).
 - **Proposed fix**:
   - Split into separate sprites and randomize selection:
     - Prefer exporting **9 separate SVGs** (e.g., `cloud-01.svg` … `cloud-09.svg`) and pick one per particle.

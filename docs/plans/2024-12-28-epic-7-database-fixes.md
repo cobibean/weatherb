@@ -790,7 +790,7 @@ Replace lines 42-78 with the corrected schema:
 ```markdown
 ## Database Schema
 
-**UPDATED:** Schema includes all fixes from database audit (see `docs/database-audit-epic-7.md`)
+**UPDATED:** Schema includes all fixes from database audit (see `docs/testing/database-audit-epic-7.md`)
 
 ```prisma
 // Epic 7: Voting/Suggestions Schema
@@ -1293,7 +1293,7 @@ No commit needed (verification task)
 
 **Date Completed:** 2024-12-28
 **Implementation Plan:** `docs/plans/2024-12-28-epic-7-database-fixes.md`
-**Audit Report:** `docs/database-audit-epic-7.md`
+**Audit Report:** `docs/testing/database-audit-epic-7.md`
 
 ---
 
@@ -1408,7 +1408,7 @@ With 10K suggestions / 100K votes:
 ## References
 
 - Epic 7 Plan: `docs/epics/epic-7-voting.md`
-- Database Audit: `docs/database-audit-epic-7.md`
+- Database Audit: `docs/testing/database-audit-epic-7.md`
 - Implementation Plan: `docs/plans/2024-12-28-epic-7-database-fixes.md`
 - Test Results: `docs/test-results-epic7.md`
 ```
@@ -1467,7 +1467,7 @@ Add to the Important Files table:
 ```markdown
 | Epic 7 database schema | `apps/web/prisma/schema.prisma` (Suggestion, Vote models) |
 | Epic 7 helpers | `apps/web/src/lib/voting.ts`, `trending.ts` |
-| Epic 7 audit | `docs/database-audit-epic-7.md` |
+| Epic 7 audit | `docs/testing/database-audit-epic-7.md` |
 | Epic 7 migration | `docs/epic-7-migration-summary.md` |
 ```
 

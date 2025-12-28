@@ -17,7 +17,7 @@ This document maps how UI, styling, and visual theming are implemented in the re
 - Shadcn baseline config exists but is minimally used: `apps/web/components.json`.
 
 ## Theme / Token Sources
-- Design spec: `docs/design-system.md` ("Nostalgic Futurism").
+- Design spec: `design-system.md` ("Nostalgic Futurism").
 - Tailwind tokens (colors, fonts, shadows, animations): `apps/web/tailwind.config.ts`.
 - CSS variables + reusable classes: `apps/web/src/app/globals.css`.
 - Fonts: `apps/web/src/app/layout.tsx` defines Sora + Plus Jakarta as CSS variables and Tailwind families.
@@ -84,7 +84,7 @@ These components use inline styles or default Tailwind colors rather than the cu
 
 ## Design-System Drift / Inconsistencies
 - Tokens are duplicated: hex values exist in both `apps/web/tailwind.config.ts` and `apps/web/src/app/globals.css`, but Tailwind does not consume the CSS variables.
-- `docs/design-system.md` specifies system fonts, but production uses Sora + Plus Jakarta from `apps/web/src/app/layout.tsx`.
+- `design-system.md` specifies system fonts, but production uses Sora + Plus Jakarta from `apps/web/src/app/layout.tsx`.
 - Shadcn config uses `baseColor: slate` and includes a default `Button` in `apps/web/src/components/ui/button.tsx`, but the app largely uses custom buttons instead.
 - `InteractiveHoverButton` references colors not defined in Tailwind (`sky-dark`, `sunset-peach`) so those hover styles may not compile.
 - Admin pages and the bet modal mix custom palette with Tailwind default colors (`slate`, `emerald`, `rose`, `amber`).
@@ -96,5 +96,5 @@ These components use inline styles or default Tailwind colors rather than the cu
 - Normalize color usage in `apps/web/src/components/markets/bet-modal.tsx` and admin pages if you want a single, strict palette.
 
 ## Related Docs
-- Spec: `docs/design-system.md`.
+- Spec: `design-system.md`.
 - Epic UI audit: `docs/epics/epic-5-ui-audit-report.md`.

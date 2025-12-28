@@ -45,7 +45,7 @@
 - Optional texture overlays for hero text
 - Generous whitespace
 
-See `/docs/design-system.md` for detailed guidelines.
+See `/docs/design/design-system.md` for detailed guidelines.
 
 ---
 
