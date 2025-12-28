@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import type { Market } from '@weatherb/shared/types/market';
 import type { UserPosition } from '@/types/positions';
 import { calculateMarketSummary, formatTemperatureDisplay, getOutcomeMessage } from '@/lib/market-summary-utils';
@@ -14,6 +14,8 @@ type MarketSummaryModalProps = {
   onClose: () => void;
   userPosition?: UserPosition;
   feePercentage?: number;
+  isLoading?: boolean;
+  error?: string;
 };
 
 export function MarketSummaryModal({
@@ -21,9 +23,72 @@ export function MarketSummaryModal({
   isOpen,
   onClose,
   userPosition,
-  feePercentage = 0.01
+  feePercentage = 0.01,
+  isLoading = false,
+  error
 }: MarketSummaryModalProps) {
-  if (!isOpen || !market) return null;
+  if (!isOpen) return null;
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative z-10 bg-white rounded-2xl p-8 shadow-2xl"
+          >
+            <div className="flex flex-col items-center space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600" />
+              <p className="text-gray-600">Loading market data...</p>
+            </div>
+          </motion.div>
+        </div>
+      </AnimatePresence>
+    );
+  }
+
+  // Show error state
+  if (error || !market) {
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative z-10 bg-white rounded-2xl p-8 shadow-2xl max-w-md"
+          >
+            <div className="flex flex-col items-center space-y-4">
+              <AlertCircle className="w-12 h-12 text-rose-500" />
+              <p className="text-gray-800 font-semibold">Error Loading Market</p>
+              <p className="text-gray-600 text-center">{error || 'Market data not available'}</p>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </AnimatePresence>
+    );
+  }
 
   const summary = calculateMarketSummary(market, feePercentage);
   const summaryWithUser = {
