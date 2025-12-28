@@ -2,12 +2,13 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {WeatherMarket} from "../src/WeatherMarket.sol";
+import {WeatherMarketV2} from "../src/WeatherMarketV2.sol";
 import {IWeatherMarket} from "../src/interfaces/IWeatherMarket.sol";
 import {PayoutMath} from "../src/libraries/PayoutMath.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract WeatherMarketTest is Test {
-    WeatherMarket internal market;
+    WeatherMarketV2 internal market;
 
     address internal owner = address(0xA11CE);
     address internal settler = address(0xB0B);
@@ -17,27 +18,40 @@ contract WeatherMarketTest is Test {
     bytes32 internal cityId = keccak256("nyc");
 
     function setUp() public {
-        vm.prank(owner);
-        market = new WeatherMarket();
+        // Deploy implementation
+        WeatherMarketV2 impl = new WeatherMarketV2();
 
-        vm.prank(owner);
-        market.setSettler(settler);
+        // Encode initializer call
+        bytes memory initData = abi.encodeWithSelector(
+            WeatherMarketV2.initialize.selector,
+            owner,
+            settler
+        );
+
+        // Deploy proxy and initialize
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        market = WeatherMarketV2(address(proxy));
 
         vm.deal(alice, 10 ether);
         vm.deal(bob, 10 ether);
     }
 
-    function test_oneBetPerWalletEnforced() public {
+    function test_multipleBetsAllowed() public {
         uint64 resolveTime = uint64(block.timestamp + 2 hours);
         vm.prank(owner);
         uint256 marketId = market.createMarket(cityId, resolveTime, 853, address(0));
 
+        // V2 allows multiple bets from the same wallet
         vm.prank(alice);
         market.placeBet{value: 0.01 ether}(marketId, true);
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.AlreadyBet.selector);
         market.placeBet{value: 0.01 ether}(marketId, false);
+
+        // Verify both bets were recorded
+        IWeatherMarket.Position memory pos = market.getPosition(marketId, alice);
+        assertEq(pos.yesAmount, 0.01 ether);
+        assertEq(pos.noAmount, 0.01 ether);
     }
 
     function test_bettingClosesAtDeadline() public {
@@ -49,7 +63,7 @@ contract WeatherMarketTest is Test {
         vm.warp(m.bettingDeadline);
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.BettingClosed.selector);
+        vm.expectRevert(WeatherMarketV2.BettingClosed.selector);
         market.placeBet{value: 0.01 ether}(marketId, true);
     }
 
@@ -101,7 +115,7 @@ contract WeatherMarketTest is Test {
 
         // Random user cannot resolve
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotSettler.selector);
+        vm.expectRevert(WeatherMarketV2.NotSettler.selector);
         market.resolveMarket(marketId, 900, uint64(resolveTime));
     }
 
@@ -117,7 +131,7 @@ contract WeatherMarketTest is Test {
 
         // Observation timestamp before resolve time should fail
         vm.prank(settler);
-        vm.expectRevert(WeatherMarket.TooEarly.selector);
+        vm.expectRevert(WeatherMarketV2.TooEarly.selector);
         market.resolveMarket(marketId, 900, uint64(resolveTime - 1));
     }
 
@@ -193,7 +207,7 @@ contract WeatherMarketTest is Test {
 
     function test_onlyOwnerCanCreateMarket() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        vm.expectRevert(WeatherMarketV2.NotOwner.selector);
         market.createMarket(cityId, uint64(block.timestamp + 2 hours), 850, address(0));
     }
 
@@ -203,31 +217,31 @@ contract WeatherMarketTest is Test {
         uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        vm.expectRevert(WeatherMarketV2.NotOwner.selector);
         market.cancelMarket(marketId);
     }
 
     function test_onlyOwnerCanSetSettler() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        vm.expectRevert(WeatherMarketV2.NotOwner.selector);
         market.setSettler(bob);
     }
 
     function test_onlyOwnerCanPause() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        vm.expectRevert(WeatherMarketV2.NotOwner.selector);
         market.pause();
     }
 
     function test_onlyOwnerCanWithdrawFees() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        vm.expectRevert(WeatherMarketV2.NotOwner.selector);
         market.withdrawFees(address(0), alice);
     }
 
     function test_onlyOwnerCanTransferOwnership() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        vm.expectRevert(WeatherMarketV2.NotOwner.selector);
         market.transferOwnership(alice);
     }
 
@@ -235,31 +249,31 @@ contract WeatherMarketTest is Test {
 
     function test_createMarket_rejectsNonNativeCurrency() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.OnlyNativeCurrency.selector);
+        vm.expectRevert(WeatherMarketV2.OnlyNativeCurrency.selector);
         market.createMarket(cityId, uint64(block.timestamp + 2 hours), 850, address(0x1));
     }
 
     function test_createMarket_rejectsResolveTimeInPast() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
         market.createMarket(cityId, uint64(block.timestamp - 1), 850, address(0));
     }
 
     function test_createMarket_rejectsResolveTimeTooSoon() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
         market.createMarket(cityId, uint64(block.timestamp + 500), 850, address(0));
     }
 
     function test_createMarket_rejectsZeroThreshold() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
         market.createMarket(cityId, uint64(block.timestamp + 2 hours), 0, address(0));
     }
 
     function test_createMarket_rejectsZeroCityId() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
         market.createMarket(bytes32(0), uint64(block.timestamp + 2 hours), 850, address(0));
     }
 
@@ -271,7 +285,7 @@ contract WeatherMarketTest is Test {
         uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.BetTooSmall.selector);
+        vm.expectRevert(WeatherMarketV2.BetTooSmall.selector);
         market.placeBet{value: 0.001 ether}(marketId, true);
     }
 
@@ -284,7 +298,7 @@ contract WeatherMarketTest is Test {
         market.pause();
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.Paused.selector);
+        vm.expectRevert(WeatherMarketV2.Paused.selector);
         market.placeBet{value: 1 ether}(marketId, true);
     }
 
@@ -301,7 +315,7 @@ contract WeatherMarketTest is Test {
         market.resolveMarket(marketId, 900, uint64(resolveTime));
 
         vm.prank(bob);
-        vm.expectRevert(WeatherMarket.BettingClosed.selector);
+        vm.expectRevert(WeatherMarketV2.BettingClosed.selector);
         market.placeBet{value: 1 ether}(marketId, false);
     }
 
@@ -314,7 +328,7 @@ contract WeatherMarketTest is Test {
         market.cancelMarket(marketId);
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.InvalidStatus.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidStatus.selector);
         market.placeBet{value: 1 ether}(marketId, true);
     }
 
@@ -357,7 +371,7 @@ contract WeatherMarketTest is Test {
         assertFalse(m.outcome);
     }
 
-    function test_resolve_cancelsIfNoWinners() public {
+    function test_resolve_setsNoWinnersStatusWhenNoWinners() public {
         uint64 resolveTime = uint64(block.timestamp + 2 hours);
         vm.prank(owner);
         uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
@@ -366,11 +380,13 @@ contract WeatherMarketTest is Test {
         market.placeBet{value: 1 ether}(marketId, false);
 
         vm.warp(resolveTime);
+
+        // YES wins but no YES bets → NoWinners status
         vm.prank(settler);
         market.resolveMarket(marketId, 900, uint64(resolveTime));
 
         IWeatherMarket.Market memory m = market.getMarket(marketId);
-        assertEq(uint256(m.status), uint256(IWeatherMarket.MarketStatus.Cancelled));
+        assertEq(uint8(m.status), 4); // NoWinners status
     }
 
     function test_resolve_rejectsAlreadyResolved() public {
@@ -386,7 +402,7 @@ contract WeatherMarketTest is Test {
         market.resolveMarket(marketId, 900, uint64(resolveTime));
 
         vm.prank(settler);
-        vm.expectRevert(WeatherMarket.InvalidStatus.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidStatus.selector);
         market.resolveMarket(marketId, 900, uint64(resolveTime));
     }
 
@@ -407,7 +423,7 @@ contract WeatherMarketTest is Test {
         market.resolveMarket(marketId, 800, uint64(resolveTime));
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NothingToClaim.selector);
+        vm.expectRevert(WeatherMarketV2.NothingToClaim.selector);
         market.claim(marketId);
     }
 
@@ -429,7 +445,7 @@ contract WeatherMarketTest is Test {
         market.claim(marketId);
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NothingToClaim.selector);
+        vm.expectRevert(WeatherMarketV2.NothingToClaim.selector);
         market.claim(marketId);
     }
 
@@ -442,7 +458,7 @@ contract WeatherMarketTest is Test {
         market.placeBet{value: 1 ether}(marketId, true);
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotResolved.selector);
+        vm.expectRevert(WeatherMarketV2.NotResolved.selector);
         market.claim(marketId);
     }
 
@@ -455,7 +471,7 @@ contract WeatherMarketTest is Test {
         market.placeBet{value: 1 ether}(marketId, true);
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotCancelled.selector);
+        vm.expectRevert(WeatherMarketV2.NotCancelled.selector);
         market.refund(marketId);
     }
 
@@ -474,7 +490,7 @@ contract WeatherMarketTest is Test {
         market.refund(marketId);
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NothingToClaim.selector);
+        vm.expectRevert(WeatherMarketV2.NothingToClaim.selector);
         market.refund(marketId);
     }
 
@@ -488,7 +504,7 @@ contract WeatherMarketTest is Test {
 
     function test_setMinBet_rejectsZero() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
         market.setMinBet(0);
     }
 
@@ -500,7 +516,7 @@ contract WeatherMarketTest is Test {
 
     function test_setBettingBuffer_rejectsZero() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.InvalidParams.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
         market.setBettingBuffer(0);
     }
 
@@ -512,13 +528,13 @@ contract WeatherMarketTest is Test {
 
     function test_transferOwnership_rejectsZeroAddress() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.ZeroAddress.selector);
+        vm.expectRevert(WeatherMarketV2.ZeroAddress.selector);
         market.transferOwnership(address(0));
     }
 
     function test_setSettler_rejectsZeroAddress() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.ZeroAddress.selector);
+        vm.expectRevert(WeatherMarketV2.ZeroAddress.selector);
         market.setSettler(address(0));
     }
 
@@ -580,7 +596,7 @@ contract WeatherMarketTest is Test {
 
     function test_withdrawFees_rejectsZeroRecipient() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.ZeroAddress.selector);
+        vm.expectRevert(WeatherMarketV2.ZeroAddress.selector);
         market.withdrawFees(address(0), address(0));
     }
 
@@ -618,7 +634,7 @@ contract WeatherMarketTest is Test {
 
     // ========== Additional Edge Cases for Branch Coverage ==========
 
-    function test_resolve_cancelsWhenOnlyYesBets() public {
+    function test_resolve_setsNoWinnersStatusWhenOnlyYesBets() public {
         uint64 resolveTime = uint64(block.timestamp + 2 hours);
         vm.prank(owner);
         uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
@@ -627,71 +643,73 @@ contract WeatherMarketTest is Test {
         market.placeBet{value: 1 ether}(marketId, true);
 
         vm.warp(resolveTime);
+
+        // NO wins (temp below threshold), but no NO bets → NoWinners status
         vm.prank(settler);
-        // NO wins (temp below threshold), but no NO bets → market cancelled
         market.resolveMarket(marketId, 800, uint64(resolveTime));
 
         IWeatherMarket.Market memory m = market.getMarket(marketId);
-        assertEq(uint256(m.status), uint256(IWeatherMarket.MarketStatus.Cancelled));
+        assertEq(uint8(m.status), 4); // NoWinners status
     }
 
-    function test_resolve_withNoBets() public {
+    function test_resolve_setsNoWinnersStatusWithNoBets() public {
         uint64 resolveTime = uint64(block.timestamp + 2 hours);
         vm.prank(owner);
         uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
 
         vm.warp(resolveTime);
+
+        // No bets at all → NoWinners status
         vm.prank(settler);
-        // No bets at all → should cancel
         market.resolveMarket(marketId, 900, uint64(resolveTime));
 
         IWeatherMarket.Market memory m = market.getMarket(marketId);
-        assertEq(uint256(m.status), uint256(IWeatherMarket.MarketStatus.Cancelled));
+        assertEq(uint8(m.status), 4); // NoWinners status
     }
 
     function test_getMarket_invalidMarketId() public {
-        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidMarket.selector);
         market.getMarket(999);
     }
 
     function test_getPosition_invalidMarketId() public {
-        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidMarket.selector);
         market.getPosition(999, alice);
     }
 
     function test_placeBet_invalidMarketId() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidMarket.selector);
         market.placeBet{value: 1 ether}(999, true);
     }
 
     function test_claim_invalidMarketId() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidMarket.selector);
         market.claim(999);
     }
 
     function test_refund_invalidMarketId() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidMarket.selector);
         market.refund(999);
     }
 
     function test_resolveMarket_invalidMarketId() public {
         vm.prank(settler);
-        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidMarket.selector);
         market.resolveMarket(999, 900, uint64(block.timestamp));
     }
 
     function test_cancelMarket_invalidMarketId() public {
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidMarket.selector);
         market.cancelMarket(999);
     }
 
     function test_cancelMarketBySettler_invalidMarketId() public {
         vm.prank(settler);
-        vm.expectRevert(WeatherMarket.InvalidMarket.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidMarket.selector);
         market.cancelMarketBySettler(999);
     }
 
@@ -702,7 +720,7 @@ contract WeatherMarketTest is Test {
 
         // Settler cannot cancel before resolve time
         vm.prank(settler);
-        vm.expectRevert(WeatherMarket.TooEarly.selector);
+        vm.expectRevert(WeatherMarketV2.TooEarly.selector);
         market.cancelMarketBySettler(marketId);
     }
 
@@ -713,7 +731,7 @@ contract WeatherMarketTest is Test {
 
         vm.warp(resolveTime);
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotSettler.selector);
+        vm.expectRevert(WeatherMarketV2.NotSettler.selector);
         market.cancelMarketBySettler(marketId);
     }
 
@@ -726,7 +744,7 @@ contract WeatherMarketTest is Test {
         market.cancelMarket(marketId);
 
         vm.prank(owner);
-        vm.expectRevert(WeatherMarket.InvalidStatus.selector);
+        vm.expectRevert(WeatherMarketV2.InvalidStatus.selector);
         market.cancelMarket(marketId);
     }
 
@@ -735,7 +753,7 @@ contract WeatherMarketTest is Test {
         market.pause();
 
         vm.prank(alice);
-        vm.expectRevert(WeatherMarket.NotOwner.selector);
+        vm.expectRevert(WeatherMarketV2.NotOwner.selector);
         market.unpause();
     }
 
@@ -774,5 +792,75 @@ contract WeatherMarketTest is Test {
         (uint256 payout, uint256 fee) = PayoutMath.payoutForWinner(10 ether, 10 ether, 0);
         assertEq(payout, 0); // No payout when stake is 0
         assertEq(fee, 0.1 ether); // Fee still calculated
+    }
+
+    // ========== NoWinners Status Tests ==========
+
+    function test_noWinnersStatusWhenOnlyNoBets() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        // Only bob bets NO
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+
+        // Temperature 900 = 90.0°F > threshold 850 = 85.0°F → YES wins, but no YES bets
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertEq(uint8(m.status), 4); // NoWinners = enum value 4
+        assertEq(m.resolvedTempTenths, 900);
+        assertEq(m.observedTimestamp, resolveTime);
+        assertEq(m.outcome, true); // YES won (temp >= threshold)
+    }
+
+    function test_noWinnersStatusWhenOnlyYesBets() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        // Only alice bets YES
+        vm.prank(alice);
+        market.placeBet{value: 1 ether}(marketId, true);
+
+        vm.warp(resolveTime);
+
+        // Temperature 800 = 80.0°F < threshold 850 = 85.0°F → NO wins, but no NO bets
+        vm.prank(settler);
+        market.resolveMarket(marketId, 800, uint64(resolveTime));
+
+        IWeatherMarket.Market memory m = market.getMarket(marketId);
+        assertEq(uint8(m.status), 4); // NoWinners
+        assertEq(m.resolvedTempTenths, 800);
+        assertEq(m.observedTimestamp, resolveTime);
+        assertEq(m.outcome, false); // NO won (temp < threshold)
+    }
+
+    function test_claimRefundOnNoWinnersMarket() public {
+        uint64 resolveTime = uint64(block.timestamp + 2 hours);
+        vm.prank(owner);
+        uint256 marketId = market.createMarket(cityId, resolveTime, 850, address(0));
+
+        // Only bob bets NO
+        vm.prank(bob);
+        market.placeBet{value: 1 ether}(marketId, false);
+
+        vm.warp(resolveTime);
+
+        // YES wins, but no YES bets → NoWinners
+        vm.prank(settler);
+        market.resolveMarket(marketId, 900, uint64(resolveTime));
+
+        // Bob should get full refund
+        uint256 bobBefore = bob.balance;
+        vm.prank(bob);
+        market.claim(marketId);
+        uint256 bobAfter = bob.balance;
+
+        assertEq(bobAfter - bobBefore, 1 ether); // Full refund, no fees
     }
 }
