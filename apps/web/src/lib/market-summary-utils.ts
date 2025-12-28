@@ -1,4 +1,4 @@
-import type { Market } from '@weatherb/shared/types/market';
+import type { Market } from '@weatherb/shared/types';
 import type { MarketSummary, SettledMarketSummary, LiveMarketSummary } from '@/types/market-summary';
 
 // 10 minutes before resolve time in seconds

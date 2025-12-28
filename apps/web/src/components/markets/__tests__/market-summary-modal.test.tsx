@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MarketSummaryModal } from '../market-summary-modal';
-import type { Market } from '@weatherb/shared/types/market';
+import type { Market } from '@weatherb/shared/types';
 
 describe('MarketSummaryModal', () => {
   const mockMarket: Market = {

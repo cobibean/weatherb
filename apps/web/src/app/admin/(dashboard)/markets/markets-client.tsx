@@ -17,7 +17,7 @@ import {
 import { EmergencyControls } from '@/components/admin/emergency-controls';
 import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
 import type { AdminMarket } from '@/lib/admin-data';
-import type { Market } from '@weatherb/shared/types/market';
+import type { Market } from '@weatherb/shared/types';
 
 interface MarketsClientProps {
   markets: AdminMarket[];
@@ -27,7 +27,7 @@ interface MarketsClientProps {
 
 // Helper function to convert AdminMarket to Market format for the modal
 function convertToMarket(adminMarket: AdminMarket): Market {
-  return {
+  const market: Market = {
     id: adminMarket.id.toString(),
     cityId: adminMarket.cityId,
     cityName: adminMarket.cityName,
@@ -39,9 +39,17 @@ function convertToMarket(adminMarket: AdminMarket): Market {
     status: adminMarket.status.toLowerCase() as Market['status'],
     yesPool: BigInt(adminMarket.yesPool),
     noPool: BigInt(adminMarket.noPool),
-    resolvedTempF_tenths: adminMarket.resolvedTemp !== undefined ? adminMarket.resolvedTemp * 10 : undefined,
-    outcome: adminMarket.outcome,
   };
+
+  // Only add optional properties if they exist
+  if (adminMarket.resolvedTemp !== undefined) {
+    market.resolvedTempF_tenths = adminMarket.resolvedTemp * 10;
+  }
+  if (adminMarket.outcome !== undefined) {
+    market.outcome = adminMarket.outcome;
+  }
+
+  return market;
 }
 
 export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPaused: initialSettlerPaused }: MarketsClientProps): React.ReactElement {

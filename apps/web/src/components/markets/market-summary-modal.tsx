@@ -3,7 +3,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, AlertCircle } from 'lucide-react';
-import type { Market } from '@weatherb/shared/types/market';
+import type { Market } from '@weatherb/shared/types';
 import type { UserPosition } from '@/types/positions';
 import { calculateMarketSummary, formatTemperatureDisplay, getOutcomeMessage } from '@/lib/market-summary-utils';
 import { cn } from '@/lib/utils';

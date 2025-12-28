@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/positions/empty-state';
 import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
 import { deserializePosition, deserializeStats } from '@/lib/positions';
 import type { UserPosition, UserStats, PositionsResponse } from '@/types/positions';
-import type { Market } from '@weatherb/shared/types/market';
+import type { Market } from '@weatherb/shared/types';
 import { cn } from '@/lib/utils';
 
 type TabType = 'all' | 'active' | 'claimable' | 'claimed' | 'past';
@@ -333,7 +333,7 @@ export default function PositionsPage() {
           setSelectedMarket(null);
           setSelectedPosition(null);
         }}
-        userPosition={selectedPosition || undefined}
+        {...(selectedPosition && { userPosition: selectedPosition })}
       />
     </div>
   );

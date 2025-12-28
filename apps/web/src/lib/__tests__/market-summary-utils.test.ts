@@ -5,7 +5,7 @@ import {
   getMarketQuestion,
   getOutcomeMessage
 } from '../market-summary-utils';
-import type { Market } from '@weatherb/shared/types/market';
+import type { Market } from '@weatherb/shared/types';
 
 describe('market summary utilities', () => {
   it('should calculate settled market summary', () => {
