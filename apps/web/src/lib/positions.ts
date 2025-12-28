@@ -85,19 +85,18 @@ function determinePositionStatus(
   }
 
   // Resolved markets
-  const userBetYes = position.yesAmount > 0n;
-  const didUserWin = (userBetYes && market.outcome) || (!userBetYes && !market.outcome);
-
-  if (!didUserWin) {
-    return 'lost';
+  // Check if user has any winnings (handles betting both sides)
+  if (payout === 0n) {
+    // No payout means user lost (or already claimed)
+    return position.claimed ? 'claimed' : 'lost';
   }
 
-  // User won
+  // User has winnings
   if (position.claimed) {
     return 'claimed';
   }
 
-  return payout > 0n ? 'claimable' : 'claimed';
+  return 'claimable';
 }
 
 /**
