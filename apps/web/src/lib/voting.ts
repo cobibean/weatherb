@@ -101,7 +101,7 @@ export async function removeVote(wallet: string, suggestionId: string): Promise<
           where: { id: suggestionId },
           data: {
             voteCount: { decrement: 1 },
-            // Don't decrement recentVoteCount here - handle in scheduled job
+            recentVoteCount: { decrement: 1 },
           },
         });
       });
