@@ -6,7 +6,7 @@ import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
 import { verifyCronRequest, unauthorizedResponse, createContractClients } from '@/lib/cron';
 import { recordProviderError, recordProviderSuccess } from '@/lib/provider-health';
 
-type MarketStatus = 'Open' | 'Closed' | 'Resolved' | 'Cancelled';
+type MarketStatus = 'Open' | 'Closed' | 'Resolved' | 'Cancelled' | 'NoWinners';
 
 type MarketOnChain = {
   marketId: bigint;
@@ -26,7 +26,7 @@ type SettleResult = {
   observedTimestamp: number;
 };
 
-const STATUS_MAP: readonly MarketStatus[] = ['Open', 'Closed', 'Resolved', 'Cancelled'] as const;
+const STATUS_MAP: readonly MarketStatus[] = ['Open', 'Closed', 'Resolved', 'Cancelled', 'NoWinners'] as const;
 
 /**
  * Look up a city by its bytes32 hash.

@@ -67,6 +67,8 @@ function toMarketStatus(statusNum: number): MarketStatus {
       return 'resolved';
     case 3:
       return 'cancelled';
+    case 4:
+      return 'noWinners';
     default:
       return 'open';
   }
