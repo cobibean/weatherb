@@ -9,8 +9,10 @@ import { PositionCard } from '@/components/positions/position-card';
 import { ClaimModal } from '@/components/positions/claim-modal';
 import { BulkClaimModal } from '@/components/positions/bulk-claim-modal';
 import { EmptyState } from '@/components/positions/empty-state';
+import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
 import { deserializePosition, deserializeStats } from '@/lib/positions';
 import type { UserPosition, UserStats, PositionsResponse } from '@/types/positions';
+import type { Market } from '@weatherb/shared/types/market';
 import { cn } from '@/lib/utils';
 
 type TabType = 'all' | 'active' | 'claimable' | 'claimed' | 'past';
@@ -27,6 +29,8 @@ export default function PositionsPage() {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [showBulkClaimModal, setShowBulkClaimModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   // Fetch positions when wallet is connected
   useEffect(() => {
@@ -115,6 +119,34 @@ export default function PositionsPage() {
     setTimeout(() => {
       setRefreshKey((prev) => prev + 1);
     }, 2000);
+  };
+
+  const handleViewDetails = async (position: UserPosition) => {
+    setSelectedPosition(position);
+
+    try {
+      // Fetch full market data from the API
+      const response = await fetch('/api/markets');
+      const data = await response.json();
+
+      if (data.markets) {
+        // Deserialize the market data
+        const market = data.markets.find((m: any) => m.id === position.marketId);
+
+        if (market) {
+          // Convert string bigints back to bigint for the modal
+          const deserializedMarket: Market = {
+            ...market,
+            yesPool: BigInt(market.yesPool),
+            noPool: BigInt(market.noPool),
+          };
+          setSelectedMarket(deserializedMarket);
+          setShowSummaryModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch market data:', error);
+    }
   };
 
   const tabs: { id: TabType; label: string; count?: number }[] = [
@@ -257,6 +289,7 @@ export default function PositionsPage() {
                           ? handleRefundClick
                           : undefined
                       }
+                      onViewDetails={handleViewDetails}
                     />
                   ))}
                 </div>
@@ -289,6 +322,18 @@ export default function PositionsPage() {
         isOpen={showBulkClaimModal}
         onClose={() => setShowBulkClaimModal(false)}
         onSuccess={handleClaimSuccess}
+      />
+
+      {/* Market Summary Modal */}
+      <MarketSummaryModal
+        market={selectedMarket}
+        isOpen={showSummaryModal}
+        onClose={() => {
+          setShowSummaryModal(false);
+          setSelectedMarket(null);
+          setSelectedPosition(null);
+        }}
+        userPosition={selectedPosition || undefined}
       />
     </div>
   );

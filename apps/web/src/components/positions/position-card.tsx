@@ -10,9 +10,10 @@ interface PositionCardProps {
   position: UserPosition;
   onClaim?: ((marketId: string) => void) | undefined;
   onRefund?: ((marketId: string) => void) | undefined;
+  onViewDetails?: ((position: UserPosition) => void) | undefined;
 }
 
-export function PositionCard({ position, onClaim, onRefund }: PositionCardProps) {
+export function PositionCard({ position, onClaim, onRefund, onViewDetails }: PositionCardProps) {
   const thresholdF = position.thresholdTenths / 10;
   const resolveDate = new Date(position.resolveTime);
   const isYes = position.betSide === 'YES';
@@ -232,6 +233,16 @@ export function PositionCard({ position, onClaim, onRefund }: PositionCardProps)
         <div className="w-full py-2 text-center text-sm text-slate-500">
           Better luck next time!
         </div>
+      )}
+
+      {/* View Details Button */}
+      {onViewDetails && (
+        <button
+          onClick={() => onViewDetails(position)}
+          className="w-full mt-3 px-3 py-2 text-sm font-medium text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors border border-sky-200"
+        >
+          View Details
+        </button>
       )}
     </div>
   );
