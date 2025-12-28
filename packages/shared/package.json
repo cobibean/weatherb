@@ -10,7 +10,8 @@
     "./types": "./src/types/index.ts",
     "./constants": "./src/constants/index.ts",
     "./utils/payout": "./src/utils/payout.ts",
-    "./utils/temperature": "./src/utils/temperature.ts"
+    "./utils/temperature": "./src/utils/temperature.ts",
+    "./utils/market-status": "./src/utils/market-status.ts"
   },
   "scripts": {
     "lint": "eslint .",

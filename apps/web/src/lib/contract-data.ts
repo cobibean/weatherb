@@ -3,6 +3,7 @@ import { flareTestnet } from 'viem/chains';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { CITIES } from '@weatherb/shared/constants';
 import type { MarketStatus } from '@weatherb/shared/types';
+import { toMarketStatus } from '@weatherb/shared/utils/market-status';
 
 /**
  * Get contract address from environment variables.
@@ -56,23 +57,6 @@ function findCityByBytes32(cityIdHex: Hex): { id: string; name: string; latitude
   return null;
 }
 
-// Convert contract status (uint8) to our MarketStatus type
-function toMarketStatus(statusNum: number): MarketStatus {
-  switch (statusNum) {
-    case 0:
-      return 'open';
-    case 1:
-      return 'closed';
-    case 2:
-      return 'resolved';
-    case 3:
-      return 'cancelled';
-    case 4:
-      return 'noWinners';
-    default:
-      return 'open';
-  }
-}
 
 // Serializable version of Market (bigints as strings)
 export type SerializedMarket = {

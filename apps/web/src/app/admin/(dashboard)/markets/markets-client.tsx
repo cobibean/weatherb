@@ -123,13 +123,19 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
             Cancelled
           </span>
         );
+      case 'NoWinners':
+        return (
+          <span className="px-2 py-1 rounded-full bg-sunset-orange/30 text-sunset-coral text-xs font-medium">
+            No Winners
+          </span>
+        );
       default:
         return null;
     }
   };
 
   const openMarkets = markets.filter((m) => m.status === 'Open' || m.status === 'Closed');
-  const pastMarkets = markets.filter((m) => m.status === 'Resolved' || m.status === 'Cancelled');
+  const pastMarkets = markets.filter((m) => m.status === 'Resolved' || m.status === 'Cancelled' || m.status === 'NoWinners');
 
   return (
     <div className="space-y-6">

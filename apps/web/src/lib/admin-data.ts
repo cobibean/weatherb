@@ -16,7 +16,7 @@ export interface AdminStats {
   isSettlerPaused: boolean;
 }
 
-export type AdminMarketStatus = 'Open' | 'Closed' | 'Resolved' | 'Cancelled';
+export type AdminMarketStatus = 'Open' | 'Closed' | 'Resolved' | 'Cancelled' | 'NoWinners';
 
 export type AdminMarket = {
   id: number;
@@ -105,7 +105,7 @@ type AdminMarketRaw = {
   outcome?: boolean;
 };
 
-const STATUS_MAP: readonly AdminMarketStatus[] = ['Open', 'Closed', 'Resolved', 'Cancelled'] as const;
+const STATUS_MAP: readonly AdminMarketStatus[] = ['Open', 'Closed', 'Resolved', 'Cancelled', 'NoWinners'] as const;
 
 function getContractAddress(): Hex {
   const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as Hex | undefined;
@@ -212,10 +212,12 @@ async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
       totalFees: marketData.totalFees,
     };
 
-    if (status === 'Resolved') {
+    if (status === 'Resolved' || status === 'NoWinners') {
       market.resolvedTempTenths = Number(marketData.resolvedTempTenths);
       market.observedTimestamp = Number(marketData.observedTimestamp) * 1000;
-      market.outcome = marketData.outcome;
+      if (status === 'Resolved') {
+        market.outcome = marketData.outcome;
+      }
     }
 
     markets.push(market);
