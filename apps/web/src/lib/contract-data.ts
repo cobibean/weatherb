@@ -157,11 +157,13 @@ export async function fetchMarketsFromContract(): Promise<FetchMarketsResult> {
         noPool: marketData.noPool.toString(),
       };
 
-      // Only add resolution data if market is resolved
-      if (status === 'resolved') {
+      // Add resolution data if market is resolved OR noWinners
+      if (status === 'resolved' || status === 'noWinners') {
         market.resolvedTempF_tenths = Number(marketData.resolvedTempTenths);
         market.observedTimestamp = Number(marketData.observedTimestamp) * 1000;
-        market.outcome = marketData.outcome;
+        if (status === 'resolved') {
+          market.outcome = marketData.outcome;
+        }
       }
 
       markets.push(market);

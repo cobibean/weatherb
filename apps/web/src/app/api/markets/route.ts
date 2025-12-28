@@ -15,7 +15,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   let filteredMarkets = markets;
   if (status === 'past') {
     filteredMarkets = markets.filter(
-      (market) => market.status === 'resolved' || market.status === 'cancelled'
+      (market) => market.status === 'resolved' || market.status === 'cancelled' || market.status === 'noWinners'
     );
   } else if (status === 'active') {
     // Active markets include both 'open' (can bet) and 'closed' (betting ended, waiting for resolution)

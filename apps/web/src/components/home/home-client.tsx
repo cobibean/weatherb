@@ -161,6 +161,8 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
                                   ? market.outcome
                                     ? 'YES Won'
                                     : 'NO Won'
+                                  : market.status === 'noWinners'
+                                  ? 'Settled (No Winners)'
                                   : 'Cancelled'}
                               </p>
                             </div>
