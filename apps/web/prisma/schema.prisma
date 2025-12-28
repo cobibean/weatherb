@@ -8,6 +8,22 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// Epic 7: Voting/Suggestions Enums
+
+enum SuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+}
+
+enum TimeWindow {
+  MORNING // 6am-12pm
+  AFTERNOON // 12pm-6pm
+  EVENING // 6pm-12am
+  NIGHT // 12am-6am
+}
+
 model SystemConfig {
   id            String   @id @default("default")
   cadence       Int      @default(5)
@@ -29,7 +45,62 @@ model City {
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
+  suggestions Suggestion[] // NEW: Issue #4 - city normalization
+
   @@index([isActive])
+}
+
+// Epic 7: Suggestions Table (with all audit fixes applied)
+model Suggestion {
+  id String @id @default(cuid())
+
+  // City reference (Issue #4: normalization)
+  // Either reference existing city OR provide custom city details
+  cityId String?
+  city   City?   @relation(fields: [cityId], references: [id])
+
+  // Custom city details (when not in allowlist)
+  customCityName String?
+  latitude       Float?
+  longitude      Float?
+
+  timeWindow TimeWindow? // Issue #6: enum not string
+  comment    String?          @db.Text
+  wallet     String // lowercase wallet address
+  status     SuggestionStatus @default(PENDING)
+
+  // Vote tracking with trending support (Issue #2)
+  voteCount       Int       @default(0)
+  recentVoteCount Int       @default(0) // For trending (votes in last 7 days)
+  lastVoteAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  votes Vote[]
+
+  // All required indexes (Issues #1, #2, #5)
+  @@index([status, voteCount(sort: Desc)]) // Top voted by status
+  @@index([status, recentVoteCount(sort: Desc)]) // Trending by status
+  @@index([createdAt(sort: Desc)]) // Recent suggestions
+  @@index([wallet, status]) // User's suggestions by status
+  @@index([wallet, createdAt(sort: Desc)]) // User's recent suggestions
+  @@index([cityId]) // Suggestions by city
+  @@index([customCityName]) // Custom city lookup
+}
+
+// Epic 7: Votes Table (with all audit fixes applied)
+model Vote {
+  id           String     @id @default(cuid()) // Issue #7: Keep CUID for now
+  wallet       String // lowercase wallet address
+  suggestionId String
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([wallet, suggestionId]) // One vote per wallet per suggestion
+  @@index([suggestionId]) // Issue #1: CRITICAL FK index
+  @@index([wallet, createdAt(sort: Desc)]) // Issue #5: Wallet queries
+  @@index([createdAt]) // For trending calculations
 }
 
 model AdminLog {
@@ -54,7 +125,7 @@ model AdminSession {
 
   @@index([wallet])
   @@index([expiresAt])
-  @@index([wallet, expiresAt])  // NEW: Issue #5 - optimize session lookups
+  @@index([wallet, expiresAt]) // NEW: Issue #5 - optimize session lookups
 }
 
 model game_sessions {
