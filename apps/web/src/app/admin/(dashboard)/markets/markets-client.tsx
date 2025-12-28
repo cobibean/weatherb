@@ -12,14 +12,36 @@ import {
   Loader2,
   X,
   Thermometer,
+  Eye,
 } from 'lucide-react';
 import { EmergencyControls } from '@/components/admin/emergency-controls';
+import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
 import type { AdminMarket } from '@/lib/admin-data';
+import type { Market } from '@weatherb/shared/types/market';
 
 interface MarketsClientProps {
   markets: AdminMarket[];
   isPaused: boolean;
   isSettlerPaused: boolean;
+}
+
+// Helper function to convert AdminMarket to Market format for the modal
+function convertToMarket(adminMarket: AdminMarket): Market {
+  return {
+    id: adminMarket.id.toString(),
+    cityId: adminMarket.cityId,
+    cityName: adminMarket.cityName,
+    latitude: 0, // Not available in AdminMarket, but not used by modal
+    longitude: 0, // Not available in AdminMarket, but not used by modal
+    resolveTime: adminMarket.resolveTime,
+    thresholdF_tenths: adminMarket.thresholdTenths,
+    currency: 'FLR',
+    status: adminMarket.status.toLowerCase() as Market['status'],
+    yesPool: BigInt(adminMarket.yesPool),
+    noPool: BigInt(adminMarket.noPool),
+    resolvedTempF_tenths: adminMarket.resolvedTemp !== undefined ? adminMarket.resolvedTemp * 10 : undefined,
+    outcome: adminMarket.outcome,
+  };
 }
 
 export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPaused: initialSettlerPaused }: MarketsClientProps): React.ReactElement {
@@ -29,6 +51,8 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<number | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handlePauseToggle = async (): Promise<void> => {
     const newState = !isPaused;
@@ -85,6 +109,11 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
     } finally {
       setCancellingId(null);
     }
+  };
+
+  const handleViewDetails = (market: AdminMarket): void => {
+    setSelectedMarket(convertToMarket(market));
+    setIsModalOpen(true);
   };
 
   const formatTemp = (tenths: number): string => {
@@ -225,6 +254,14 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
                     </div>
 
                     <button
+                      onClick={() => handleViewDetails(market)}
+                      className="px-3 py-1.5 text-sm font-medium text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Details
+                    </button>
+
+                    <button
                       onClick={() => setConfirmCancel(market.id)}
                       disabled={cancellingId === market.id}
                       className="px-3 py-2 rounded-xl bg-error-soft/20 text-error-soft hover:bg-error-soft/30 transition-colors disabled:opacity-50"
@@ -299,6 +336,14 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
                       <p className="font-body text-xs text-neutral-400">NO Pool</p>
                       <p className="font-mono text-neutral-500">{market.noPool} FLR</p>
                     </div>
+
+                    <button
+                      onClick={() => handleViewDetails(market)}
+                      className="px-3 py-1.5 text-sm font-medium text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Details
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -333,7 +378,7 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
                     Cancel Market #{confirmCancel}?
                   </h3>
                   <p className="font-body text-neutral-600 mb-4">
-                    This will cancel the market and allow all bettors to claim refunds. 
+                    This will cancel the market and allow all bettors to claim refunds.
                     This action cannot be undone.
                   </p>
 
@@ -364,6 +409,16 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
           </>
         )}
       </AnimatePresence>
+
+      {/* Market Summary Modal */}
+      <MarketSummaryModal
+        market={selectedMarket}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedMarket(null);
+        }}
+      />
     </div>
   );
 }
