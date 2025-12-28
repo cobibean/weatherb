@@ -9,10 +9,10 @@
  * Also provides a fix command if they don't match.
  *
  * Usage:
- *   npx tsx scripts/debug-settler.ts
+ *   npx tsx scripts/debug/debug-settler.ts
  *
  * To fix the settler address:
- *   FIX_SETTLER=true npx tsx scripts/debug-settler.ts
+ *   FIX_SETTLER=true npx tsx scripts/debug/debug-settler.ts
  */
 
 import { config as dotenvConfig } from 'dotenv';
@@ -274,7 +274,7 @@ async function main() {
         }
       } else {
         console.log('   ➡️  To fix automatically, run:');
-        console.log('      FIX_SETTLER=true npx tsx scripts/debug-settler.ts');
+        console.log('      FIX_SETTLER=true npx tsx scripts/debug/debug-settler.ts');
       }
     } else {
       console.log('   ⚠️  No private key available that matches the owner.');

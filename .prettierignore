@@ -19,7 +19,7 @@ docs/
 AGENTS.md
 PRD.md
 buildplanoutline.md
-initialcontext.md
+docs/reference/initialcontext.md
 
 # Lockfiles
 pnpm-lock.yaml

@@ -66,7 +66,7 @@ if (payout === 0n) {
 ### 2. Test Script Output (UX)
 
 **Issue**: E2E test script showed "YOU LOST 😢" even when user won on the other side
-**Location**: `scripts/test-e2e-flow.ts`
+**Location**: `scripts/test/test-e2e-flow.ts`
 
 **Fixed**: Now detects both-sided bets and shows correct outcome:
 ```
@@ -90,8 +90,8 @@ Outcome: NO (Your NO bet won! 🎉)
 **Resolution**: Deployed new contract (`0x716186...`) with correct settler address
 
 **Prevention**:
-1. Created `scripts/debug-settler.ts` to diagnose settler mismatches
-2. Added `scripts/trace-ownership.ts` to track admin changes
+1. Created `scripts/debug/debug-settler.ts` to diagnose settler mismatches
+2. Added `scripts/debug/trace-ownership.ts` to track admin changes
 3. **TODO**: Create post-deployment verification script
 
 ---
@@ -111,7 +111,7 @@ pnpm exec tsx scripts/test-e2e-flow.ts
 # (Same command, but remove SKIP_BET=true)
 
 # Skip settlement (just test claiming)
-SKIP_SETTLEMENT=true pnpm exec tsx scripts/test-e2e-flow.ts
+SKIP_SETTLEMENT=true pnpm exec tsx scripts/test/test-e2e-flow.ts
 ```
 
 ---
@@ -152,10 +152,10 @@ When deploying a new contract:
 - [ ] Deploy contract with deployer wallet
 - [ ] Verify owner == deployer address
 - [ ] Verify settler == deployer address
-- [ ] Run `scripts/debug-settler.ts` to confirm
+- [ ] Run `scripts/debug/debug-settler.ts` to confirm
 - [ ] Update `NEXT_PUBLIC_CONTRACT_ADDRESS` in Vercel
 - [ ] Update `.env` file
-- [ ] Test with `scripts/test-e2e-flow.ts`
+- [ ] Test with `scripts/test/test-e2e-flow.ts`
 - [ ] Verify cron jobs are running (check Vercel logs)
 
 ---
@@ -164,16 +164,16 @@ When deploying a new contract:
 
 ```bash
 # Check contract state
-npx tsx scripts/debug-settler.ts
+npx tsx scripts/debug/debug-settler.ts
 
 # Check markets needing settlement
-npx tsx scripts/check-markets.ts
+npx tsx scripts/debug/check-markets.ts
 
 # Manually settle markets
-npx tsx scripts/test-settlement.ts
+npx tsx scripts/test/test-settlement.ts
 
 # Test complete flow
-npx tsx scripts/test-e2e-flow.ts
+npx tsx scripts/test/test-e2e-flow.ts
 ```
 
 ---
