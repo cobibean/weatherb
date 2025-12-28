@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import type { Market } from '@weatherb/shared/types';
 import { Header, Footer } from '@/components/layout';
 import { HeroCarousel, MarketGrid, BetModal } from '@/components/markets';
+import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
 import { TemperatureDisplay } from '@/components/ui/temperature-display';
 import type { SerializedMarket } from '@/lib/contract-data';
 
@@ -16,6 +17,8 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
   const [pastOpen, setPastOpen] = useState(false);
   const [pastLoading, setPastLoading] = useState(false);
   const [pastError, setPastError] = useState<string | null>(null);
+  const [selectedPastMarket, setSelectedPastMarket] = useState<Market | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const deserializeMarkets = (items: SerializedMarket[]): Market[] => {
     return items.map((market) => ({
@@ -42,6 +45,11 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
 
   const handleCloseModal = () => {
     setSelectedMarket(null);
+  };
+
+  const handleMarketClick = (market: Market) => {
+    setSelectedPastMarket(market);
+    setIsModalOpen(true);
   };
 
   const handleTogglePastMarkets = async (): Promise<void> => {
@@ -146,7 +154,8 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
                       return (
                         <div
                           key={market.id}
-                          className="rounded-2xl border border-neutral-200 bg-white p-5"
+                          className="rounded-2xl border border-neutral-200 bg-white p-5 cursor-pointer hover:shadow-md transition-all duration-200 hover:border-gray-200"
+                          onClick={() => handleMarketClick(market)}
                         >
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -198,6 +207,16 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
           onClose={handleCloseModal}
         />
       )}
+
+      {/* Market Summary Modal */}
+      <MarketSummaryModal
+        market={selectedPastMarket}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedPastMarket(null);
+        }}
+      />
     </div>
   );
 }
