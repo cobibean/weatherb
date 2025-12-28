@@ -61,7 +61,7 @@ Batch 3: Chicago, Miami, Seattle, Denver, Phoenix
 
 ## Monitoring Checkpoints
 
-Check every 6 hours and record in `AUTOMATION_TEST_EXECUTION.md`:
+Check every 6 hours and record in `docs/testing/archived/AUTOMATION_TEST_EXECUTION.md`:
 
 | Hour | Expected Batches | Expected Markets | What to Check |
 |------|-----------------|------------------|---------------|
@@ -132,7 +132,7 @@ git push
 ```
 
 ### 2. Generate Final Report
-Fill out the final section in `AUTOMATION_TEST_EXECUTION.md`:
+Fill out the final section in `docs/testing/archived/AUTOMATION_TEST_EXECUTION.md`:
 - Total success rate
 - Issues encountered
 - Recommendation (production ready?)
@@ -158,8 +158,8 @@ Fill out the final section in `AUTOMATION_TEST_EXECUTION.md`:
 
 ## Need Help?
 
-- **Detailed instructions:** `DEPLOY_TEST_CONFIG.md`
-- **Checkpoint tracking:** `AUTOMATION_TEST_EXECUTION.md`
+- **Detailed instructions:** `docs/testing/archived/DEPLOY_TEST_CONFIG.md`
+- **Checkpoint tracking:** `docs/testing/archived/AUTOMATION_TEST_EXECUTION.md`
 - **Test plan:** `AUTOMATION_TEST_PLAN.md`
 - **Monitoring guide:** `AUTOMATION_TEST_PROMPT.md`
 
