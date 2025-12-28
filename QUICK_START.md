@@ -160,8 +160,8 @@ Fill out the final section in `docs/testing/archived/AUTOMATION_TEST_EXECUTION.m
 
 - **Detailed instructions:** `docs/testing/archived/DEPLOY_TEST_CONFIG.md`
 - **Checkpoint tracking:** `docs/testing/archived/AUTOMATION_TEST_EXECUTION.md`
-- **Test plan:** `AUTOMATION_TEST_PLAN.md`
-- **Monitoring guide:** `AUTOMATION_TEST_PROMPT.md`
+- **Test plan:** `docs/testing/archived/AUTOMATION_TEST_PLAN.md`
+- **Monitoring guide:** `docs/testing/archived/AUTOMATION_TEST_PROMPT.md`
 
 ---
 
