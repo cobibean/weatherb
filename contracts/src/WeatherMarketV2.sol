@@ -235,12 +235,12 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     function cancelMarket(uint256 marketId) external onlyOwner {
         Market storage market = _getMarketStorage(marketId);
         _updateClosedStatus(market);
-        
+
         MarketStatus status = market.status;
-        if (status == MarketStatus.Resolved || status == MarketStatus.Cancelled) {
+        if (status == MarketStatus.Resolved || status == MarketStatus.Cancelled || status == MarketStatus.NoWinners) {
             revert InvalidStatus();
         }
-        
+
         market.status = MarketStatus.Cancelled;
         emit MarketCancelled(marketId);
     }
@@ -250,13 +250,13 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     function cancelMarketBySettler(uint256 marketId) external onlySettler {
         Market storage market = _getMarketStorage(marketId);
         _updateClosedStatus(market);
-        
+
         MarketStatus status = market.status;
-        if (status == MarketStatus.Resolved || status == MarketStatus.Cancelled) {
+        if (status == MarketStatus.Resolved || status == MarketStatus.Cancelled || status == MarketStatus.NoWinners) {
             revert InvalidStatus();
         }
         if (block.timestamp < market.resolveTime) revert TooEarly();
-        
+
         market.status = MarketStatus.Cancelled;
         emit MarketCancelled(marketId);
     }
@@ -304,10 +304,13 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         uint256 winningPool = outcome ? market.yesPool : market.noPool;
         uint256 losingPool = outcome ? market.noPool : market.yesPool;
 
-        // Auto-cancel if no winners
+        // Auto-cancel if no winners - use NoWinners status
         if (winningPool == 0) {
-            market.status = MarketStatus.Cancelled;
-            emit MarketCancelled(marketId);
+            market.status = MarketStatus.NoWinners;
+            market.outcome = outcome;
+            market.resolvedTempTenths = tempTenths;
+            market.observedTimestamp = observedTimestamp;
+            emit MarketResolved(marketId, outcome, tempTenths, observedTimestamp);
             return;
         }
 
@@ -464,7 +467,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
 
     /// @notice Get contract version
     function version() external pure returns (string memory) {
-        return "2.0.0";
+        return "2.1.0";
     }
 
     // ============ Internal Functions ============

@@ -6,7 +6,8 @@ interface IWeatherMarket {
         Open,
         Closed,
         Resolved,
-        Cancelled
+        Cancelled,
+        NoWinners
     }
 
     struct Market {
