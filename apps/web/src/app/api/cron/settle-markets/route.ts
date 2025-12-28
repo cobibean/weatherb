@@ -79,8 +79,8 @@ async function fetchPendingMarkets(params: {
     const statusIdx = Number(market.status);
     const status = STATUS_MAP[statusIdx] ?? 'Open';
 
-    // Skip already resolved or cancelled markets
-    if (status === 'Resolved' || status === 'Cancelled') continue;
+    // Skip already resolved, cancelled, or noWinners markets
+    if (status === 'Resolved' || status === 'Cancelled' || status === 'NoWinners') continue;
 
     pending.push({
       marketId: BigInt(i),
