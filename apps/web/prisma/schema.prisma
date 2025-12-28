@@ -1,66 +1,99 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
-  // DATABASE_URL: Use pooled connection (port 6543) for runtime
-  // DIRECT_URL: Use direct connection (port 5432) for migrations
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-// System-wide configuration (singleton pattern with id="default")
 model SystemConfig {
   id            String   @id @default("default")
-  cadence       Int      @default(5)       // minutes between market resolve times
-  testMode      Boolean  @default(true)    // single city only when enabled
-  dailyCount    Int      @default(5)       // markets created per day (max 5)
-  bettingBuffer Int      @default(600)     // seconds before resolve to close betting
-  isPaused      Boolean  @default(false)   // global pause state
-  settlerPaused Boolean  @default(false)   // settlement pause state
-  updatedAt     DateTime @updatedAt
+  cadence       Int      @default(5)
+  testMode      Boolean  @default(true)
+  dailyCount    Int      @default(5)
+  bettingBuffer Int      @default(600)
+  isPaused      Boolean  @default(false)
+  settlerPaused Boolean  @default(false)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
-// Allowlisted cities for market creation
 model City {
-  id        String   @id @default(cuid())
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   name      String
   latitude  Float
   longitude Float
   timezone  String
   isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   @@index([isActive])
 }
 
-// Audit log for admin actions
 model AdminLog {
-  id        String   @id @default(cuid())
-  wallet    String   // admin wallet address (lowercase)
-  action    String   // e.g. "PAUSE", "UNPAUSE", "CANCEL_MARKET", "UPDATE_SETTINGS"
-  details   Json?    // additional context (marketId, old/new values, etc.)
-  createdAt DateTime @default(now())
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  wallet    String
+  action    String
+  details   Json?    @db.JsonB // CHANGED: Use JSONB for better performance (Issue #8)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([wallet])
   @@index([createdAt])
   @@index([action])
+  @@index([wallet, createdAt(sort: Desc)]) // NEW: Issue #5 - wallet queries
 }
 
-// Admin sessions for wallet-based auth
 model AdminSession {
-  id        String   @id @default(cuid())
-  wallet    String   // lowercase wallet address
-  nonce     String   // random nonce for signature verification
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  wallet    String
+  nonce     String
+  expiresAt DateTime @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([wallet])
   @@index([expiresAt])
 }
 
+model game_sessions {
+  id             String    @id
+  wallet_address String?
+  started_at     DateTime? @default(now()) @db.Timestamptz(6)
+  ended_at       DateTime? @db.Timestamptz(6)
+  final_budget   Decimal?  @db.Decimal(18, 2)
+  profit_loss    Decimal?  @db.Decimal(18, 2)
+  creators_paid  Int?      @default(0)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model receipts {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id   String
+  creator_id   String
+  creator_name String
+  amount       Decimal   @db.Decimal(18, 2)
+  currency     String?   @default("C2FLR")
+  status       String?   @default("pending")
+  tip_tx_hash  String?
+  flare_txid   String?
+  anchored_at  DateTime? @db.Timestamptz(6)
+  bundle_url   String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([session_id], map: "idx_receipts_session")
+  @@index([status], map: "idx_receipts_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model statements {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id  String
+  type        String
+  date        String
+  xml_content String
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([session_id], map: "idx_statements_session")
+}
