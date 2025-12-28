@@ -92,8 +92,8 @@ function determinePositionStatus(
   market: { outcome: boolean },
   payout: bigint
 ): PositionStatus {
-  // Cancelled markets
-  if (marketStatus === 'cancelled') {
+  // Cancelled or NoWinners markets → refundable
+  if (marketStatus === 'cancelled' || marketStatus === 'noWinners') {
     return position.claimed ? 'refunded' : 'refundable';
   }
 
@@ -191,7 +191,7 @@ export async function fetchUserPositions(walletAddress: string): Promise<UserPos
 
       const marketStatus = toMarketStatus(market.status);
 
-      if ((marketStatus === 'resolved' || marketStatus === 'cancelled') && !position.claimed) {
+      if ((marketStatus === 'resolved' || marketStatus === 'cancelled' || marketStatus === 'noWinners') && !position.claimed) {
         payoutCalls.push({
           address: contractAddress,
           abi: WEATHER_MARKET_ABI,
@@ -249,8 +249,8 @@ export async function fetchUserPositions(walletAddress: string): Promise<UserPos
         payoutResultIndex++;
       }
 
-      // For cancelled markets without payout, use bet amount
-      if (marketStatus === 'cancelled' && !position.claimed && claimableAmount === undefined) {
+      // For cancelled or noWinners markets without payout, use bet amount
+      if ((marketStatus === 'cancelled' || marketStatus === 'noWinners') && !position.claimed && claimableAmount === undefined) {
         claimableAmount = betAmount;
       }
 
