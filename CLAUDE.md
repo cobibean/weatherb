@@ -63,9 +63,12 @@ weatherb/
 - **Epic 5**: Web app UI + Positions dashboard
 - **Epic 6**: Admin panel with wallet auth
 - **Contract V2**: UUPS upgradeable, multiple bets, mutable fees
+- **Epic 7 (Database)**: Schema & indexes ready for voting/suggestions ✅
+
+### In Progress
+- **Epic 7 (Implementation)**: API routes and UI for voting/suggestions
 
 ### Pending Epics
-- **Epic 7**: User voting/suggestions
 - **Epic 8**: AI weekly reports
 - **Epic 9**: Event indexing
 - **Epic 10**: Security hardening
@@ -119,6 +122,10 @@ weatherb/
 | Market settler | `apps/web/src/app/api/cron/settle-markets/route.ts` |
 | Admin contract helper | `apps/web/src/lib/admin-contract.ts` |
 | Database schema | `apps/web/prisma/schema.prisma` |
+| **Epic 7 database schema** | `apps/web/prisma/schema.prisma` (Suggestion, Vote models) |
+| **Epic 7 voting helpers** | `apps/web/src/lib/voting.ts`, `trending.ts` |
+| **Epic 7 audit** | `docs/testing/database-audit-epic-7.md` |
+| **Epic 7 migration summary** | `docs/epic-7-migration-summary.md` |
 | Project rules | `AGENTS.md` |
 | Requirements | `PRD.md` |
 
