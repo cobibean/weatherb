@@ -368,14 +368,34 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         emit BetPlaced(marketId, msg.sender, isYes, msg.value);
     }
 
-    /// @notice Claim winnings from a resolved market
+    /// @notice Claim winnings from a resolved market or refund from a NoWinners market
     /// @param marketId Market id to claim from
     function claim(uint256 marketId) external whenNotPaused nonReentrant {
         Market storage market = _getMarketStorage(marketId);
-        if (market.status != MarketStatus.Resolved) revert NotResolved();
-
         Position storage pos = positions[marketId][msg.sender];
+
         if (pos.claimed) revert NothingToClaim();
+        if (pos.yesAmount == 0 && pos.noAmount == 0) revert NothingToClaim();
+
+        MarketStatus status = market.status;
+
+        // Handle Cancelled or NoWinners → full refund
+        if (status == MarketStatus.Cancelled || status == MarketStatus.NoWinners) {
+            uint256 refund = pos.yesAmount + pos.noAmount;
+            if (refund == 0) revert NothingToClaim();
+
+            pos.claimed = true;
+
+            (bool ok, ) = msg.sender.call{value: refund}("");
+            if (!ok) revert TransferFailed();
+
+            emit Refunded(marketId, msg.sender, refund);
+            return;
+        }
+
+        // Handle Resolved markets
+        if (status != MarketStatus.Resolved) revert NotResolved();
+
         pos.claimed = true;
 
         uint256 stake = market.outcome ? pos.yesAmount : pos.noAmount;
@@ -389,7 +409,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
 
         (bool ok, ) = msg.sender.call{value: payout}("");
         if (!ok) revert TransferFailed();
-        
+
         emit WinningsClaimed(marketId, msg.sender, payout);
     }
 
