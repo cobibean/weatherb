@@ -27,6 +27,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     error InvalidParams();
     error ZeroAddress();
     error FeeTooHigh();
+    error InsufficientBalance();
 
     // ============ Events ============
     // Config change events
@@ -322,11 +323,9 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         market.resolvedTempTenths = tempTenths;
         market.observedTimestamp = observedTimestamp;
         market.totalFees = fee;
-        
-        // Gas optimization: unchecked for fee addition (can't overflow)
-        unchecked {
-            accruedFees[market.currency] += fee;
-        }
+
+        // Checked arithmetic to prevent fee accumulation overflow
+        accruedFees[market.currency] += fee;
 
         emit MarketResolved(marketId, outcome, tempTenths, observedTimestamp);
     }
@@ -353,16 +352,12 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         // Bets accumulate on the same side or both sides
         
         if (isYes) {
-            // Gas optimization: unchecked for amount additions
-            unchecked {
-                pos.yesAmount += msg.value;
-                market.yesPool += msg.value;
-            }
+            // Checked arithmetic to prevent overflow
+            pos.yesAmount += msg.value;
+            market.yesPool += msg.value;
         } else {
-            unchecked {
-                pos.noAmount += msg.value;
-                market.noPool += msg.value;
-            }
+            pos.noAmount += msg.value;
+            market.noPool += msg.value;
         }
 
         emit BetPlaced(marketId, msg.sender, isYes, msg.value);
@@ -406,6 +401,9 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
 
         uint256 payout = _calculatePayout(winningPool, losingPool, stake);
         if (payout == 0) revert NothingToClaim();
+
+        // Verify contract has sufficient balance before transfer
+        if (address(this).balance < payout) revert InsufficientBalance();
 
         (bool ok, ) = msg.sender.call{value: payout}("");
         if (!ok) revert TransferFailed();
