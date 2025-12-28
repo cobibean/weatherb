@@ -43,12 +43,12 @@ weatherb/
 ## Key Constraints (Never Violate)
 
 1. **5 markets/day max**
-2. **1 bet per wallet per market**
-3. **Settlement precision: 0.1 F** (stored as tenths: 85.3 F -> 853)
-4. **Display precision: 1 F** (UI shows whole degrees)
-5. **Threshold tie -> YES wins** (`temp >= threshold`)
+2. **Multiple bets allowed** (users can bet YES, NO, or both, multiple times)
+3. **Settlement precision: 0.1°F** (stored as tenths: 85.3°F → 853)
+4. **Display precision: 1°F** (UI shows whole degrees)
+5. **Threshold tie → YES wins** (`temp >= threshold`)
 6. **FLR only in V1**
-7. **1% fee from losing pool**
+7. **Fee from losing pool** (default 1%, owner-mutable, max 10%)
 8. **Betting closes 10 min before resolve time**
 9. **Min bet: 0.01 FLR**
 
@@ -58,10 +58,11 @@ weatherb/
 
 ### Completed Epics
 - **Epic 0-2**: Foundations, weather providers, contracts
-- **Epic 3**: ~~FDC Integration~~ **Removed** (simplified to trusted settler pattern)
-- **Epic 4**: Automation (migrated from standalone services to Vercel Cron)
-- **Epic 5**: Web app UI (implemented; has known hydration issues per audit report)
+- **Epic 3**: ~~FDC~~ → Trusted settler pattern
+- **Epic 4**: Vercel Cron automation
+- **Epic 5**: Web app UI + Positions dashboard
 - **Epic 6**: Admin panel with wallet auth
+- **Contract V2**: UUPS upgradeable, multiple bets, mutable fees
 
 ### Pending Epics
 - **Epic 7**: User voting/suggestions
@@ -93,19 +94,16 @@ weatherb/
   - Settles markets on-chain using trusted settler pattern
 
 ### Architecture Decisions
-**FDC Integration Removed (Epic 3):**
-- Originally planned to use Flare Data Connector for trustless weather data verification
-- **Decision**: Simplified to trusted settler pattern for V1 (commit `d40fe39`)
-- Rationale: Faster iteration, simpler architecture, FDC can be added later if needed
 
-**Vercel Cron Migration (Epic 4):**
-- Originally implemented as standalone Node.js services (`services/scheduler/`, `services/settler/`)
-- **Decision**: Migrated to Vercel Cron API routes (serverless functions)
-- Rationale: Simpler deployment, no separate infrastructure, better integration with Next.js app
+| Decision | Rationale |
+|----------|-----------|
+| WeatherMarketV2 (UUPS) | Upgradeable without redeploy; multiple bets; mutable fees |
+| Trusted settler | Simpler than FDC; can add proofs later |
+| Vercel Cron | Serverless; no separate infra |
 
 ### Known Issues
-- **Epic 5 UI**: Potential hydration errors from particle system (see `docs/epics/epic-5-ui-audit-report.md`)
-- **Testing**: Some provider tests incomplete (see `docs/epics/epic-0-3-todo.md`)
+- **UI**: Potential hydration errors from particle system
+- **Testing**: Some provider tests incomplete
 
 ---
 
@@ -113,8 +111,10 @@ weatherb/
 
 | Purpose | Path |
 |---------|------|
-| Smart contract | `contracts/src/WeatherMarket.sol` |
+| **Active contract** | `contracts/src/WeatherMarketV2.sol` (UUPS upgradeable) |
+| Legacy contract | `contracts/src/WeatherMarket.sol` (reference only) |
 | Contract ABI | `packages/shared/src/abi/weather-market.ts` |
+| Error decoder | `apps/web/src/lib/contract-errors.ts` |
 | Daily scheduler | `apps/web/src/app/api/cron/schedule-daily/route.ts` |
 | Market settler | `apps/web/src/app/api/cron/settle-markets/route.ts` |
 | Admin contract helper | `apps/web/src/lib/admin-contract.ts` |

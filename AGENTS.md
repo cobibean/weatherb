@@ -48,13 +48,13 @@ These are **locked rules** from the PRD. Breaking them breaks the product.
 | # | Rule | Enforcement |
 |---|------|-------------|
 | 1 | **5 markets/day max** | Scheduler config, not negotiable in V1 |
-| 2 | **1 bet per wallet per market** | Contract MUST reject second bet |
+| 2 | **Multiple bets allowed per market** | V2 contract; users can bet YES, NO, or both multiple times |
 | 3 | **Settlement precision: 0.1°F** | Store as `uint256` tenths (85.3°F → 853) |
 | 4 | **Display precision: 1°F** | UI shows whole degrees only |
 | 5 | **Threshold tie → YES wins** | `temp >= threshold` (not `>`) |
 | 6 | **FLR only in V1** | Currency is variable for future |
 | 7 | **Automation-only settlement** | No user can call `resolve()` |
-| 8 | **1% fee from losing pool** | Math: `fee = losingPool * 0.01` |
+| 8 | **Fee from losing pool** | Default 1% (`feeBps=100`), owner-mutable (max 10%) |
 | 9 | **First reading at/after T** | Not "closest to T" or "average" |
 | 10 | **Betting closes 10 min before T** | Configurable `bettingBuffer` (default 600s) |
 | 11 | **Min bet: 0.01 FLR** | Spam prevention, admin-adjustable |
@@ -142,9 +142,10 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 | `PRD.md` | Source of truth for requirements |
 | `buildplanoutline.md` | High-level epic overview |
 | `docs/epics/*.md` | Detailed plans per epic |
-| `contracts/src/WeatherMarket.sol` | Core betting contract |
-| `packages/shared/src/types/` | Canonical TypeScript types |
-| `packages/shared/src/abi/` | Contract ABIs (auto-generated) |
+| `contracts/src/WeatherMarketV2.sol` | **Active** betting contract (UUPS upgradeable) |
+| `contracts/src/WeatherMarket.sol` | Legacy V1 contract (reference only) |
+| `packages/shared/src/abi/` | Contract ABIs |
+| `apps/web/src/lib/contract-errors.ts` | Custom error decoder for user-friendly messages |
 | `apps/web/src/app/api/cron/` | Vercel Cron routes (scheduler/settler) |
 | `apps/web/prisma/schema.prisma` | Database schema (admin panel) |
 | `vercel.json` | Vercel deployment + cron config |
@@ -168,6 +169,8 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 | 2024-12-20 | Hero carousel + grid layout | Showcase markets in 2 formats on homepage | Yes |
 | 2024-12-21 | Drop FDC for trusted settler | Simpler V1; FDC adds complexity without proportional benefit | Yes |
 | 2024-12 | Vercel Cron over Railway | Serverless, simpler deployment, integrated with web app | Yes |
+| 2024-12-27 | WeatherMarketV2 upgrade | UUPS upgradeable, multiple bets/wallet, mutable fees, gas optimizations | Yes |
+| 2024-12-27 | Remove 1-bet-per-wallet limit | Better UX; users can DCA or hedge positions | No (contract change) |
 
 ---
 
@@ -178,13 +181,15 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 - Let users call `resolveMarket()` directly
 - Deploy without testnet validation
 - Hardcode provider URLs (use adapter pattern)
-- Skip the 1-bet-per-wallet check in UI (contract must still enforce)
+- Forget to update ABI after contract changes
+- Hardcode fee percentage (use `feeBps` from contract)
 
 ### ✅ Do
 - Store temps as `uint256` tenths (853 = 85.3°F)
 - Use `onlySettler` modifier for resolution
 - Test full flow on Coston2 before mainnet
 - Abstract weather provider behind interface
+- Use `decodeContractError()` for user-friendly error messages
 - Validate in UI AND contract (defense in depth)
 
 ---
@@ -194,34 +199,35 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 ### Epics 0-6: ✅ Complete
 - **Epic 0:** Monorepo scaffolding, CI/CD, shared types
 - **Epic 1:** Weather provider layer (MET Norway, NWS, Open-Meteo)
-- **Epic 2:** Smart contracts (`WeatherMarket.sol`)
-- **Epic 3:** ~~FDC verification layer~~ → **Simplified to trusted settler** (Dec 2024)
-- **Epic 4:** Scheduler + Settler automation (migrated to Vercel Cron)
-- **Epic 5:** Web App UI (Next.js 16.1.0 + React 19.0)
-- **Epic 6:** Admin Panel (Prisma + PostgreSQL, wallet auth, settings, city management)
+- **Epic 2:** Smart contracts → **Upgraded to WeatherMarketV2** (Dec 2024)
+- **Epic 3:** ~~FDC verification~~ → Simplified to trusted settler
+- **Epic 4:** Scheduler + Settler (Vercel Cron)
+- **Epic 5:** Web App UI + Positions Dashboard
+- **Epic 6:** Admin Panel (wallet auth, settings, city management)
 
-### Settlement Architecture
-Simplified from FDC to trusted settler pattern:
-
+### Contract Architecture (V2)
 ```
-Weather API (MET Norway/NWS/Open-Meteo)
-         ↓
-    Settler Service (Vercel Cron)
-         ↓ resolveMarket(marketId, tempTenths, observedTimestamp)
-    WeatherMarket.sol (on-chain, onlySettler)
+WeatherMarketV2.sol (UUPS Proxy)
+├── Multiple bets per wallet per market
+├── Mutable fee (feeBps, owner-only, max 10%)
+├── Upgradeable via _authorizeUpgrade (owner-only)
+├── Events for all config changes
+└── Gas optimized (packed storage, internal helpers)
 ```
 
-**Why simplified:**
-- FDC adds complexity without proportional benefit for V1
-- Settler address is trusted (controlled by us)
-- Weather APIs are already reliable sources
-- Can re-add FDC proofs later if needed
+### Settlement Flow
+```
+Weather API → Settler Cron → resolveMarket() → on-chain
+```
 
-### Deployment Architecture
-- **Web App:** Vercel (Next.js)
-- **Cron Jobs:** Vercel Cron (`/api/cron/schedule-daily`, `/api/cron/settle-markets`)
-- **State:** Upstash Redis (city rotation index, outage flags)
-- **Database:** PostgreSQL (admin panel, future indexing)
+### Deployment
+| Component | Platform |
+|-----------|----------|
+| Web App | Vercel (Next.js) |
+| Cron Jobs | Vercel Cron |
+| State | Upstash Redis |
+| Database | PostgreSQL |
+| Network | Flare Coston2 (testnet) |
 
 ---
 
