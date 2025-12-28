@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/settle-markets",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/update-trending",
+      "schedule": "0 0 * * *"
     }
   ]
 }
