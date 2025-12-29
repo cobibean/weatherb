@@ -257,33 +257,33 @@ apps/web/src/components/voting/
 ## Tasks
 
 ### 7.1 Database Schema
-- [ ] Add Suggestion and Vote models
-- [ ] Create migrations
-- [ ] Add indexes for common queries
+- [x] Add Suggestion and Vote models
+- [x] Create migrations
+- [x] Add indexes for common queries
 
 ### 7.2 API Routes
-- [ ] GET /api/suggestions (list with sorting)
-- [ ] POST /api/suggestions (create)
-- [ ] POST /api/suggestions/[id]/vote
-- [ ] GET /api/suggestions/[id] (single suggestion)
+- [x] GET /api/suggestions (list with sorting)
+- [x] POST /api/suggestions (create)
+- [x] POST /api/suggestions/[id]/vote
+- [x] GET /api/suggestions/[id] (single suggestion)
 
 ### 7.3 Suggestion Submission
-- [ ] Create SuggestionForm component
-- [ ] City search/autocomplete (use geocoding API)
-- [ ] Time window selector
-- [ ] Connect wallet requirement
-- [ ] Success feedback
+- [x] Create SuggestionForm component
+- [x] City search/autocomplete (use geocoding API)
+- [x] Time window selector
+- [x] Connect wallet requirement
+- [x] Success feedback
 
 ### 7.4 Voting Interface
-- [ ] SuggestionList with filter tabs
-- [ ] VoteButton with optimistic update
-- [ ] Handle "already voted" state
-- [ ] Vote count display
+- [x] SuggestionList with filter tabs
+- [x] VoteButton with optimistic update
+- [x] Handle "already voted" state
+- [x] Vote count display
 
 ### 7.5 Leaderboard
-- [ ] Top 10 by votes
-- [ ] Trending calculation (votes in last 7 days)
-- [ ] Visual ranking
+- [x] Top 10 by votes
+- [x] Trending calculation (votes in last 7 days)
+- [x] Visual ranking
 
 ---
 
@@ -304,7 +304,7 @@ These are **not in V1 scope** but the schema supports them.
 - [x] Users can vote on suggestions (1 per wallet per suggestion)
 - [x] Duplicate vote attempts handled gracefully
 - [x] Suggestions sorted by votes/recent/trending
-- [ ] Admin can see top suggestions (for Epic 8 integration)
+- [x] Admin can see top suggestions (for Epic 8 integration)
 - [x] **NEW:** Concurrent voting handled correctly (10+ simultaneous votes)
 - [x] **NEW:** Pagination implemented on all list endpoints (max 100 results)
 - [x] **NEW:** Trending scores updated daily via cron
