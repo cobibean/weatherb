@@ -24,6 +24,12 @@ enum TimeWindow {
   NIGHT // 12am-6am
 }
 
+enum TestStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 model SystemConfig {
   id            String   @id @default("default")
   cadence       Int      @default(5)
@@ -46,8 +52,80 @@ model City {
   updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   suggestions Suggestion[] // NEW: Issue #4 - city normalization
+  markets     Market[]
 
   @@index([isActive])
+}
+
+// Epic 8: Market tracking for test markets and public markets
+model Market {
+  id               String   @id @default(cuid())
+  contractMarketId Int // The on-chain market ID
+  cityId           String
+  city             City     @relation(fields: [cityId], references: [id])
+
+  cityName         String // Denormalized for query performance
+  latitude         Float
+  longitude        Float
+  timezone         String
+
+  thresholdTemp    Int // Stored as tenths (85.3°F → 853)
+  resolveTime      DateTime @db.Timestamptz(6)
+
+  isTest           Boolean  @default(false) // Filter test markets from public view
+  testRunId        String?
+  testRun          TestRun? @relation(fields: [testRunId], references: [id])
+
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([isTest]) // Critical: Filter test markets from public queries
+  @@index([contractMarketId])
+  @@index([cityId])
+  @@index([testRunId])
+  @@index([resolveTime]) // For settlement cron queries
+  @@index([isTest, resolveTime]) // Combined index for public market queries
+}
+
+// Epic 8: Test Run tracking for automated city testing
+model TestRun {
+  id             String     @id @default(cuid())
+  suggestionId   String
+  suggestion     Suggestion @relation(fields: [suggestionId], references: [id])
+
+  // Wallet management
+  encryptedKeys  String     @db.Text // AES-256 encrypted private keys (JSON array)
+  walletCount    Int        @default(3) // Number of wallets generated (default 3)
+  keysDisposed   Boolean    @default(false) // Track if keys have been securely wiped
+
+  // Market tracking
+  marketsCreated Int // Number of test markets created for this run
+  markets        Market[]
+
+  // Funding
+  fundingAmount  Float // Total FLR allocated for this test run
+  fundingTxHash  String? // Transaction hash of funding operation
+
+  // Status tracking
+  status         TestStatus @default(RUNNING)
+  startedAt      DateTime   @default(now()) @db.Timestamptz(6)
+  completedAt    DateTime?  @db.Timestamptz(6)
+
+  // Results (populated after settlement)
+  actualTemp     Int? // Actual temperature observed (in tenths)
+  totalVolume    Float? // Total betting volume across all test markets
+  payoutVerified Boolean   @default(false) // Has payout been verified?
+
+  // Error tracking
+  errorMessage   String?    @db.Text
+
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([suggestionId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([status, startedAt(sort: Desc)]) // Query active/recent test runs
 }
 
 // Epic 7: Suggestions Table (with all audit fixes applied)
@@ -77,7 +155,8 @@ model Suggestion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  votes Vote[]
+  votes    Vote[]
+  testRuns TestRun[] // Epic 8: Track test runs for this suggestion
 
   // All required indexes (Issues #1, #2, #5)
   @@index([status, voteCount(sort: Desc)]) // Top voted by status
