@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { Decimal } from '@prisma/client/runtime/library';
 import { POST as approveHandler } from '../approve/route';
 import { POST as denyHandler } from '../deny/route';
 
@@ -158,10 +159,10 @@ describe('Admin Suggestions API Routes', () => {
         keysDisposed: false,
         marketsCreated: 0,
         marketsSettled: 0,
-        fundingAmount: BigInt(100),
+        fundingAmount: new Decimal(100),
         fundingTxHash: null,
-        recoveredAmount: BigInt(0),
-        netCost: BigInt(0),
+        recoveredAmount: new Decimal(0),
+        netCost: new Decimal(0),
         status: 'RUNNING',
         startedAt: new Date(),
         completedAt: null,
@@ -216,10 +217,10 @@ describe('Admin Suggestions API Routes', () => {
         keysDisposed: false,
         marketsCreated: 0,
         marketsSettled: 0,
-        fundingAmount: BigInt(100),
+        fundingAmount: new Decimal(100),
         fundingTxHash: null,
-        recoveredAmount: BigInt(0),
-        netCost: BigInt(0),
+        recoveredAmount: new Decimal(0),
+        netCost: new Decimal(0),
         status: 'RUNNING',
         startedAt: new Date(),
         completedAt: null,

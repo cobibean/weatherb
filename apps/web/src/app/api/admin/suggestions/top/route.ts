@@ -7,7 +7,8 @@ import prisma from '@/lib/prisma';
  *
  * Returns top suggestions by votes and trending for weekly admin emails
  */
-export async function GET(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
     // TODO: Add admin auth check when Epic 6 admin auth is integrated
     // For now, allow anyone to access (will be called by Epic 8 email job)

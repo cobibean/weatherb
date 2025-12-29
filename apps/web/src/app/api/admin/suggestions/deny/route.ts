@@ -27,7 +27,7 @@ const DenyRequestSchema = z.object({
  *
  * @returns Success status
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // 1. Verify admin authentication
     const auth = await requireAdminAuth();

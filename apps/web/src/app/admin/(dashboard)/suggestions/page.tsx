@@ -1,4 +1,6 @@
 import React, { Suspense } from 'react';
+import { redirect } from 'next/navigation';
+import { getAdminSession } from '@/lib/admin-session';
 import { getAdminSuggestions } from '@/lib/admin-suggestions';
 import { SuggestionsTabs } from '@/components/admin/suggestions-tabs';
 
@@ -18,7 +20,13 @@ async function SuggestionsContent(): Promise<React.ReactElement> {
   );
 }
 
-export default function SuggestionsPage(): React.ReactElement {
+export default async function SuggestionsPage(): Promise<React.ReactElement> {
+  // Check admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    redirect('/admin/login?redirect=/admin/suggestions');
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Page Header */}
