@@ -11,6 +11,7 @@ import type { PositionsResponse } from '@/types/positions';
 
 const navLinks = [
   { href: '/', label: 'Markets' },
+  { href: '/voting', label: 'Suggestions' },
   { href: '/positions', label: 'My Positions', hasNotification: true },
 ];
 
