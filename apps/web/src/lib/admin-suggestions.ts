@@ -2,11 +2,12 @@ import prisma from './prisma';
 import type { Suggestion, TestRun, Vote } from '@prisma/client';
 
 /**
- * Suggestion with its votes and test runs
+ * Suggestion with its votes and test runs, plus computed fields
  */
 export type SuggestionWithVotes = Suggestion & {
   votes: Vote[];
   testRuns: TestRun[];
+  recentVotes7d?: number; // Computed: votes in last 7 days
 };
 
 /**
@@ -37,6 +38,10 @@ export async function getAdminSuggestions(): Promise<GroupedSuggestions> {
     ],
   });
 
+  // Calculate 7-day cutoff date
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
   // Group by status with additional logic for testing state
   const grouped: GroupedSuggestions = {
     pending: [],
@@ -46,22 +51,32 @@ export async function getAdminSuggestions(): Promise<GroupedSuggestions> {
   };
 
   for (const suggestion of suggestions) {
+    // Calculate recent votes (last 7 days)
+    const recentVotes7d = suggestion.votes.filter(
+      (vote) => vote.createdAt >= sevenDaysAgo
+    ).length;
+
+    const suggestionWithComputed: SuggestionWithVotes = {
+      ...suggestion,
+      recentVotes7d,
+    };
+
     // Check if suggestion has an active test run
     const hasActiveTest = suggestion.testRuns.length > 0 &&
-      suggestion.testRuns[0].status === 'RUNNING';
+      suggestion.testRuns[0]?.status === 'RUNNING';
 
     if (hasActiveTest) {
-      grouped.testing.push(suggestion);
+      grouped.testing.push(suggestionWithComputed);
     } else if (suggestion.status === 'PENDING') {
-      grouped.pending.push(suggestion);
+      grouped.pending.push(suggestionWithComputed);
     } else if (suggestion.status === 'IMPLEMENTED') {
-      grouped.live.push(suggestion);
+      grouped.live.push(suggestionWithComputed);
     } else if (suggestion.status === 'REJECTED') {
-      grouped.rejected.push(suggestion);
+      grouped.rejected.push(suggestionWithComputed);
     }
     // APPROVED status cities go to pending until test starts
     else if (suggestion.status === 'APPROVED') {
-      grouped.pending.push(suggestion);
+      grouped.pending.push(suggestionWithComputed);
     }
   }
 
@@ -69,26 +84,49 @@ export async function getAdminSuggestions(): Promise<GroupedSuggestions> {
 }
 
 /**
- * Approve a suggestion (stub for now - will connect to API in Task 3)
+ * Approve a suggestion - starts test window via API
+ *
+ * @param id - Suggestion ID to approve
+ * @returns Test run ID on success
+ * @throws Error if approval fails
  */
-export async function approveSuggestion(id: string): Promise<void> {
-  await prisma.suggestion.update({
-    where: { id },
-    data: { status: 'APPROVED' },
+export async function approveSuggestion(id: string): Promise<{ testRunId: string }> {
+  const response = await fetch('/api/admin/suggestions/approve', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ suggestionId: id }),
   });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to approve suggestion');
+  }
+
+  return response.json();
 }
 
 /**
- * Deny a suggestion (stub for now - will connect to API in Task 3)
+ * Deny a suggestion - marks as rejected via API
+ *
+ * @param id - Suggestion ID to deny
+ * @param reason - Optional reason for denial (stored in admin log)
+ * @throws Error if denial fails
  */
 export async function denySuggestion(id: string, reason?: string): Promise<void> {
-  await prisma.suggestion.update({
-    where: { id },
-    data: { status: 'REJECTED' },
+  const response = await fetch('/api/admin/suggestions/deny', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ suggestionId: id, reason }),
   });
 
-  // TODO: Store denial reason in AdminLog or Suggestion model
-  // This will be implemented in Task 3
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to deny suggestion');
+  }
 }
 
 /**
