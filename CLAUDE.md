@@ -63,10 +63,7 @@ weatherb/
 - **Epic 5**: Web app UI + Positions dashboard
 - **Epic 6**: Admin panel with wallet auth
 - **Contract V2**: UUPS upgradeable, multiple bets, mutable fees
-- **Epic 7 (Database)**: Schema & indexes ready for voting/suggestions ✅
-
-### In Progress
-- **Epic 7 (Implementation)**: API routes and UI for voting/suggestions
+- **Epic 7**: Voting/suggestions feature (database + API + UI) ✅
 
 ### Pending Epics
 - **Epic 8**: AI weekly reports
@@ -124,6 +121,9 @@ weatherb/
 | Database schema | `apps/web/prisma/schema.prisma` |
 | **Epic 7 database schema** | `apps/web/prisma/schema.prisma` (Suggestion, Vote models) |
 | **Epic 7 voting helpers** | `apps/web/src/lib/voting.ts`, `trending.ts` |
+| **Epic 7 API routes** | `apps/web/src/app/api/suggestions/**` |
+| **Epic 7 UI components** | `apps/web/src/components/voting/**` |
+| **Epic 7 validation** | `apps/web/src/lib/validations/suggestion.ts` |
 | **Epic 7 audit** | `docs/testing/database-audit-epic-7.md` |
 | **Epic 7 migration summary** | `docs/epic-7-migration-summary.md` |
 | Project rules | `AGENTS.md` |
