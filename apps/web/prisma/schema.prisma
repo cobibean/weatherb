@@ -94,17 +94,20 @@ model TestRun {
   suggestion     Suggestion @relation(fields: [suggestionId], references: [id])
 
   // Wallet management
-  encryptedKeys  String     @db.Text // AES-256 encrypted private keys (JSON array)
+  walletKeys     String     @db.Text // AES-256 encrypted private keys (JSON array)
   walletCount    Int        @default(3) // Number of wallets generated (default 3)
   keysDisposed   Boolean    @default(false) // Track if keys have been securely wiped
 
   // Market tracking
   marketsCreated Int // Number of test markets created for this run
+  marketsSettled Int // Number of markets successfully settled
   markets        Market[]
 
   // Funding
-  fundingAmount  Float // Total FLR allocated for this test run
+  fundingAmount  Decimal    @db.Decimal(10, 2) // Total FLR allocated for this test run
   fundingTxHash  String? // Transaction hash of funding operation
+  recoveredAmount Decimal   @db.Decimal(10, 2) // Amount recovered from test wallets after completion
+  netCost        Decimal    @db.Decimal(10, 2) // Gas + fees cost (fundingAmount - recoveredAmount)
 
   // Status tracking
   status         TestStatus @default(RUNNING)
@@ -115,6 +118,7 @@ model TestRun {
   actualTemp     Int? // Actual temperature observed (in tenths)
   totalVolume    Float? // Total betting volume across all test markets
   payoutVerified Boolean   @default(false) // Has payout been verified?
+  results        Json? // Detailed test results storage
 
   // Error tracking
   errorMessage   String?    @db.Text

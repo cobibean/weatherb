@@ -45,18 +45,31 @@ describe('Test Market Schema', () => {
     await prisma.city.deleteMany({ where: { name: 'Test Market City' } });
   });
 
-  it('should create a test run with linked markets', async () => {
+  it('should create a test run with all required fields', async () => {
     const testRun = await prisma.testRun.create({
       data: {
         suggestionId: testSuggestionId,
-        fundingAmount: 25.0,
+        walletKeys: 'encrypted-test-keys-data', // Renamed from encryptedKeys
+        fundingAmount: '25.00', // Now Decimal
         marketsCreated: 3,
-        encryptedKeys: 'encrypted-test-keys-data'
+        marketsSettled: 0, // New required field
+        recoveredAmount: '0.00', // New required field
+        netCost: '25.00', // New required field
+        results: { // New required field
+          markets: [],
+          totalBets: 0,
+          totalVolume: '0.00'
+        }
       }
     });
 
     expect(testRun.status).toBe('RUNNING');
     expect(testRun.keysDisposed).toBe(false);
+    expect(testRun.marketsSettled).toBe(0);
+    expect(testRun.fundingAmount.toString()).toBe('25');
+    expect(testRun.recoveredAmount.toString()).toBe('0');
+    expect(testRun.netCost.toString()).toBe('25');
+    expect(testRun.results).toBeDefined();
   });
 
   it('should filter test markets from public queries', async () => {
