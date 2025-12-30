@@ -1,16 +1,23 @@
 /**
  * AI Insights Service
  *
- * Generates intelligent insights for weekly reports using OpenAI GPT-4.
+ * Generates intelligent insights for weekly reports using AI providers.
+ * Supports multiple providers with automatic fallback.
  * Analyzes metrics and provides actionable recommendations.
+ *
+ * Providers:
+ * - AI_PROVIDER_1_KEY: Primary (Claude recommended)
+ * - AI_PROVIDER_2_KEY: Secondary fallback
+ * - Fallback: Generic insights if all providers fail
  *
  * Features:
  * - Token usage limits for cost control
  * - Structured prompts for consistent output
  * - Error handling with graceful degradation
- * - Caching to avoid regeneration
+ * - Provider fallback chain
  */
 
+import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
 // Simplified WeeklyMetrics type for AI insights
@@ -42,14 +49,19 @@ export interface WeeklyMetrics {
 
 // Configuration
 const MAX_TOKENS = 500; // Limit AI response length
-const MODEL = 'gpt-4-turbo-preview'; // Best quality for weekly insights
 const TEMPERATURE = 0.7; // Balance between creativity and consistency
 
-// Initialize OpenAI client
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
+// Provider configuration
+const CLAUDE_MODEL = 'claude-sonnet-4-20250514'; // Primary provider
+const OPENAI_MODEL = 'gpt-4-turbo-preview'; // Fallback provider
+
+// Initialize AI clients based on environment variables
+const anthropic = process.env.AI_PROVIDER_1_KEY
+  ? new Anthropic({ apiKey: process.env.AI_PROVIDER_1_KEY })
+  : null;
+
+const openai = process.env.AI_PROVIDER_2_KEY
+  ? new OpenAI({ apiKey: process.env.AI_PROVIDER_2_KEY })
   : null;
 
 export interface AIInsightsParams {
@@ -66,37 +78,119 @@ export interface AIInsightsResult {
 }
 
 /**
- * Generates AI insights from weekly metrics
+ * Generates AI insights from weekly metrics with provider fallback
  */
 export async function generateWeeklyInsights({
   metrics,
   startDate,
   endDate,
 }: AIInsightsParams): Promise<AIInsightsResult> {
+  const prompt = buildInsightsPrompt(metrics, startDate, endDate);
+  const systemPrompt = getSystemPrompt();
+
+  // Try primary provider (Claude)
+  if (anthropic) {
+    const result = await tryClaudeProvider(systemPrompt, prompt);
+    if (result.success) {
+      return result;
+    }
+    console.warn('[AI Insights] Primary provider (Claude) failed, trying fallback');
+  }
+
+  // Try secondary provider (OpenAI)
+  if (openai) {
+    const result = await tryOpenAIProvider(systemPrompt, prompt);
+    if (result.success) {
+      return result;
+    }
+    console.warn('[AI Insights] Secondary provider (OpenAI) failed');
+  }
+
+  // All providers failed
+  console.log('[AI Insights] All AI providers unavailable or failed');
+  return {
+    success: false,
+    error: 'No AI providers configured or all providers failed',
+  };
+}
+
+/**
+ * Try generating insights with Claude (Primary Provider)
+ */
+async function tryClaudeProvider(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<AIInsightsResult> {
   try {
-    // Check if OpenAI is configured
-    if (!openai) {
-      console.log('[AI Insights] OpenAI not configured, skipping insights generation');
+    if (!anthropic) {
+      return { success: false, error: 'Claude not configured' };
+    }
+
+    const response = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: MAX_TOKENS,
+      temperature: TEMPERATURE,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+    });
+
+    const insights = response.content[0]?.type === 'text'
+      ? response.content[0].text.trim()
+      : undefined;
+
+    const tokensUsed =
+      response.usage.input_tokens + response.usage.output_tokens;
+
+    if (!insights) {
       return {
         success: false,
-        error: 'OpenAI API key not configured',
+        error: 'No insights generated from Claude',
       };
     }
 
-    // Build the prompt with metrics data
-    const prompt = buildInsightsPrompt(metrics, startDate, endDate);
+    console.log(`[AI Insights] Generated insights using Claude (${tokensUsed} tokens)`);
 
-    // Generate insights using GPT-4
+    return {
+      success: true,
+      insights,
+      tokensUsed,
+    };
+  } catch (error) {
+    console.error('[AI Insights] Claude provider error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Claude provider failed',
+    };
+  }
+}
+
+/**
+ * Try generating insights with OpenAI (Fallback Provider)
+ */
+async function tryOpenAIProvider(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<AIInsightsResult> {
+  try {
+    if (!openai) {
+      return { success: false, error: 'OpenAI not configured' };
+    }
+
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model: OPENAI_MODEL,
       messages: [
         {
           role: 'system',
-          content: getSystemPrompt(),
+          content: systemPrompt,
         },
         {
           role: 'user',
-          content: prompt,
+          content: userPrompt,
         },
       ],
       max_tokens: MAX_TOKENS,
@@ -109,11 +203,11 @@ export async function generateWeeklyInsights({
     if (!insights) {
       return {
         success: false,
-        error: 'No insights generated',
+        error: 'No insights generated from OpenAI',
       };
     }
 
-    console.log(`[AI Insights] Generated insights using ${tokensUsed} tokens`);
+    console.log(`[AI Insights] Generated insights using OpenAI (${tokensUsed} tokens)`);
 
     return {
       success: true,
@@ -121,24 +215,10 @@ export async function generateWeeklyInsights({
       tokensUsed,
     };
   } catch (error) {
-    console.error('[AI Insights] Error generating insights:', error);
-
-    // Provide a specific error message based on the error type
-    let errorMessage = 'Failed to generate AI insights';
-
-    if (error instanceof Error) {
-      if (error.message.includes('rate limit')) {
-        errorMessage = 'OpenAI rate limit reached, try again later';
-      } else if (error.message.includes('api key')) {
-        errorMessage = 'Invalid OpenAI API key';
-      } else if (error.message.includes('timeout')) {
-        errorMessage = 'OpenAI request timed out';
-      }
-    }
-
+    console.error('[AI Insights] OpenAI provider error:', error);
     return {
       success: false,
-      error: errorMessage,
+      error: error instanceof Error ? error.message : 'OpenAI provider failed',
     };
   }
 }

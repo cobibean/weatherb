@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/table';
 import type { SuggestionWithVotes } from '@/lib/admin-suggestions';
 import { getTestProgress } from '@/lib/admin-suggestions';
+import { TestRunMonitor } from '@/components/admin/test-run-monitor';
 
 interface SuggestionsTabsProps {
   pending: SuggestionWithVotes[];
@@ -224,83 +225,41 @@ export function SuggestionsTabs({
         </div>
       </TabsContent>
 
-      {/* Testing Tab */}
+      {/* Testing Tab - Live Monitoring */}
       <TabsContent value="testing">
-        <div className="rounded-2xl border border-amber-400 bg-amber-50 overflow-hidden">
-          {testing.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="font-body text-neutral-400">No cities currently in testing</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-display font-semibold text-neutral-800">City</TableHead>
-                  <TableHead className="font-display font-semibold text-neutral-800">Started</TableHead>
-                  <TableHead className="font-display font-semibold text-neutral-800">Markets Status</TableHead>
-                  <TableHead className="font-display font-semibold text-neutral-800">Est. Completion</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {testing.map((suggestion, index) => {
-                  const testRun = suggestion.testRuns[0];
-                  const progress = getTestProgress(testRun);
+        {testing.length === 0 ? (
+          <div className="rounded-2xl border border-amber-400 bg-amber-50 p-8 text-center">
+            <p className="font-body text-neutral-400">No cities currently in testing</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {testing.map((suggestion, index) => {
+              const testRun = suggestion.testRuns[0];
 
-                  return (
-                    <motion.tr
-                      key={suggestion.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="border-b last:border-0 hover:bg-amber-100/50"
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 text-amber-600 animate-spin flex-shrink-0" />
-                          <div>
-                            <div className="font-display font-semibold text-neutral-800">
-                              {getCityName(suggestion)}
-                            </div>
-                            {suggestion.latitude && suggestion.longitude && (
-                              <div className="font-body text-xs text-neutral-500 mt-0.5">
-                                {suggestion.latitude.toFixed(4)}, {suggestion.longitude.toFixed(4)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-body text-sm text-neutral-700">
-                          {testRun ? formatDateTime(testRun.startedAt) : 'N/A'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-body text-sm font-medium text-neutral-800">
-                              {progress.marketsSettled} / {progress.marketsCreated}
-                            </span>
-                            <div className="w-24 bg-neutral-200 rounded-full h-1.5">
-                              <div
-                                className="bg-amber-500 h-1.5 rounded-full transition-all duration-300"
-                                style={{ width: `${progress.percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-body text-sm text-amber-700">
-                          {estimateCompletion(testRun)}
-                        </span>
-                      </TableCell>
-                    </motion.tr>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+              if (!testRun) return null;
+
+              // For live monitoring, we'll need admin auth token
+              // In a real implementation, get this from session/cookie
+              const authToken = typeof window !== 'undefined'
+                ? localStorage.getItem('adminToken') || ''
+                : '';
+
+              return (
+                <motion.div
+                  key={suggestion.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <TestRunMonitor
+                    testRunId={testRun.id}
+                    authToken={authToken}
+                  />
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </TabsContent>
 
       {/* Live Tab */}
