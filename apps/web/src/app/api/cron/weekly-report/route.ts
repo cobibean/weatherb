@@ -9,6 +9,12 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { collectWeeklyMetrics } from '@/lib/metrics';
 import { sendWeeklySummaryEmail } from '@/lib/email';
+import {
+  generateWeeklyInsights,
+  generateFallbackInsights,
+  formatInsightsForEmail,
+  validateInsights
+} from '@/lib/ai-insights';
 
 // Validate cron secret for security
 function validateCronSecret(headersList: Headers): boolean {
@@ -75,9 +81,64 @@ export async function GET(request: Request) {
       marketHighlightsCount: metrics.marketHighlights.length,
     });
 
+    // Generate AI insights
+    console.log('[WeeklyReport] Generating AI insights...');
+    let aiInsights: string | undefined;
+
+    // Convert metrics to format expected by AI service
+    const aiMetrics = {
+      totalMarkets: metrics.totalMarkets,
+      totalVolume: metrics.totalVolume,
+      totalPayouts: metrics.totalPayouts,
+      uniqueBettors: metrics.uniqueBettors,
+      topCities: metrics.topCities.map(city => ({
+        name: city.name,
+        markets: city.markets,
+        volume: city.volume,
+      })),
+      marketHighlights: metrics.marketHighlights.map(m => ({
+        city: m.city,
+        date: m.date,
+        threshold: m.threshold,
+        actual: m.actual,
+        volume: m.volume,
+        outcome: m.outcome,
+      })),
+      approvedCities: metrics.approvedCities,
+      testRunsCompleted: 0, // Will be added in actual metrics collection
+      testRunSuccessRate: 100, // Will be calculated from actual data
+    };
+
+    const insightsResult = await generateWeeklyInsights({
+      metrics: aiMetrics,
+      startDate: metrics.startDate,
+      endDate: metrics.endDate,
+    });
+
+    if (insightsResult.success && insightsResult.insights) {
+      // Validate and format the insights
+      if (validateInsights(insightsResult.insights)) {
+        aiInsights = formatInsightsForEmail(insightsResult.insights);
+        console.log('[WeeklyReport] AI insights generated successfully');
+      } else {
+        console.warn('[WeeklyReport] AI insights failed validation, using fallback');
+        aiInsights = generateFallbackInsights(aiMetrics);
+      }
+    } else {
+      // Use fallback insights if AI generation failed
+      console.warn('[WeeklyReport] AI generation failed, using fallback insights');
+      aiInsights = generateFallbackInsights(aiMetrics);
+    }
+
+    // Add AI insights to metrics
+    const metricsWithInsights = {
+      ...metrics,
+      aiInsights,
+    };
+
     // Send the weekly summary email
     console.log('[WeeklyReport] Sending weekly summary email...');
-    const emailResult = await sendWeeklySummaryEmail(metrics);
+    const emailResult = await sendWeeklySummaryEmail(metricsWithInsights);
 
     if (!emailResult.success) {
       throw new Error(`Failed to send email: ${emailResult.error}`);
