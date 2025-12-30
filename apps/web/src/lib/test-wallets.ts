@@ -193,9 +193,13 @@ export function decryptWalletKeys(encrypted: string): TestWallet[] {
       throw new Error('Invalid encrypted data format');
     }
 
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encryptedData = parts[2];
+    const [ivHex, authTagHex, encryptedData] = parts;
+    if (!ivHex || !authTagHex || !encryptedData) {
+      throw new Error('Invalid encrypted data format');
+    }
+
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
 
     // Validate lengths
     if (iv.length !== IV_LENGTH) {
@@ -274,7 +278,12 @@ export async function fundWallets(
   const totalRequired = BigInt(wallets.length) * amountWei;
 
   // Check admin balance
-  const adminAddress = walletClient.account!.address;
+  const adminAccount = walletClient.account;
+  if (!adminAccount) {
+    throw new Error('Admin wallet account not available');
+  }
+
+  const adminAddress = adminAccount.address;
   const adminBalance = await publicClient.getBalance({ address: adminAddress });
 
   // Add 10% buffer for gas costs
@@ -291,6 +300,8 @@ export async function fundWallets(
 
   for (const wallet of wallets) {
     const hash = await walletClient.sendTransaction({
+      account: adminAccount,
+      chain: null,
       to: wallet.address,
       value: amountWei,
     });
@@ -391,9 +402,15 @@ export async function sweepWallets(
       throw new Error('RPC_URL is required for sweeping wallets');
     }
     const testWalletClient = walletClientFactory(wallet.privateKey, rpcUrlToUse);
+    const walletAccount = testWalletClient.account;
+    if (!walletAccount) {
+      throw new Error(`Wallet client account missing for ${wallet.address}`);
+    }
 
     // Send transaction
     const hash = await testWalletClient.sendTransaction({
+      account: walletAccount,
+      chain: null,
       to: toAddress,
       value: amountToSend,
     });

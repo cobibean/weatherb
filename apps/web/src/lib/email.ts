@@ -1,7 +1,9 @@
 import { Resend } from 'resend';
-import { renderAsync } from '@react-email/render';
+import { render } from '@react-email/render';
 import { TestResultsEmail, type TestResultsData } from '../emails/test-results';
 import { WeeklySummaryEmail, type WeeklySummaryData } from '../emails/weekly-summary';
+
+export type { TestResultsData, WeeklySummaryData };
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -36,7 +38,7 @@ async function sendEmail(options: EmailOptions) {
       to: options.to,
       subject: options.subject,
       html: options.html,
-      text: options.text,
+      ...(options.text !== undefined ? { text: options.text } : {}),
     });
 
     if (error) {
@@ -58,7 +60,7 @@ async function sendEmail(options: EmailOptions) {
 export async function sendTestResultsEmail(data: TestResultsData) {
   try {
     // Render the email template
-    const html = await renderAsync(TestResultsEmail(data));
+    const html = await render(TestResultsEmail(data));
 
     const subject = `WeatherB Test Results: ${data.cityName}`;
 
@@ -87,7 +89,7 @@ export async function sendTestResultsEmail(data: TestResultsData) {
 export async function sendWeeklySummaryEmail(data: WeeklySummaryData) {
   try {
     // Render the email template
-    const html = await renderAsync(WeeklySummaryEmail(data));
+    const html = await render(WeeklySummaryEmail(data));
 
     const dateRange = `${data.startDate} - ${data.endDate}`;
     const subject = `WeatherB Weekly Insights: ${dateRange}`;

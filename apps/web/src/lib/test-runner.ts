@@ -198,6 +198,11 @@ export async function startTestWindow(suggestionId: string): Promise<TestRun> {
       `[Test Runner] Wallets funded: ${fundingResult.totalAmount} FLR (${fundingResult.transactions.length} txs)`
     );
 
+    const fundingTxHash = fundingResult.transactions[0]?.hash;
+    if (!fundingTxHash) {
+      throw new Error('Funding transaction hash missing');
+    }
+
     // STEP 5: Create test markets
     console.log(`[Test Runner] Creating ${MARKET_COUNT} test markets...`);
 
@@ -214,7 +219,7 @@ export async function startTestWindow(suggestionId: string): Promise<TestRun> {
         marketsCreated: 0,
         marketsSettled: 0,
         fundingAmount: fundingResult.totalAmount,
-        fundingTxHash: fundingResult.transactions[0].hash,
+        fundingTxHash,
         recoveredAmount: '0',
         netCost: '0',
         status: 'RUNNING',
@@ -594,12 +599,13 @@ export async function finalizeTestRun(testRunId: string): Promise<TestResults> {
       // Prepare temperature data from markets
       const temperatureData: TestResultsData['temperatureData'] = [];
       for (const market of markets) {
-        if (market.actualTemp !== null) {
+        const actualTemp = (market as { actualTemp?: number | null }).actualTemp;
+        if (actualTemp !== null && actualTemp !== undefined) {
           temperatureData.push({
             time: market.resolveTime.toISOString(),
             threshold: market.thresholdTemp,
-            actual: market.actualTemp,
-            outcome: market.actualTemp >= market.thresholdTemp ? 'YES' : 'NO',
+            actual: actualTemp,
+            outcome: actualTemp >= market.thresholdTemp ? 'YES' : 'NO',
           });
         }
       }
@@ -611,6 +617,11 @@ export async function finalizeTestRun(testRunId: string): Promise<TestResults> {
       );
 
       // Prepare email data
+      const totalPayouts = payoutResult.verifications.reduce(
+        (sum, verification) => sum + Number(verification.actualPayout),
+        0
+      );
+
       const emailData: TestResultsData = {
         cityName: suggestion.city?.name || suggestion.customCityName || 'Unknown',
         latitude: suggestion.city?.latitude || suggestion.latitude || 0,
@@ -623,7 +634,7 @@ export async function finalizeTestRun(testRunId: string): Promise<TestResults> {
         marketsSettled: testRun.marketsSettled,
         temperatureData,
         totalVolume: testRun.totalVolume?.toString() || '0',
-        totalPayouts: payoutResult.totalPaidOut,
+        totalPayouts: totalPayouts.toFixed(2),
         netGasCost: netCost,
         payoutVerified: allVerified,
         verificationDetails: allVerified

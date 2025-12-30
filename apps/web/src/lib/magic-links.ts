@@ -176,7 +176,7 @@ export async function validateAndUseMagicLink(
       data: {
         used: true,
         usedAt: new Date(),
-        usedBy: userWallet,
+        usedBy: userWallet ?? null,
       },
     });
 
