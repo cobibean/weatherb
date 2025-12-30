@@ -132,6 +132,25 @@ model TestRun {
   @@index([status, startedAt(sort: Desc)]) // Query active/recent test runs
 }
 
+// Epic 9: Magic Links for email-based admin actions
+model MagicLink {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique // SHA256 hash of token
+  suggestionId String
+  action       String    // 'approve' or 'deny'
+  used         Boolean   @default(false)
+  expiresAt    DateTime
+  usedAt       DateTime?
+  usedBy       String?   // Wallet address of who used it
+  createdAt    DateTime  @default(now())
+
+  suggestion Suggestion @relation(fields: [suggestionId], references: [id])
+
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@index([suggestionId])
+}
+
 // Epic 7: Suggestions Table (with all audit fixes applied)
 model Suggestion {
   id String @id @default(cuid())
@@ -159,8 +178,9 @@ model Suggestion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  votes    Vote[]
-  testRuns TestRun[] // Epic 8: Track test runs for this suggestion
+  votes      Vote[]
+  testRuns   TestRun[] // Epic 8: Track test runs for this suggestion
+  magicLinks MagicLink[] // Epic 9: Track magic links for this suggestion
 
   // All required indexes (Issues #1, #2, #5)
   @@index([status, voteCount(sort: Desc)]) // Top voted by status
