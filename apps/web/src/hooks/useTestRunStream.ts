@@ -14,6 +14,8 @@ export interface TestRunMarket {
   outcome: 'YES' | 'NO' | null;
   city: string;
   threshold: number;
+  actualTemp?: number;        // NEW
+  settledAt?: string;          // NEW
   createdAt: string;
 }
 
