@@ -46,11 +46,16 @@ export async function GET(
                     select: {
                       id: true,
                       resolveTime: true,
-                      isSettled: true,
-                      outcome: true,
-                      city: true,
-                      threshold: true,
+                      isSettled: true,      // ✅ Real field
+                      settledAt: true,       // ✅ Real field
+                      outcome: true,         // ✅ Real field
+                      cityName: true,        // ✅ Real field
+                      thresholdTemp: true,   // ✅ Real field
+                      actualTemp: true,      // ✅ Real field
                       createdAt: true,
+                    },
+                    orderBy: {
+                      resolveTime: 'asc',  // Sort by resolve time
                     },
                   },
                   suggestion: {
@@ -89,10 +94,12 @@ export async function GET(
                 markets: testRun.markets.map(m => ({
                   id: m.id,
                   resolveTime: m.resolveTime.toISOString(),
-                  isSettled: m.isSettled,
-                  outcome: m.outcome,
-                  city: m.city,
-                  threshold: m.threshold,
+                  isSettled: m.isSettled,                              // ✅ Real data
+                  outcome: m.outcome,                                   // ✅ Real data
+                  city: m.cityName,
+                  threshold: Math.round(m.thresholdTemp / 10),         // Convert tenths to whole degrees
+                  actualTemp: m.actualTemp ? Math.round(m.actualTemp / 10) : undefined, // ✅ Real data
+                  settledAt: m.settledAt?.toISOString(),               // ✅ Real data
                   createdAt: m.createdAt.toISOString(),
                 })),
               };
