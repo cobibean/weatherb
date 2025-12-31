@@ -198,6 +198,10 @@ function MarketCard({ market, index }: MarketCardProps): React.ReactElement {
     ? Math.max(0, Math.floor((resolveTime.getTime() - now.getTime()) / 1000 / 60))
     : 0;
 
+  // Staggered timing offsets (matches MARKET_SPACING_MINUTES in test-markets.ts)
+  const spacingOffsets = [30, 60, 120, 180, 240];
+  const offsetMinutes = spacingOffsets[index] || (index * 30 + 30);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -221,7 +225,7 @@ function MarketCard({ market, index }: MarketCardProps): React.ReactElement {
           {/* Market Info */}
           <div>
             <p className="font-medium text-neutral-800 text-sm">
-              Market #{index + 1} {isPending && `(+${index * 30 + 30}m)`}
+              Market #{index + 1} {isPending && `(+${offsetMinutes}m)`}
             </p>
             <p className="text-xs text-neutral-500">
               Resolves: {resolveTime.toLocaleTimeString()}
@@ -244,27 +248,39 @@ function MarketCard({ market, index }: MarketCardProps): React.ReactElement {
         )}
       </div>
 
-      {/* Threshold Info (when settled) */}
-      {market.isSettled && (
-        <div className="mt-3 pt-3 border-t text-xs space-y-1">
-          <div className="flex items-center justify-between text-neutral-600">
-            <span>Threshold:</span>
-            <span className="font-mono">{market.threshold}°F</span>
-          </div>
-          {market.actualTemp !== undefined && (
-            <div className="flex items-center justify-between text-neutral-600">
-              <span>Actual:</span>
-              <span className="font-mono font-semibold">{market.actualTemp}°F</span>
-            </div>
-          )}
-          {market.settledAt && (
-            <div className="flex items-center justify-between text-neutral-500 text-xs">
-              <span>Settled:</span>
-              <span>{new Date(market.settledAt).toLocaleTimeString()}</span>
-            </div>
-          )}
+      {/* Market Details - Always show threshold */}
+      <div className="mt-3 pt-3 border-t text-xs space-y-1">
+        <div className="flex items-center justify-between text-neutral-600">
+          <span>Threshold:</span>
+          <span className="font-mono font-semibold">{market.threshold}°F</span>
         </div>
-      )}
+        
+        {/* Show city */}
+        <div className="flex items-center justify-between text-neutral-500">
+          <span>City:</span>
+          <span>{market.city}</span>
+        </div>
+
+        {/* Actual temp (only when settled) */}
+        {market.actualTemp !== undefined && (
+          <div className="flex items-center justify-between text-neutral-600">
+            <span>Actual:</span>
+            <span className={`font-mono font-bold ${
+              market.outcome === 'YES' ? 'text-green-600' : 'text-amber-600'
+            }`}>
+              {market.actualTemp}°F
+            </span>
+          </div>
+        )}
+        
+        {/* Settlement time */}
+        {market.settledAt && (
+          <div className="flex items-center justify-between text-neutral-500">
+            <span>Settled:</span>
+            <span>{new Date(market.settledAt).toLocaleTimeString()}</span>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
