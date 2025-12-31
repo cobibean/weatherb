@@ -247,11 +247,23 @@ function MarketCard({ market, index }: MarketCardProps): React.ReactElement {
 
       {/* Threshold Info (when settled) */}
       {market.isSettled && (
-        <div className="mt-3 pt-3 border-t text-xs">
+        <div className="mt-3 pt-3 border-t text-xs space-y-1">
           <div className="flex items-center justify-between text-neutral-600">
             <span>Threshold:</span>
             <span className="font-mono">{market.threshold}°F</span>
           </div>
+          {market.actualTemp !== undefined && (
+            <div className="flex items-center justify-between text-neutral-600">
+              <span>Actual:</span>
+              <span className="font-mono font-semibold">{market.actualTemp}°F</span>
+            </div>
+          )}
+          {market.settledAt && (
+            <div className="flex items-center justify-between text-neutral-500 text-xs">
+              <span>Settled:</span>
+              <span>{new Date(market.settledAt).toLocaleTimeString()}</span>
+            </div>
+          )}
         </div>
       )}
     </motion.div>
