@@ -43,8 +43,7 @@ export interface UseTestRunStreamResult {
  * Subscribe to real-time updates for a test run
  */
 export function useTestRunStream(
-  testRunId: string,
-  authToken: string
+  testRunId: string
 ): UseTestRunStreamResult {
   const [testRun, setTestRun] = useState<TestRunData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -52,16 +51,12 @@ export function useTestRunStream(
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    if (!testRunId || !authToken) {
+    if (!testRunId) {
       return;
     }
 
-    // Create EventSource with auth header (via query param since EventSource doesn't support headers)
-    // Note: In production, consider using a WebSocket for better auth support
+    // SSE implementation using fetch with cookie-based auth
     const url = `/api/admin/test-runs/${testRunId}/stream`;
-
-    // For now, we'll use a custom fetch-based SSE implementation since
-    // EventSource doesn't support custom headers
     let controller: AbortController;
     let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
@@ -70,9 +65,7 @@ export function useTestRunStream(
         controller = new AbortController();
 
         const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-          },
+          credentials: 'include', // Include cookies for auth
           signal: controller.signal,
         });
 
@@ -149,7 +142,7 @@ export function useTestRunStream(
       }
       setIsConnected(false);
     };
-  }, [testRunId, authToken]);
+  }, [testRunId]);
 
   return { testRun, isConnected, error };
 }

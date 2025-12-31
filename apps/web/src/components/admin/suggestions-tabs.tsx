@@ -44,22 +44,12 @@ export function SuggestionsTabs({
   const handleApprove = async (id: string): Promise<void> => {
     setApprovingId(id);
     try {
-      const authToken = typeof window !== 'undefined'
-        ? localStorage.getItem('adminToken') || ''
-        : '';
-
-      if (!authToken) {
-        console.error('No admin token found');
-        alert('Authentication required. Please log in again.');
-        return;
-      }
-
       const response = await fetch('/api/admin/suggestions/approve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
         },
+        credentials: 'include', // Include cookies
         body: JSON.stringify({ suggestionId: id }),
       });
 
@@ -80,22 +70,12 @@ export function SuggestionsTabs({
   const handleDeny = async (id: string): Promise<void> => {
     setDenyingId(id);
     try {
-      const authToken = typeof window !== 'undefined'
-        ? localStorage.getItem('adminToken') || ''
-        : '';
-
-      if (!authToken) {
-        console.error('No admin token found');
-        alert('Authentication required. Please log in again.');
-        return;
-      }
-
       const response = await fetch('/api/admin/suggestions/deny', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
         },
+        credentials: 'include', // Include cookies
         body: JSON.stringify({ suggestionId: id }),
       });
 
@@ -282,12 +262,6 @@ export function SuggestionsTabs({
 
               if (!testRun) return null;
 
-              // For live monitoring, we'll need admin auth token
-              // In a real implementation, get this from session/cookie
-              const authToken = typeof window !== 'undefined'
-                ? localStorage.getItem('adminToken') || ''
-                : '';
-
               return (
                 <motion.div
                   key={suggestion.id}
@@ -295,10 +269,7 @@ export function SuggestionsTabs({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <TestRunMonitor
-                    testRunId={testRun.id}
-                    authToken={authToken}
-                  />
+                  <TestRunMonitor testRunId={testRun.id} />
                 </motion.div>
               );
             })}

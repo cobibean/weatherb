@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { verifyAdminWallet } from '@/lib/admin-auth';
+import { requireAdminAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,15 +16,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify admin authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-
-    const verification = await verifyAdminWallet(authHeader.replace('Bearer ', ''));
-    if (!verification.isValid) {
-      return new Response('Invalid admin credentials', { status: 401 });
+    // Verify admin authentication via cookie
+    const auth = await requireAdminAuth();
+    if (!auth.authenticated) {
+      return new Response(auth.error, { status: 401 });
     }
 
     const { id: testRunId } = await params;

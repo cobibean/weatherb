@@ -25,11 +25,10 @@ import { Badge } from '@/components/ui/badge';
 
 interface TestRunMonitorProps {
   testRunId: string;
-  authToken: string;
 }
 
-export function TestRunMonitor({ testRunId, authToken }: TestRunMonitorProps): React.ReactElement {
-  const { testRun, isConnected, error } = useTestRunStream(testRunId, authToken);
+export function TestRunMonitor({ testRunId }: TestRunMonitorProps): React.ReactElement {
+  const { testRun, isConnected, error } = useTestRunStream(testRunId);
 
   if (error) {
     return (
