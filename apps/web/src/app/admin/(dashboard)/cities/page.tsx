@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
-import { getCities } from '@/lib/admin-data';
+import { CITIES } from '@weatherb/shared/constants';
+import { getCities, getTestingCities } from '@/lib/admin-data';
 import { CitiesClient } from './cities-client';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +8,14 @@ export const revalidate = 0;
 
 async function CitiesContent(): Promise<React.ReactElement> {
   const cities = await getCities();
-  return <CitiesClient initialCities={cities} />;
+  const testingCities = await getTestingCities();
+  return (
+    <CitiesClient
+      initialCities={cities}
+      rotationCities={CITIES}
+      testingCities={testingCities}
+    />
+  );
 }
 
 export default function CitiesPage(): React.ReactElement {
@@ -37,4 +45,3 @@ export default function CitiesPage(): React.ReactElement {
     </div>
   );
 }
-

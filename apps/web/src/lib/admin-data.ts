@@ -4,6 +4,7 @@ import { CITIES } from '@weatherb/shared/constants';
 import { formatFlr } from '@weatherb/shared/utils/payout';
 import { readProviderHealth, type ProviderHealth } from './provider-health';
 import prisma from './prisma';
+import type { TestStatus } from '@prisma/client';
 
 export interface AdminStats {
   providerStatus: 'healthy' | 'degraded' | 'down';
@@ -39,6 +40,17 @@ export interface SystemConfigData {
   isPaused: boolean;
   settlerPaused: boolean;
 }
+
+export type TestingCity = {
+  id: string;
+  suggestionId: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  timezone: string | null;
+  status: TestStatus;
+  startedAt: string;
+};
 
 /**
  * Get or create the default system config.
@@ -465,6 +477,39 @@ export async function getAdminStats(): Promise<AdminStats> {
 export async function getCities() {
   return prisma.city.findMany({
     orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+  });
+}
+
+/**
+ * Get cities currently in active testing runs.
+ */
+export async function getTestingCities(): Promise<TestingCity[]> {
+  const testRuns = await prisma.testRun.findMany({
+    where: { status: 'RUNNING' },
+    include: {
+      suggestion: {
+        include: { city: true },
+      },
+    },
+    orderBy: { startedAt: 'desc' },
+  });
+
+  return testRuns.map((run) => {
+    const city = run.suggestion.city;
+    const name = city?.name ?? run.suggestion.customCityName ?? 'Unknown City';
+    const latitude = city?.latitude ?? run.suggestion.latitude ?? null;
+    const longitude = city?.longitude ?? run.suggestion.longitude ?? null;
+
+    return {
+      id: run.id,
+      suggestionId: run.suggestionId,
+      name,
+      latitude,
+      longitude,
+      timezone: city?.timezone ?? null,
+      status: run.status,
+      startedAt: run.startedAt.toISOString(),
+    };
   });
 }
 
