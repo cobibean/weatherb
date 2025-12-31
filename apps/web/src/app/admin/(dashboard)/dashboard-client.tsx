@@ -34,6 +34,9 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
   const router = useRouter();
   const [isPaused, setIsPaused] = useState(stats.isPaused);
   const [isSettlerPaused, setIsSettlerPaused] = useState(stats.isSettlerPaused);
+  
+  // Safety check: ensure recentLogs is always an array
+  const safeRecentLogs = recentLogs ?? [];
 
   const handlePauseToggle = async (): Promise<void> => {
     const newState = !isPaused;
@@ -63,7 +66,7 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
     }
   };
 
-  const statusConfig = providerStatusConfig[stats.providerStatus];
+  const statusConfig = providerStatusConfig[stats.providerStatus] ?? providerStatusConfig.degraded;
   const StatusIcon = statusConfig.icon;
 
   return (
@@ -170,13 +173,13 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
           <h3 className="font-display font-bold text-lg text-neutral-800 mb-4">
             Recent Activity
           </h3>
-          {recentLogs.length === 0 ? (
+          {safeRecentLogs.length === 0 ? (
             <p className="font-body text-neutral-400 text-center py-8">
               No recent activity
             </p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {recentLogs.map((log) => (
+              {safeRecentLogs.map((log) => (
                 <div
                   key={log.id}
                   className="flex items-center justify-between py-2 border-b border-neutral-100 last:border-0"

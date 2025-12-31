@@ -12,20 +12,18 @@ export const createSuggestionSchema = z.object({
   // Either cityId OR custom city details required
   cityId: z.string().cuid().optional(),
   customCityName: z.string().min(1).max(100).optional(),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
 
   timeWindow: timeWindowSchema.optional(),
   comment: z.string().max(500).optional(),
 }).refine(
   (data) => {
-    // Either cityId OR (customCityName + coords) required
+    // Either cityId OR custom city name required
     const hasCity = !!data.cityId;
-    const hasCustomCity = !!(data.customCityName && data.latitude !== undefined && data.longitude !== undefined);
+    const hasCustomCity = !!data.customCityName;
     return hasCity || hasCustomCity;
   },
   {
-    message: 'Either cityId or (customCityName + latitude + longitude) is required',
+    message: 'Either cityId or customCityName is required',
   }
 );
 

@@ -54,7 +54,7 @@ weatherb/
 
 ---
 
-## Current State (Dec 2024)
+## Current State (Jan 2025)
 
 ### Completed Epics
 - **Epic 0-2**: Foundations, weather providers, contracts
@@ -64,9 +64,10 @@ weatherb/
 - **Epic 6**: Admin panel with wallet auth
 - **Contract V2**: UUPS upgradeable, multiple bets, mutable fees
 - **Epic 7**: Voting/suggestions feature (database + API + UI) ✅
+- **Epic 8 (Part 1)**: City test automation (4-hour test windows, magic links, fund recovery) ✅
 
 ### Pending Epics
-- **Epic 8**: AI weekly reports
+- **Epic 8 (Part 2)**: Weekly AI reports (metrics collection + email automation)
 - **Epic 9**: Event indexing
 - **Epic 10**: Security hardening
 
@@ -126,6 +127,17 @@ weatherb/
 | **Epic 7 validation** | `apps/web/src/lib/validations/suggestion.ts` |
 | **Epic 7 audit** | `docs/testing/database-audit-epic-7.md` |
 | **Epic 7 migration summary** | `docs/epic-7-migration-summary.md` |
+| **Epic 8 database schema** | `apps/web/prisma/schema.prisma` (TestRun, TestRunMarket, MagicLink models) |
+| **Epic 8 admin manual** | `docs/admin-operations-manual.md` |
+| **Epic 8 test orchestration** | `apps/web/src/lib/test-runner.ts` |
+| **Epic 8 test wallets** | `apps/web/src/lib/test-wallets.ts` |
+| **Epic 8 test markets** | `apps/web/src/lib/test-markets.ts` |
+| **Epic 8 magic links** | `apps/web/src/lib/magic-links.ts` |
+| **Epic 8 email service** | `apps/web/src/lib/email.ts` |
+| **Epic 8 email templates** | `apps/web/src/emails/test-results.tsx` |
+| **Epic 8 AI insights** | `apps/web/src/lib/ai-insights.ts` |
+| **Epic 8 test monitor** | `apps/web/src/app/admin/test-monitor/**` |
+| **Epic 8 test flow guide** | `docs/testing/test-email-approval-flow.md` |
 | Project rules | `AGENTS.md` |
 | Requirements | `PRD.md` |
 

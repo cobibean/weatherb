@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
-import { TrendingUp, Clock, Coins, AlertTriangle, Users, Activity } from 'lucide-react';
-import { StatCard } from '@/components/admin/stat-card';
+import { AlertTriangle } from 'lucide-react';
 import { DashboardClient } from './dashboard-client';
 import { getAdminStats, getRecentLogs } from '@/lib/admin-data';
 
@@ -9,17 +8,41 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 async function DashboardContent(): Promise<React.ReactElement> {
-  const [stats, recentLogs] = await Promise.all([
-    getAdminStats(),
-    getRecentLogs(10),
-  ]);
+  try {
+    const [stats, recentLogs] = await Promise.all([
+      getAdminStats(),
+      getRecentLogs(10),
+    ]);
 
-  return (
-    <DashboardClient 
-      stats={stats} 
-      recentLogs={recentLogs}
-    />
-  );
+    return (
+      <DashboardClient 
+        stats={stats} 
+        recentLogs={recentLogs}
+      />
+    );
+  } catch (error) {
+    console.error('Failed to load dashboard data:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    return (
+      <div className="p-6 rounded-2xl border border-error-soft bg-error-soft/10">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-6 h-6 text-error-soft flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-display font-bold text-lg text-neutral-800 mb-2">
+              Failed to Load Dashboard
+            </h3>
+            <p className="font-body text-sm text-neutral-600 mb-2">
+              {errorMessage}
+            </p>
+            <p className="font-body text-xs text-neutral-400">
+              Please check your environment variables and database connection.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
 
 export default function AdminDashboardPage(): React.ReactElement {

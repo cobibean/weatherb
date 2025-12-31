@@ -2,7 +2,7 @@
 
 import { type Suggestion, type City } from '@prisma/client';
 import { MapPin, Clock, MessageSquare, TrendingUp } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 type SuggestionWithRelations = Suggestion & {
@@ -52,9 +52,6 @@ export function SuggestionCard({
                 </Badge>
               )}
             </CardTitle>
-            <CardDescription className="mt-1">
-              {suggestion.latitude?.toFixed(2)}°, {suggestion.longitude?.toFixed(2)}°
-            </CardDescription>
           </div>
 
           <div className="flex flex-col items-end">

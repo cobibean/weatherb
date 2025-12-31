@@ -43,7 +43,7 @@ export default function VotingPage() {
               Suggest Market
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl bg-cloud-off">
             <DialogHeader>
               <DialogTitle>Suggest a New Market</DialogTitle>
               <DialogDescription>

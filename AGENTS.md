@@ -148,12 +148,20 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 | `docs/epics/*.md` | Detailed plans per epic |
 | `docs/reference/codebase-organization-workflow.md` | Organization workflow guide |
 | `docs/testing/test-plan.md` | Testing documentation |
+| `docs/testing/test-email-approval-flow.md` | Epic 8 email flow test guide |
+| `docs/admin-operations-manual.md` | Epic 8 comprehensive admin guide |
 | `contracts/src/WeatherMarketV2.sol` | **Active** betting contract (UUPS upgradeable) |
 | `contracts/src/WeatherMarket.sol` | Legacy V1 contract (reference only) |
 | `packages/shared/src/abi/` | Contract ABIs |
 | `apps/web/src/lib/contract-errors.ts` | Custom error decoder for user-friendly messages |
 | `apps/web/src/app/api/cron/` | Vercel Cron routes (scheduler/settler) |
-| `apps/web/prisma/schema.prisma` | Database schema (admin panel) |
+| `apps/web/prisma/schema.prisma` | Database schema (Suggestion, Vote, TestRun, MagicLink) |
+| `apps/web/src/lib/test-runner.ts` | Epic 8 test orchestration engine |
+| `apps/web/src/lib/test-wallets.ts` | Epic 8 encrypted wallet generation |
+| `apps/web/src/lib/test-markets.ts` | Epic 8 test market creation |
+| `apps/web/src/lib/magic-links.ts` | Epic 8 secure email approval tokens |
+| `apps/web/src/lib/email.ts` | Epic 8 Resend email service |
+| `apps/web/src/lib/ai-insights.ts` | Epic 8 AI weekly report generation |
 | `vercel.json` | Vercel deployment + cron config |
 
 ---
@@ -177,6 +185,11 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 | 2024-12 | Vercel Cron over Railway | Serverless, simpler deployment, integrated with web app | Yes |
 | 2024-12-27 | WeatherMarketV2 upgrade | UUPS upgradeable, multiple bets/wallet, mutable fees, gas optimizations | Yes |
 | 2024-12-27 | Remove 1-bet-per-wallet limit | Better UX; users can DCA or hedge positions | No (contract change) |
+| 2024-12-29 | Voting with trending algorithm | Community-driven city expansion, democratic curation | Yes |
+| 2024-12-30 | 4-hour automated test windows | Validate cities before production, reduce manual testing | Yes |
+| 2024-12-30 | Magic link email approval | Async admin workflow, no UI login required | Yes |
+| 2024-12-30 | Encrypted test wallet storage | Safe fund recovery if sweep fails; keys never deleted | No |
+| 2024-12-30 | 3-block confirmation before sweep | Prevent premature key disposal, ensure settlement | No |
 
 ---
 
@@ -202,7 +215,7 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 
 ## Epic Progress Status
 
-### Epics 0-6: ✅ Complete
+### Epics 0-7: ✅ Complete
 - **Epic 0:** Monorepo scaffolding, CI/CD, shared types
 - **Epic 1:** Weather provider layer (MET Norway, NWS, Open-Meteo)
 - **Epic 2:** Smart contracts → **Upgraded to WeatherMarketV2** (Dec 2024)
@@ -210,6 +223,20 @@ UPSTASH_REDIS_REST_TOKEN=...   # Upstash Redis REST token
 - **Epic 4:** Scheduler + Settler (Vercel Cron)
 - **Epic 5:** Web App UI + Positions Dashboard
 - **Epic 6:** Admin Panel (wallet auth, settings, city management)
+- **Epic 7:** Voting/Suggestions System (community-driven city expansion, trending algorithm)
+
+### Epic 8: 🔄 In Progress (AI City Testing & Reports)
+- **✅ Phase 1 - Test Infrastructure** (Complete):
+  - 4-hour automated test windows
+  - Encrypted test wallet generation
+  - Automated fund recovery (3-block confirmation)
+  - Magic link email approval workflow
+  - Real-time test monitoring dashboard
+  - Test results email with metrics
+- **⏳ Phase 2 - Weekly Reports** (Pending):
+  - AI-powered weekly metrics analysis
+  - Automated email reports to admin
+  - Platform health insights
 
 ### Contract Architecture (V2)
 ```

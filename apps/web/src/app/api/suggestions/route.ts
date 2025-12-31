@@ -94,8 +94,6 @@ export async function POST(request: NextRequest) {
         wallet,
         ...(input.cityId && { cityId: input.cityId }),
         ...(input.customCityName && { customCityName: input.customCityName }),
-        ...(input.latitude !== undefined && { latitude: input.latitude }),
-        ...(input.longitude !== undefined && { longitude: input.longitude }),
         ...(input.timeWindow && { timeWindow: input.timeWindow }),
         ...(input.comment && { comment: input.comment }),
         status: 'PENDING',

@@ -27,8 +27,6 @@ import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   customCityName: z.string().min(1, 'City name is required').max(100),
-  latitude: z.coerce.number().min(-90).max(90),
-  longitude: z.coerce.number().min(-180).max(180),
   timeWindow: z.enum(['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT']).optional(),
   comment: z.string().max(500).optional(),
 });
@@ -48,8 +46,6 @@ export function SuggestionForm({ wallet, onSuccess }: SuggestionFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       customCityName: '',
-      latitude: 0,
-      longitude: 0,
       timeWindow: undefined,
       comment: '',
     },
@@ -120,36 +116,6 @@ export function SuggestionForm({ wallet, onSuccess }: SuggestionFormProps) {
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="latitude"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Latitude</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.0001" placeholder="40.7128" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="longitude"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Longitude</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.0001" placeholder="-74.0060" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
         <FormField
           control={form.control}
           name="timeWindow"
@@ -198,8 +164,12 @@ export function SuggestionForm({ wallet, onSuccess }: SuggestionFormProps) {
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting || !wallet} className="w-full">
-          {isSubmitting ? 'Submitting...' : 'Submit Suggestion'}
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting
+            ? 'Submitting...'
+            : wallet
+              ? 'Submit Suggestion'
+              : 'Connect wallet to submit'}
         </Button>
       </form>
     </Form>

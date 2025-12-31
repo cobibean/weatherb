@@ -42,7 +42,10 @@ async function fetchPendingMarkets(params: {
 }): Promise<MarketOnChain[]> {
   const client = createPublicClient({
     transport: http(params.rpcUrl, {
-      batch: true,
+      batch: {
+        wait: 50, // Wait up to 50ms to collect requests for batching
+        batchSize: 100, // Maximum requests per batch (most RPC providers support up to 100)
+      },
     }),
   });
 

@@ -126,7 +126,10 @@ function getRpcUrl(): string {
 function getClient() {
   return createPublicClient({
     transport: http(getRpcUrl(), {
-      batch: true,
+      batch: {
+        wait: 50, // Wait up to 50ms to collect requests for batching
+        batchSize: 100, // Maximum requests per batch (most RPC providers support up to 100)
+      },
     }),
   });
 }
@@ -157,73 +160,85 @@ function toResolvedTemp(resolvedTempTenths?: number): number | undefined {
 }
 
 async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
-  const client = getClient();
-  const contractAddress = getContractAddress();
-  const count = await client.readContract({
-    address: contractAddress,
-    abi: WEATHER_MARKET_ABI,
-    functionName: 'getMarketCount',
-  });
-
-  if (count === 0n) {
-    return [];
-  }
-
-  // Batch all getMarket calls using Promise.all with batched transport
-  const marketPromises = Array.from({ length: Number(count) }, (_, i) =>
-    client.readContract({
+  try {
+    const client = getClient();
+    const contractAddress = getContractAddress();
+    const count = await client.readContract({
       address: contractAddress,
       abi: WEATHER_MARKET_ABI,
-      functionName: 'getMarket',
-      args: [BigInt(i)],
-    })
-  );
+      functionName: 'getMarketCount',
+    });
 
-  const marketResults = await Promise.all(marketPromises);
-
-  const markets: AdminMarketRaw[] = [];
-  const nowSec = Math.floor(Date.now() / 1000);
-
-  for (let i = 0; i < marketResults.length; i++) {
-    const marketData = marketResults[i];
-    if (!marketData) continue;
-
-    const city = findCityByBytes32(marketData.cityId);
-    if (!city) {
-      continue;
+    if (count === 0n) {
+      return [];
     }
 
-    const status = mapMarketStatus(
-      Number(marketData.status),
-      Number(marketData.bettingDeadline),
-      nowSec
+    // Batch all getMarket calls using Promise.all with batched transport
+    const marketPromises = Array.from({ length: Number(count) }, (_, i) =>
+      client.readContract({
+        address: contractAddress,
+        abi: WEATHER_MARKET_ABI,
+        functionName: 'getMarket',
+        args: [BigInt(i)],
+      })
     );
 
-    const market: AdminMarketRaw = {
-      id: i,
-      cityId: city.id,
-      cityName: city.name,
-      resolveTime: Number(marketData.resolveTime) * 1000,
-      bettingDeadline: Number(marketData.bettingDeadline) * 1000,
-      thresholdTenths: Number(marketData.thresholdTenths),
-      status,
-      yesPool: marketData.yesPool,
-      noPool: marketData.noPool,
-      totalFees: marketData.totalFees,
-    };
+    const marketResults = await Promise.all(marketPromises);
 
-    if (status === 'Resolved' || status === 'NoWinners') {
-      market.resolvedTempTenths = Number(marketData.resolvedTempTenths);
-      market.observedTimestamp = Number(marketData.observedTimestamp) * 1000;
-      if (status === 'Resolved') {
-        market.outcome = marketData.outcome;
+    const markets: AdminMarketRaw[] = [];
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    for (let i = 0; i < marketResults.length; i++) {
+      const marketData = marketResults[i];
+      if (!marketData) continue;
+
+      const city = findCityByBytes32(marketData.cityId);
+      if (!city) {
+        continue;
       }
+
+      const status = mapMarketStatus(
+        Number(marketData.status),
+        Number(marketData.bettingDeadline),
+        nowSec
+      );
+
+      const market: AdminMarketRaw = {
+        id: i,
+        cityId: city.id,
+        cityName: city.name,
+        resolveTime: Number(marketData.resolveTime) * 1000,
+        bettingDeadline: Number(marketData.bettingDeadline) * 1000,
+        thresholdTenths: Number(marketData.thresholdTenths),
+        status,
+        yesPool: marketData.yesPool,
+        noPool: marketData.noPool,
+        totalFees: marketData.totalFees,
+      };
+
+      if (status === 'Resolved' || status === 'NoWinners') {
+        market.resolvedTempTenths = Number(marketData.resolvedTempTenths);
+        market.observedTimestamp = Number(marketData.observedTimestamp) * 1000;
+        if (status === 'Resolved') {
+          market.outcome = marketData.outcome;
+        }
+      }
+
+      markets.push(market);
     }
 
-    markets.push(market);
+    return markets;
+  } catch (error) {
+    // Handle rate limiting and other RPC errors gracefully
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit')) {
+      console.warn('Rate limited while fetching markets, returning empty array');
+      return [];
+    }
+    // For other errors, log and return empty array to prevent dashboard failure
+    console.error('Failed to fetch markets:', error);
+    return [];
   }
-
-  return markets;
 }
 
 export async function getAdminMarkets(): Promise<AdminMarket[]> {
@@ -256,37 +271,49 @@ async function fetchUniqueBettorCount(): Promise<number> {
     return 0;
   }
 
-  const client = getClient();
-  const contractAddress = getContractAddress();
-  const betPlacedEvent = parseAbiItem(
-    'event BetPlaced(uint256 indexed marketId, address indexed bettor, bool isYes, uint256 amount)'
-  ) as AbiEvent;
+  try {
+    const client = getClient();
+    const contractAddress = getContractAddress();
+    const betPlacedEvent = parseAbiItem(
+      'event BetPlaced(uint256 indexed marketId, address indexed bettor, bool isYes, uint256 amount)'
+    ) as AbiEvent;
 
-  const latestBlock = await client.getBlockNumber();
-  const logs = await fetchLogsInBatches({
-    client,
-    address: contractAddress,
-    event: betPlacedEvent,
-    fromBlock,
-    toBlock: latestBlock,
-    maxRange: 30n,
-  });
-
-  const wallets = new Set<string>();
-  for (const log of logs) {
-    const decoded = decodeEventLog({
-      abi: WEATHER_MARKET_ABI,
-      data: log.data,
-      topics: log.topics,
+    const latestBlock = await client.getBlockNumber();
+    const logs = await fetchLogsInBatches({
+      client,
+      address: contractAddress,
+      event: betPlacedEvent,
+      fromBlock,
+      toBlock: latestBlock,
+      maxRange: 30n,
     });
-    if (decoded.eventName !== 'BetPlaced') continue;
-    const bettor = (decoded.args as { bettor?: string }).bettor;
-    if (bettor) {
-      wallets.add(bettor.toLowerCase());
-    }
-  }
 
-  return wallets.size;
+    const wallets = new Set<string>();
+    for (const log of logs) {
+      const decoded = decodeEventLog({
+        abi: WEATHER_MARKET_ABI,
+        data: log.data,
+        topics: log.topics,
+      });
+      if (decoded.eventName !== 'BetPlaced') continue;
+      const bettor = (decoded.args as { bettor?: string }).bettor;
+      if (bettor) {
+        wallets.add(bettor.toLowerCase());
+      }
+    }
+
+    return wallets.size;
+  } catch (error) {
+    // Handle rate limiting and other RPC errors gracefully
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit')) {
+      console.warn('Rate limited while fetching unique bettor count, returning 0');
+      return 0;
+    }
+    // For other errors, log and return 0 to prevent dashboard failure
+    console.error('Failed to fetch unique bettor count:', error);
+    return 0;
+  }
 }
 
 async function fetchLogsInBatches(params: {
@@ -297,26 +324,42 @@ async function fetchLogsInBatches(params: {
   toBlock: bigint;
   maxRange: bigint;
 }) {
-  const logs: Awaited<ReturnType<typeof params.client.getLogs>> = [];
+  // First, calculate all batch ranges
+  const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
   let start = params.fromBlock;
 
   while (start <= params.toBlock) {
     const end = start + params.maxRange - 1n <= params.toBlock
       ? start + params.maxRange - 1n
       : params.toBlock;
-
-    const batch = await params.client.getLogs({
-      address: params.address,
-      event: params.event,
-      fromBlock: start,
-      toBlock: end,
-    });
-
-    logs.push(...batch);
+    
+    ranges.push({ fromBlock: start, toBlock: end });
     start = end + 1n;
   }
 
-  return logs;
+  // Make all requests in parallel - viem's batch transport will combine them into a single HTTP request
+  const logPromises = ranges.map((range) =>
+    params.client.getLogs({
+      address: params.address,
+      event: params.event,
+      fromBlock: range.fromBlock,
+      toBlock: range.toBlock,
+    }).catch((error) => {
+      // If we hit rate limits or other errors, throw to be handled upstream
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit')) {
+        throw new Error('Rate limited while fetching logs');
+      }
+      // For other errors, rethrow to be handled by caller
+      throw error;
+    })
+  );
+
+  // Wait for all requests to complete (they'll be batched automatically by viem)
+  const results = await Promise.all(logPromises);
+  
+  // Flatten all logs into a single array
+  return results.flat();
 }
 
 export function deriveProviderStatus(health: ProviderHealth | null, nowMs: number = Date.now()): AdminStats['providerStatus'] {

@@ -23,11 +23,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <AdminHeader wallet={session.wallet} />
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6 pt-20">
+        <main className="flex-1 px-4 pb-4 pt-20 lg:px-6 lg:pb-6 lg:pt-20">
           {children}
         </main>
       </div>
     </div>
   );
 }
-
