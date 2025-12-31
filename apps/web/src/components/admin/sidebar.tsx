@@ -10,10 +10,12 @@ import {
   TrendingUp,
   ScrollText,
   CloudSun,
+  FlaskConical,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/suggestions', label: 'Testing', icon: FlaskConical },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
   { href: '/admin/cities', label: 'Cities', icon: MapPin },
   { href: '/admin/markets', label: 'Markets', icon: TrendingUp },
