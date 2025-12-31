@@ -72,6 +72,12 @@ model Market {
   thresholdTemp    Int // Stored as tenths (85.3°F → 853)
   resolveTime      DateTime @db.Timestamptz(6)
 
+  // Settlement tracking (NEW)
+  isSettled        Boolean  @default(false)
+  settledAt        DateTime? @db.Timestamptz(6)
+  actualTemp       Int?     // Actual temp in tenths (same format as thresholdTemp)
+  outcome          String?  // "YES" or "NO"
+
   isTest           Boolean  @default(false) // Filter test markets from public view
   testRunId        String?
   testRun          TestRun? @relation(fields: [testRunId], references: [id])
@@ -85,6 +91,7 @@ model Market {
   @@index([testRunId])
   @@index([resolveTime]) // For settlement cron queries
   @@index([isTest, resolveTime]) // Combined index for public market queries
+  @@index([isSettled]) // NEW: For settlement queries
 }
 
 // Epic 8: Test Run tracking for automated city testing
