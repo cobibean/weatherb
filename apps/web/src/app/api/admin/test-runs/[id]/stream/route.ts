@@ -5,15 +5,15 @@
  * Used by the admin monitoring dashboard.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verifyAdminWallet } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin authentication
@@ -27,7 +27,7 @@ export async function GET(
       return new Response('Invalid admin credentials', { status: 401 });
     }
 
-    const testRunId = params.id;
+    const { id: testRunId } = await params;
 
     // Create readable stream for SSE
     const encoder = new TextEncoder();

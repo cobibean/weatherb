@@ -1,4 +1,5 @@
-import { getAdminSession } from './admin-session';
+import { getAdminSession, isAdminWallet } from './admin-session';
+import prisma from './prisma';
 
 /**
  * Result of admin authentication check
@@ -6,6 +7,10 @@ import { getAdminSession } from './admin-session';
 export type AdminAuthResult =
   | { authenticated: true; wallet: string }
   | { authenticated: false; error: string };
+
+export type AdminTokenVerification =
+  | { isValid: true; wallet: string }
+  | { isValid: false; error: string };
 
 /**
  * Verify admin authentication from session cookie
@@ -38,4 +43,33 @@ export async function requireAdminAuth(): Promise<AdminAuthResult> {
     authenticated: true,
     wallet: session.wallet,
   };
+}
+
+/**
+ * Verify an admin token (session id) for API routes that use bearer auth.
+ */
+export async function verifyAdminWallet(token: string): Promise<AdminTokenVerification> {
+  if (!token) {
+    return { isValid: false, error: 'Missing token' };
+  }
+
+  const session = await prisma.adminSession.findUnique({
+    where: { id: token },
+  });
+
+  if (!session) {
+    return { isValid: false, error: 'Session not found' };
+  }
+
+  if (new Date() > session.expiresAt) {
+    await prisma.adminSession.delete({ where: { id: token } }).catch(() => {});
+    return { isValid: false, error: 'Session expired' };
+  }
+
+  if (!isAdminWallet(session.wallet)) {
+    await prisma.adminSession.delete({ where: { id: token } }).catch(() => {});
+    return { isValid: false, error: 'Wallet not authorized' };
+  }
+
+  return { isValid: true, wallet: session.wallet };
 }
