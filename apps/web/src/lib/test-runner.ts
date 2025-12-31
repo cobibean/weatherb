@@ -23,10 +23,12 @@
  */
 
 import prisma from './prisma';
+import { db } from './db';
 import type { TestRun } from '@prisma/client';
 import { createPublicClient, createWalletClient, http, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
+import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
 
 // Import helper modules
 import {
@@ -391,8 +393,7 @@ export async function monitorTestRun(testRunId: string): Promise<void> {
     // Check settlement status on-chain
     const { rpcUrl, contractAddress } = validateEnv();
     const publicClient = createPublicClient({ transport: http(rpcUrl) });
-
-    let settledCount = 0;
+    const weatherProvider = createWeatherProviderFromEnv();
 
     for (const market of markets) {
       try {
@@ -404,8 +405,37 @@ export async function monitorTestRun(testRunId: string): Promise<void> {
         });
 
         // MarketStatus: 0 = ACTIVE, 1 = CLOSED, 2 = RESOLVED
-        if (marketState.status === 2) {
-          settledCount++;
+        if (marketState.status === 2 && !market.isSettled) {
+          // Market has settled on-chain but not yet updated in database
+          console.log(`[Monitor] Market ${market.contractMarketId} newly settled, fetching actual temperature...`);
+
+          // Fetch actual temperature from weather provider
+          const actualTempF = await weatherProvider.getActualTemperature(
+            market.latitude,
+            market.longitude,
+            market.resolveTime
+          );
+
+          // Convert to tenths
+          const actualTempTenths = Math.round(actualTempF * 10);
+
+          // Determine outcome (YES if actual >= threshold, NO otherwise)
+          const outcome = actualTempTenths >= market.thresholdTemp ? 'YES' : 'NO';
+
+          // Update market in database
+          await db.market.update({
+            where: { id: market.id },
+            data: {
+              isSettled: true,
+              settledAt: new Date(),
+              actualTemp: actualTempTenths,
+              outcome,
+            },
+          });
+
+          console.log(
+            `[Monitor] Market ${market.id} settled: ${outcome} (actual: ${actualTempF}°F, threshold: ${market.thresholdTemp / 10}°F)`
+          );
         }
       } catch (error) {
         console.error(
@@ -414,18 +444,26 @@ export async function monitorTestRun(testRunId: string): Promise<void> {
       }
     }
 
-    console.log(`[Monitor] Settled markets: ${settledCount}/${testRun.marketsCreated}`);
+    // Count settled markets from database
+    const settledMarkets = await db.market.count({
+      where: {
+        testRunId,
+        isSettled: true,
+      },
+    });
 
-    // Update database
+    console.log(`[Monitor] Settled markets: ${settledMarkets}/${testRun.marketsCreated}`);
+
+    // Update TestRun with settled count
     await prisma.testRun.update({
       where: { id: testRunId },
       data: {
-        marketsSettled: settledCount,
+        marketsSettled: settledMarkets,
       },
     });
 
     // Check if all markets settled
-    if (settledCount === testRun.marketsCreated) {
+    if (settledMarkets === testRun.marketsCreated) {
       console.log('[Monitor] All markets settled! Triggering finalization...');
       await finalizeTestRun(testRunId);
     } else {
