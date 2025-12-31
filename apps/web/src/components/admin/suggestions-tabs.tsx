@@ -121,7 +121,8 @@ export function SuggestionsTabs({
   const estimateCompletion = (testRun: SuggestionWithVotes['testRuns'][0] | undefined): string => {
     if (!testRun) return 'N/A';
 
-    const progress = getTestProgress(testRun);
+    // Type assertion to fix serialized Decimal fields mismatch
+    const progress = getTestProgress(testRun as any);
     if (progress.percentage >= 100) return 'Complete';
 
     // Estimate based on typical test duration (3-7 days)
