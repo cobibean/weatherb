@@ -44,12 +44,34 @@ export function SuggestionsTabs({
   const handleApprove = async (id: string): Promise<void> => {
     setApprovingId(id);
     try {
-      // TODO: Connect to API in Task 3
-      console.log('Approving suggestion:', id);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      const authToken = typeof window !== 'undefined'
+        ? localStorage.getItem('adminToken') || ''
+        : '';
+
+      if (!authToken) {
+        console.error('No admin token found');
+        alert('Authentication required. Please log in again.');
+        return;
+      }
+
+      const response = await fetch('/api/admin/suggestions/approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ suggestionId: id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to approve suggestion');
+      }
+
       router.refresh();
     } catch (error) {
       console.error('Failed to approve:', error);
+      alert(error instanceof Error ? error.message : 'Failed to approve suggestion');
     } finally {
       setApprovingId(null);
     }
@@ -58,12 +80,34 @@ export function SuggestionsTabs({
   const handleDeny = async (id: string): Promise<void> => {
     setDenyingId(id);
     try {
-      // TODO: Connect to API in Task 3
-      console.log('Denying suggestion:', id);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      const authToken = typeof window !== 'undefined'
+        ? localStorage.getItem('adminToken') || ''
+        : '';
+
+      if (!authToken) {
+        console.error('No admin token found');
+        alert('Authentication required. Please log in again.');
+        return;
+      }
+
+      const response = await fetch('/api/admin/suggestions/deny', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ suggestionId: id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to deny suggestion');
+      }
+
       router.refresh();
     } catch (error) {
       console.error('Failed to deny:', error);
+      alert(error instanceof Error ? error.message : 'Failed to deny suggestion');
     } finally {
       setDenyingId(null);
     }
