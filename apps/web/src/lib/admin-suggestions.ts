@@ -2,11 +2,20 @@ import prisma from './prisma';
 import type { Suggestion, TestRun, Vote } from '@prisma/client';
 
 /**
+ * TestRun with Decimal fields converted to strings for client components
+ */
+export type SerializedTestRun = Omit<TestRun, 'fundingAmount' | 'recoveredAmount' | 'netCost'> & {
+  fundingAmount: string;
+  recoveredAmount: string;
+  netCost: string;
+};
+
+/**
  * Suggestion with its votes and test runs, plus computed fields
  */
 export type SuggestionWithVotes = Suggestion & {
   votes: Vote[];
-  testRuns: TestRun[];
+  testRuns: SerializedTestRun[];
   recentVotes7d?: number; // Computed: votes in last 7 days
 };
 
@@ -56,8 +65,17 @@ export async function getAdminSuggestions(): Promise<GroupedSuggestions> {
       (vote) => vote.createdAt >= sevenDaysAgo
     ).length;
 
+    // Convert Decimal fields to strings for client components
+    const serializedTestRuns: SerializedTestRun[] = suggestion.testRuns.map((tr) => ({
+      ...tr,
+      fundingAmount: tr.fundingAmount.toString(),
+      recoveredAmount: tr.recoveredAmount.toString(),
+      netCost: tr.netCost.toString(),
+    }));
+
     const suggestionWithComputed: SuggestionWithVotes = {
       ...suggestion,
+      testRuns: serializedTestRuns,
       recentVotes7d,
     };
 

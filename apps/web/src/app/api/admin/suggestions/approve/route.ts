@@ -102,9 +102,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       testRunId: testRun.id,
     });
   } catch (error) {
-    console.error('Error approving suggestion:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('=== APPROVE SUGGESTION ERROR ===');
+    console.error('Message:', errorMessage);
+    console.error('Stack:', errorStack);
+    console.error('================================');
+    
     return NextResponse.json(
-      { error: 'Failed to approve suggestion' },
+      { 
+        error: 'Failed to approve suggestion',
+        details: errorMessage, // Include actual error for debugging
+      },
       { status: 500 }
     );
   }

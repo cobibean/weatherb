@@ -55,7 +55,11 @@ export function SuggestionsTabs({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to approve suggestion');
+        // Show both error and details if available
+        const message = error.details 
+          ? `${error.error}: ${error.details}`
+          : error.error || 'Failed to approve suggestion';
+        throw new Error(message);
       }
 
       router.refresh();

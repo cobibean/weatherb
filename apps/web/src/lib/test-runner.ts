@@ -80,7 +80,7 @@ type MonitoringState = {
 // ============================================================
 
 const WALLET_COUNT = 2; // 2 wallets for opposing bets
-const FUNDING_AMOUNT_PER_WALLET = '12.5'; // 12.5 FLR each (25 FLR total for 5 markets)
+const FUNDING_AMOUNT_PER_WALLET = '18'; // 18 FLR each (36 FLR total for 5 markets + gas buffer)
 const MARKET_COUNT = 5; // 5 test markets per run
 const MONITORING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const BASE_RESOLVE_TIME_OFFSET = 30 * 60; // 30 minutes from now
@@ -165,6 +165,33 @@ export async function startTestWindow(suggestionId: string): Promise<TestRun> {
   let bets: BetResult[] = [];
 
   try {
+    // STEP 0: Fetch suggestion to get city data
+    const suggestion = await prisma.suggestion.findUnique({
+      where: { id: suggestionId },
+      include: { city: true },
+    });
+
+    if (!suggestion) {
+      throw new Error(`Suggestion not found: ${suggestionId}`);
+    }
+
+    // Determine city data from suggestion
+    const cityData = suggestion.city
+      ? {
+          name: suggestion.city.name,
+          latitude: suggestion.city.latitude,
+          longitude: suggestion.city.longitude,
+          timezone: suggestion.city.timezone,
+        }
+      : {
+          name: suggestion.customCityName || 'Unknown City',
+          latitude: suggestion.latitude || 0,
+          longitude: suggestion.longitude || 0,
+          timezone: 'UTC', // Default for custom cities
+        };
+
+    console.log(`[Test Runner] Starting test for city: ${cityData.name}`);
+
     // STEP 1: Generate test wallets
     console.log(`[Test Runner] Generating ${WALLET_COUNT} test wallets...`);
     wallets = generateTestWallets(WALLET_COUNT);
@@ -227,11 +254,11 @@ export async function startTestWindow(suggestionId: string): Promise<TestRun> {
     testRunId = preliminaryTestRun.id;
     console.log(`[Test Runner] TestRun created: ${testRunId}`);
 
-    // Create markets
+    // Create markets using the suggestion's city
     const marketsResult = await createTestMarkets({
       testRunId,
       wallets,
-      cityId: 'nyc', // Use NYC for test markets
+      customCity: cityData,
       baseResolveTime,
     });
 

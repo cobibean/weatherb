@@ -39,9 +39,11 @@ import { type TestWallet } from './test-wallets';
 export type TestMarketParams = {
   testRunId: string;
   wallets: TestWallet[];
-  cityId: string; // e.g., 'nyc'
   baseResolveTime: number; // Unix timestamp (seconds) for first market
-};
+} & (
+  | { cityId: string } // Use city from CITIES constant
+  | { customCity: { name: string; latitude: number; longitude: number; timezone?: string } } // Use custom city data
+);
 
 export type CreatedMarket = {
   dbId: string; // Database ID
@@ -200,8 +202,21 @@ export async function createTestMarkets(
   try {
     const { rpcUrl, contractAddress, schedulerPrivateKey } = validateEnv();
 
-    // Get city
-    const city = getCityById(params.cityId);
+    // Get city - either from CITIES constant or use custom city data
+    let city: { id: string; name: string; latitude: number; longitude: number; timezone: string };
+    
+    if ('cityId' in params) {
+      city = getCityById(params.cityId);
+    } else {
+      // Custom city from suggestion
+      city = {
+        id: params.customCity.name.toLowerCase().replace(/\s+/g, '-'),
+        name: params.customCity.name,
+        latitude: params.customCity.latitude,
+        longitude: params.customCity.longitude,
+        timezone: params.customCity.timezone || 'UTC',
+      };
+    }
 
     // Create contract clients
     const publicClient = createPublicClient({ transport: http(rpcUrl) });
@@ -262,12 +277,35 @@ export async function createTestMarkets(
       const contractMarketId = Number(result);
 
       // Get city from database for foreign key
-      const dbCity = await db.city.findFirst({
+      // Try exact match first, then case-insensitive contains match
+      let dbCity = await db.city.findFirst({
         where: { name: city.name },
       });
 
       if (!dbCity) {
-        throw new Error(`City not found in database: ${city.name}`);
+        // Try case-insensitive match (e.g., "New York City" vs "New York")
+        dbCity = await db.city.findFirst({
+          where: { 
+            name: { 
+              contains: city.name.split(' ')[0], // First word (e.g., "New")
+              mode: 'insensitive',
+            },
+          },
+        });
+      }
+
+      if (!dbCity) {
+        // Create the city if it doesn't exist (for test markets)
+        dbCity = await db.city.create({
+          data: {
+            name: city.name,
+            latitude: city.latitude,
+            longitude: city.longitude,
+            timezone: city.timezone || 'America/New_York',
+            isActive: true,
+          },
+        });
+        console.log(`[Test Markets] Created city: ${city.name}`);
       }
 
       // Store market in database
