@@ -44,3 +44,4 @@ coverage/
 
 # Local audit reports
 contract-audit.html
+apps/web/next-env.d.ts
