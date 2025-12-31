@@ -5,15 +5,15 @@
  * Used by the admin monitoring dashboard.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verifyAdminWallet } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verify admin authentication
@@ -27,7 +27,7 @@ export async function GET(
       return new Response('Invalid admin credentials', { status: 401 });
     }
 
-    const { id: testRunId } = await params;
+    const testRunId = params.id;
 
     // Create readable stream for SSE
     const encoder = new TextEncoder();
@@ -46,8 +46,10 @@ export async function GET(
                     select: {
                       id: true,
                       resolveTime: true,
-                      cityName: true,
-                      thresholdTemp: true,
+                      isSettled: true,
+                      outcome: true,
+                      city: true,
+                      threshold: true,
                       createdAt: true,
                     },
                   },
@@ -73,14 +75,6 @@ export async function GET(
               }
 
               // Send update
-              const sortedMarkets = [...testRun.markets].sort(
-                (a, b) => a.resolveTime.getTime() - b.resolveTime.getTime()
-              );
-              const settledCount = Math.min(
-                Math.max(testRun.marketsSettled, 0),
-                sortedMarkets.length
-              );
-
               const data = {
                 id: testRun.id,
                 status: testRun.status,
@@ -92,13 +86,13 @@ export async function GET(
                 recoveredAmount: testRun.recoveredAmount?.toString(),
                 netCost: testRun.netCost?.toString(),
                 cityName: testRun.suggestion.customCityName,
-                markets: sortedMarkets.map((m, index) => ({
+                markets: testRun.markets.map(m => ({
                   id: m.id,
                   resolveTime: m.resolveTime.toISOString(),
-                  isSettled: index < settledCount,
-                  outcome: null,
-                  city: m.cityName,
-                  threshold: Math.round(m.thresholdTemp / 10),
+                  isSettled: m.isSettled,
+                  outcome: m.outcome,
+                  city: m.city,
+                  threshold: m.threshold,
                   createdAt: m.createdAt.toISOString(),
                 })),
               };

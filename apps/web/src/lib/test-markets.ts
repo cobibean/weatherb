@@ -18,7 +18,6 @@ import {
   http,
   parseEther,
   formatEther,
-  decodeEventLog,
   keccak256,
   toBytes,
   type Hex,
@@ -216,8 +215,7 @@ export async function createTestMarkets(
     let totalGasCostWei = 0n;
 
     for (let i = 0; i < 5; i++) {
-      const spacingMinutes = MARKET_SPACING_MINUTES[i] ?? 0;
-      const resolveTime = params.baseResolveTime + spacingMinutes * 60;
+      const resolveTime = params.baseResolveTime + MARKET_SPACING_MINUTES[i] * 60;
 
       // Get forecast for this resolve time
       const forecastTenths = await weatherProvider.getForecast(
@@ -357,14 +355,7 @@ export async function placeBets(
     // Place bets for each market
     for (let i = 0; i < markets.length; i++) {
       const market = markets[i];
-      if (!market) {
-        throw new Error('Market not found for bet placement');
-      }
       const betPattern = BET_AMOUNTS[i % BET_AMOUNTS.length];
-
-      if (!betPattern) {
-        throw new Error('Bet pattern not available for market index');
-      }
 
       // Alternate which wallet bets first
       const yesWalletIdx = i % 2; // 0, 1, 0, 1, 0
@@ -372,10 +363,6 @@ export async function placeBets(
 
       const yesWallet = wallets[yesWalletIdx];
       const noWallet = wallets[noWalletIdx];
-
-      if (!yesWallet || !noWallet) {
-        throw new Error('Insufficient wallets available for opposing bets');
-      }
 
       // Place YES bet
       {
@@ -567,19 +554,9 @@ export async function verifyPayouts(
         // Get actual payout from WinningsClaimed event
         let actualPayoutWei = 0n;
         for (const log of receipt.logs) {
-          try {
-            const decoded = decodeEventLog({
-              abi: WEATHER_MARKET_ABI,
-              data: log.data,
-              topics: log.topics,
-            });
-
-            if (decoded.eventName === 'WinningsClaimed') {
-              actualPayoutWei = (decoded.args as { amount: bigint }).amount;
-              break;
-            }
-          } catch {
-            // Skip non-matching logs
+          if (log.eventName === 'WinningsClaimed') {
+            actualPayoutWei = log.args.amount as bigint;
+            break;
           }
         }
 
@@ -599,10 +576,6 @@ export async function verifyPayouts(
         const difference = Math.abs(parseFloat(expectedPayout) - parseFloat(actualPayout));
         const verified = difference <= PAYOUT_TOLERANCE;
 
-        const errorMessage = verified
-          ? undefined
-          : `Payout mismatch: expected ${expectedPayout} FLR, got ${actualPayout} FLR`;
-
         verifications.push({
           contractMarketId: market.contractMarketId,
           wallet: bet.wallet,
@@ -613,7 +586,7 @@ export async function verifyPayouts(
           verified,
           gasUsed: gasUsed.toString(),
           gasCost: formatEther(gasCostWei),
-          ...(errorMessage !== undefined ? { error: errorMessage } : {}),
+          error: verified ? undefined : `Payout mismatch: expected ${expectedPayout} FLR, got ${actualPayout} FLR`,
         });
       }
     }

@@ -235,16 +235,12 @@ function MarketCard({ market, index }: MarketCardProps): React.ReactElement {
           <Badge variant="outline" className="text-xs">
             ⏳ {minutesUntilResolve}m remaining
           </Badge>
-        ) : market.outcome ? (
+        ) : (
           <Badge
             variant={market.outcome === 'YES' ? 'default' : 'secondary'}
             className="text-xs"
           >
             ✅ {market.outcome} wins
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="text-xs">
-            ✅ Settled
           </Badge>
         )}
       </div>

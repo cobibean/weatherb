@@ -158,7 +158,7 @@ async function tryClaudeProvider(
     return {
       success: true,
       insights,
-      ...(tokensUsed !== undefined ? { tokensUsed } : {}),
+      tokensUsed,
     };
   } catch (error) {
     console.error('[AI Insights] Claude provider error:', error);
@@ -212,7 +212,7 @@ async function tryOpenAIProvider(
     return {
       success: true,
       insights,
-      ...(tokensUsed !== undefined ? { tokensUsed } : {}),
+      tokensUsed,
     };
   } catch (error) {
     console.error('[AI Insights] OpenAI provider error:', error);
