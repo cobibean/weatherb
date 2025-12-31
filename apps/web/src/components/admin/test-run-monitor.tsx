@@ -248,22 +248,47 @@ function MarketCard({ market, index }: MarketCardProps): React.ReactElement {
         )}
       </div>
 
-      {/* Market Details - Always show threshold */}
-      <div className="mt-3 pt-3 border-t text-xs space-y-1">
+      {/* Market Details */}
+      <div className="mt-3 pt-3 border-t text-xs space-y-2">
+        {/* Threshold & City */}
         <div className="flex items-center justify-between text-neutral-600">
           <span>Threshold:</span>
           <span className="font-mono font-semibold">{market.threshold}°F</span>
         </div>
         
-        {/* Show city */}
         <div className="flex items-center justify-between text-neutral-500">
           <span>City:</span>
           <span>{market.city}</span>
         </div>
 
+        {/* Test Bets */}
+        {market.bets && (
+          <div className="mt-2 pt-2 border-t border-dashed space-y-1">
+            <p className="text-neutral-400 text-[10px] uppercase tracking-wide mb-1">Test Bets</p>
+            {market.bets.yes && (
+              <div className="flex items-center justify-between">
+                <span className="text-green-600 font-medium">YES</span>
+                <span className="font-mono">
+                  {market.bets.yes.amount} FLR
+                  <span className="text-neutral-400 ml-1">({market.bets.yes.wallet})</span>
+                </span>
+              </div>
+            )}
+            {market.bets.no && (
+              <div className="flex items-center justify-between">
+                <span className="text-amber-600 font-medium">NO</span>
+                <span className="font-mono">
+                  {market.bets.no.amount} FLR
+                  <span className="text-neutral-400 ml-1">({market.bets.no.wallet})</span>
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Actual temp (only when settled) */}
         {market.actualTemp !== undefined && (
-          <div className="flex items-center justify-between text-neutral-600">
+          <div className="flex items-center justify-between text-neutral-600 pt-2 border-t">
             <span>Actual:</span>
             <span className={`font-mono font-bold ${
               market.outcome === 'YES' ? 'text-green-600' : 'text-amber-600'

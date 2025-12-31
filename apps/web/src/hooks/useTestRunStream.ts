@@ -7,16 +7,26 @@
 
 import { useEffect, useState, useRef } from 'react';
 
+export interface MarketBet {
+  amount: string;
+  wallet: string; // Truncated: "0x1234...abcd"
+}
+
 export interface TestRunMarket {
   id: string;
+  contractMarketId: number;
   resolveTime: string;
   isSettled: boolean;
   outcome: 'YES' | 'NO' | null;
   city: string;
   threshold: number;
-  actualTemp?: number;        // NEW
-  settledAt?: string;          // NEW
+  actualTemp?: number;
+  settledAt?: string;
   createdAt: string;
+  bets: {
+    yes: MarketBet | null;
+    no: MarketBet | null;
+  };
 }
 
 export interface TestRunData {
