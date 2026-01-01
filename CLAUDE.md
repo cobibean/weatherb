@@ -1,171 +1,67 @@
-# CLAUDE.md - Project Context for Claude Code
+# CLAUDE.md - Quick Context for Claude Code
 
-## User Preferences
+## Model Preferences
+- **Opus**: Planning, architecture, complex reasoning
+- **Sonnet**: Implementation, coding, execution
 
-### Model Usage
-- **Opus** for planning, architecture decisions, and complex reasoning
-- **Sonnet 4.5** for implementation, coding, and execution
-
-**Important:** Before starting implementation after a planning phase, always prompt the user to switch models:
-> "Planning complete. Would you like to switch to Sonnet 4.5 for implementation? Use `/model sonnet` to switch."
+After planning: _"Would you like to switch to Sonnet for implementation?"_
 
 ---
 
-## Project Overview
+## What Is WeatherB?
+Prediction market on Flare: users bet YES/NO on temperature outcomes.
+> "Will temp be ≥ X°F at time T in City?"
 
-**WeatherB** is a prediction market on the Flare blockchain where users bet YES/NO on temperature outcomes:
-> "Will the temperature be >= X degrees F at time T in City?"
-
-### Tech Stack
-| Layer | Technology |
-|-------|------------|
+## Tech Stack
+| Layer | Tech |
+|-------|------|
 | Contracts | Foundry + Solidity 0.8.24 |
-| Frontend | Next.js 16.1 (App Router), React 19 |
+| Frontend | Next.js 16.1, React 19 |
 | Wallet | Thirdweb + WalletConnect |
-| Styling | TailwindCSS + shadcn/ui |
 | Database | PostgreSQL + Prisma |
 | Deployment | Vercel (web + cron) |
-| Weather | MET Norway (primary), NWS, Open-Meteo |
+| Weather | MET Norway (primary) |
 
-### Monorepo Structure
+## Monorepo
 ```
-weatherb/
-├── contracts/           # Foundry smart contracts
-├── apps/web/            # Next.js app + admin panel + Vercel Cron routes
-├── packages/shared/     # Types, ABIs, constants
-├── docs/                # Organized documentation (epics, reference, testing, etc.)
-├── infra/              # Docker compose (Postgres + Redis)
-└── scripts/            # Build and deployment scripts
+contracts/        # Foundry smart contracts
+apps/web/         # Next.js + admin + cron routes
+packages/shared/  # Types, ABIs, constants
+docs/             # Epics, testing, reference
 ```
 
 ---
 
 ## Key Constraints (Never Violate)
-
-1. **5 markets/day max**
-2. **Multiple bets allowed** (users can bet YES, NO, or both, multiple times)
-3. **Settlement precision: 0.1°F** (stored as tenths: 85.3°F → 853)
-4. **Display precision: 1°F** (UI shows whole degrees)
-5. **Threshold tie → YES wins** (`temp >= threshold`)
-6. **FLR only in V1**
-7. **Fee from losing pool** (default 1%, owner-mutable, max 10%)
-8. **Betting closes 10 min before resolve time**
-9. **Min bet: 0.01 FLR**
-
----
-
-## Current State (Jan 2025)
-
-### Completed Epics
-- **Epic 0-2**: Foundations, weather providers, contracts
-- **Epic 3**: ~~FDC~~ → Trusted settler pattern
-- **Epic 4**: Vercel Cron automation
-- **Epic 5**: Web app UI + Positions dashboard
-- **Epic 6**: Admin panel with wallet auth
-- **Contract V2**: UUPS upgradeable, multiple bets, mutable fees
-- **Epic 7**: Voting/suggestions feature (database + API + UI) ✅
-- **Epic 8 (Part 1)**: City test automation (4-hour test windows, magic links, fund recovery) ✅
-
-### Pending Epics
-- **Epic 8 (Part 2)**: Weekly AI reports (metrics collection + email automation)
-- **Epic 9**: Event indexing
-- **Epic 10**: Security hardening
+| Rule | Value |
+|------|-------|
+| Markets/day | 5 max |
+| Bets per wallet | Multiple allowed |
+| Storage precision | 0.1°F (tenths: 853 = 85.3°F) |
+| Display precision | Whole degrees |
+| Threshold tie | YES wins (`>=`) |
+| Fee | 1% from losing pool (max 10%) |
+| Betting buffer | 10 min before resolve |
+| Min bet | 0.01 FLR |
 
 ---
 
-## Deployment & Automation
-
-### Deployment
-- **Platform**: Vercel (web app + serverless cron)
-- **Database**: PostgreSQL (production)
-- **State**: Upstash Redis (city rotation tracking)
-- **Network**: Flare mainnet (production) / Coston2 testnet (development)
-
-### Cron Schedule
-- **Daily Scheduler** (`/api/cron/schedule-daily`)
-  - **Current**: Every 30 minutes (test configuration in `vercel.json`)
-  - **Production**: Intended to run at 6:00 AM UTC (see `PRD.md`)
-  - Creates exactly 5 markets per run
-  - Uses city rotation stored in Upstash Redis
-  - Fetches weather forecasts and calculates thresholds
-- **Market Settler** (`/api/cron/settle-markets`)
-  - **Current**: Every 5 minutes (configured in `vercel.json`)
-  - Checks for markets ready to resolve (past resolve time)
-  - Fetches actual temperature from weather provider
-  - Settles markets on-chain using trusted settler pattern
-
-### Architecture Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| WeatherMarketV2 (UUPS) | Upgradeable without redeploy; multiple bets; mutable fees |
-| Trusted settler | Simpler than FDC; can add proofs later |
-| Vercel Cron | Serverless; no separate infra |
-
-### Known Issues
-- **UI**: Potential hydration errors from particle system
-- **Testing**: Some provider tests incomplete
-
----
-
-## Important Files
-
+## Essential Files
 | Purpose | Path |
 |---------|------|
-| **Active contract** | `contracts/src/WeatherMarketV2.sol` (UUPS upgradeable) |
-| Legacy contract | `contracts/src/WeatherMarket.sol` (reference only) |
+| Active contract | `contracts/src/WeatherMarketV2.sol` |
 | Contract ABI | `packages/shared/src/abi/weather-market.ts` |
-| Error decoder | `apps/web/src/lib/contract-errors.ts` |
 | Daily scheduler | `apps/web/src/app/api/cron/schedule-daily/route.ts` |
 | Market settler | `apps/web/src/app/api/cron/settle-markets/route.ts` |
-| Admin contract helper | `apps/web/src/lib/admin-contract.ts` |
 | Database schema | `apps/web/prisma/schema.prisma` |
-| **Epic 7 database schema** | `apps/web/prisma/schema.prisma` (Suggestion, Vote models) |
-| **Epic 7 voting helpers** | `apps/web/src/lib/voting.ts`, `trending.ts` |
-| **Epic 7 API routes** | `apps/web/src/app/api/suggestions/**` |
-| **Epic 7 UI components** | `apps/web/src/components/voting/**` |
-| **Epic 7 validation** | `apps/web/src/lib/validations/suggestion.ts` |
-| **Epic 7 audit** | `docs/testing/database-audit-epic-7.md` |
-| **Epic 7 migration summary** | `docs/epic-7-migration-summary.md` |
-| **Epic 8 database schema** | `apps/web/prisma/schema.prisma` (TestRun, TestRunMarket, MagicLink models) |
-| **Epic 8 admin manual** | `docs/admin-operations-manual.md` |
-| **Epic 8 test orchestration** | `apps/web/src/lib/test-runner.ts` |
-| **Epic 8 test wallets** | `apps/web/src/lib/test-wallets.ts` |
-| **Epic 8 test markets** | `apps/web/src/lib/test-markets.ts` |
-| **Epic 8 magic links** | `apps/web/src/lib/magic-links.ts` |
-| **Epic 8 email service** | `apps/web/src/lib/email.ts` |
-| **Epic 8 email templates** | `apps/web/src/emails/test-results.tsx` |
-| **Epic 8 AI insights** | `apps/web/src/lib/ai-insights.ts` |
-| **Epic 8 test monitor** | `apps/web/src/app/admin/test-monitor/**` |
-| **Epic 8 test flow guide** | `docs/testing/test-email-approval-flow.md` |
-| Project rules | `AGENTS.md` |
 | Requirements | `PRD.md` |
 
----
-
-## Environment Variables
-
-**IMPORTANT:** This project uses `.env` in the root directory, NOT `.env.local`.
-- Always reference `.env` (not `.env.local`) when discussing environment setup
-- The `.env` file is gitignored and contains all secrets
-- Use `.env.example` as the template
-
-Key variables needed for full functionality:
-- `RPC_URL` - Flare RPC endpoint
-- `NEXT_PUBLIC_CONTRACT_ADDRESS` - Deployed contract
-- `SCHEDULER_PRIVATE_KEY` - For market creation
-- `SETTLER_PRIVATE_KEY` - For settlement
-- `ADMIN_PRIVATE_KEY` - For admin panel contract calls
-- `UPSTASH_REDIS_REST_URL/TOKEN` - City rotation state
-- `DATABASE_URL` - PostgreSQL connection
-
-See `.env.example` for full list.
+## Environment
+Uses `.env` in root (NOT `.env.local`). See `.env.example` for all vars.
 
 ---
 
-## Coding Conventions
-
-- **TypeScript**: Strict mode, explicit return types, zod for validation
-- **Solidity**: NatSpec comments, custom errors, CEI pattern
-- **Naming**: kebab-case files, camelCase vars, PascalCase types
-- **Testing**: Foundry for contracts, Vitest for services/frontend
+## Epic Status
+- **Epics 0-7**: ✅ Complete (contracts, UI, admin, voting)
+- **Epic 8**: 🔄 Test automation done, weekly reports pending
+- **Epic 9-10**: ⏳ Indexing, security hardening
