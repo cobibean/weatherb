@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { collectWeeklyMetrics, getMetricsForDateRange } from '@/lib/metrics';
 import { sendWeeklySummaryEmail } from '@/lib/email';
+import { requireAdminAuth } from '@/lib/admin-auth';
 
 /**
  * GET /api/admin/test-weekly-report
@@ -19,12 +20,10 @@ import { sendWeeklySummaryEmail } from '@/lib/email';
 export async function GET(request: Request) {
   try {
     // Check admin authentication
-    // TODO: Replace with proper admin auth check
-    const isAdmin = true; // For now, allow for testing
-
-    if (!isAdmin) {
+    const auth = await requireAdminAuth();
+    if (!auth.authenticated) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: auth.error },
         { status: 401 }
       );
     }

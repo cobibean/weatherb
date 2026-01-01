@@ -113,7 +113,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       { 
         error: 'Failed to approve suggestion',
-        details: errorMessage, // Include actual error for debugging
       },
       { status: 500 }
     );

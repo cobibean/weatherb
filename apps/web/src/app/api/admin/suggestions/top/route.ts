@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requireAdminAuth } from '@/lib/admin-auth';
 
 /**
  * GET /api/admin/suggestions/top
@@ -10,8 +11,14 @@ import prisma from '@/lib/prisma';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
-    // TODO: Add admin auth check when Epic 6 admin auth is integrated
-    // For now, allow anyone to access (will be called by Epic 8 email job)
+    // Verify admin authentication
+    const auth = await requireAdminAuth();
+    if (!auth.authenticated) {
+      return NextResponse.json(
+        { error: auth.error },
+        { status: 401 }
+      );
+    }
 
     // Get top 10 by votes
     const topByVotes = await prisma.suggestion.findMany({

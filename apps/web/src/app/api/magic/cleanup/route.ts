@@ -26,17 +26,24 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    // Check for admin authorization
-    // In production, this should verify admin authentication
+    // Check for cron authorization
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    // Simple auth check - in production use proper admin auth
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // In production, require CRON_SECRET for cleanup operations
+    if (process.env.NODE_ENV !== 'development') {
+      if (!cronSecret) {
+        return NextResponse.json(
+          { error: 'Server configuration error' },
+          { status: 500 }
+        );
+      }
+      if (authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
     }
 
     const deletedCount = await cleanupExpiredMagicLinks();

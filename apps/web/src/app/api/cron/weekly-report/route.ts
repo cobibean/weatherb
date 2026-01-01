@@ -20,8 +20,13 @@ import {
 function validateCronSecret(headersList: Headers): boolean {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
-    console.warn('[WeeklyReport] CRON_SECRET not configured');
-    return true; // Allow in development
+    // Only allow without secret in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[WeeklyReport] CRON_SECRET not configured - allowing in development mode');
+      return true;
+    }
+    console.warn('[WeeklyReport] CRON_SECRET not configured - rejecting request');
+    return false;
   }
 
   const authHeader = headersList.get('authorization');
