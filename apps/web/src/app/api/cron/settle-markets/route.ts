@@ -3,8 +3,11 @@ import { createPublicClient, http, keccak256, toBytes, type Hex } from 'viem';
 import { CITIES } from '@weatherb/shared/constants';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
+import type { WeatherReading } from '@weatherb/shared/types';
 import { verifyCronRequest, unauthorizedResponse, createContractClients } from '@/lib/cron';
 import { recordProviderError, recordProviderSuccess } from '@/lib/provider-health';
+import { createGoogleSheetsClient } from '@/lib/google-sheets';
+import { fetchAllProviderReadings } from '@/lib/weather-comparison';
 
 type MarketOnChain = {
   marketId: bigint;
@@ -14,6 +17,8 @@ type MarketOnChain = {
   thresholdTenths: bigint;
   currency: Hex;
   status: 'Open' | 'Closed' | 'Resolved' | 'Cancelled' | 'NoWinners';
+  yesPool?: bigint;
+  noPool?: bigint;
 };
 
 type SettleResult = {
@@ -22,6 +27,8 @@ type SettleResult = {
   transactionHash: Hex;
   tempTenths: number;
   observedTimestamp: number;
+  primaryProvider: string;
+  volume: string; // Total volume in FLR (yesPool + noPool)
 };
 
 const STATUS_MAP = ['Open', 'Closed', 'Resolved', 'Cancelled', 'NoWinners'] as const;
@@ -91,6 +98,8 @@ async function fetchPendingMarkets(params: {
       thresholdTenths: market.thresholdTenths,
       currency: market.currency,
       status,
+      yesPool: market.yesPool,
+      noPool: market.noPool,
     });
   }
 
@@ -111,7 +120,7 @@ async function resolveMarket(params: {
 
   // Get actual temperature from weather provider
   const provider = createWeatherProviderFromEnv();
-  let reading: { tempF_tenths: number; observedTimestamp: number };
+  let reading: WeatherReading;
   try {
     reading = await provider.getFirstReadingAtOrAfter(
       city.latitude,
@@ -145,12 +154,21 @@ async function resolveMarket(params: {
   const transactionHash = await walletClient.writeContract(request);
   await publicClient.waitForTransactionReceipt({ hash: transactionHash });
 
+  // Calculate market volume from pools (before settlement, pools represent total bets)
+  const yesPool = params.market.yesPool ?? 0n;
+  const noPool = params.market.noPool ?? 0n;
+  const totalVolume = yesPool + noPool;
+  // Convert from wei to FLR (assuming 18 decimals)
+  const volumeFLR = (Number(totalVolume) / 1e18).toFixed(2);
+
   return {
     marketId: params.market.marketId.toString(),
     cityName: city.name,
     transactionHash,
     tempTenths: reading.tempF_tenths,
     observedTimestamp: reading.observedTimestamp,
+    primaryProvider: reading.source,
+    volume: volumeFLR,
   };
 }
 
@@ -214,6 +232,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     const results: SettleResult[] = [];
     const errors: { marketId: string; error: string }[] = [];
+    const sheetsClient = createGoogleSheetsClient();
 
     // Settle markets sequentially (to avoid nonce issues)
     for (const market of readyMarkets) {
@@ -229,6 +248,52 @@ export async function GET(request: Request): Promise<NextResponse> {
         
         console.log(`Settled market ${result.marketId}: ${result.tempTenths / 10}°F at ${new Date(result.observedTimestamp * 1000).toISOString()}`);
         results.push(result);
+
+        // Log to Google Sheets (non-blocking)
+        if (sheetsClient) {
+          try {
+            const city = findCityByBytes32(market.cityId);
+            if (city) {
+              // Fetch comparison temperatures from all providers
+              const comparisons = await fetchAllProviderReadings(
+                city.latitude,
+                city.longitude,
+                market.resolveTimeSec,
+                process.env.MET_NO_USER_AGENT ?? process.env.WEATHER_USER_AGENT,
+              );
+
+              // Find NWS (alt temp 1), Open-Meteo (alt temp 2), MET Norway (alt temp 3)
+              const nwsReading = comparisons.find((c) => c.provider === 'nws');
+              const openMeteoReading = comparisons.find((c) => c.provider === 'open-meteo');
+              const metNoReading = comparisons.find((c) => c.provider === 'met-no');
+
+              // Convert UTC timestamp to CST
+              const cstTime = (() => {
+                const date = new Date(market.resolveTimeSec * 1000);
+                // CST is UTC-6
+                const cstDate = new Date(date.getTime() - 6 * 60 * 60 * 1000);
+                return cstDate.toISOString().replace('T', ' ').slice(0, 19);
+              })();
+
+              await sheetsClient.appendRow({
+                marketId: result.marketId,
+                city: city.name,
+                threshold: Number(market.thresholdTenths),
+                resolvedTemp: result.tempTenths,
+                primaryTemp: result.tempTenths,
+                primaryProvider: result.primaryProvider,
+                altTemp1: nwsReading?.tempTenths ?? null,
+                altTemp2: openMeteoReading?.tempTenths ?? null,
+                altTemp3: metNoReading?.tempTenths ?? null,
+                time: cstTime,
+                volume: result.volume,
+              });
+            }
+          } catch (sheetsError) {
+            console.error(`[GoogleSheets] Failed to log market ${result.marketId}:`, sheetsError);
+            // Don't fail settlement if Sheets write fails
+          }
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`Failed to settle market ${market.marketId}:`, errorMessage);
