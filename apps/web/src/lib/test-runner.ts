@@ -243,7 +243,7 @@ export async function startTestWindow(suggestionId: string): Promise<TestRun> {
         marketsCreated: 0,
         marketsSettled: 0,
         fundingAmount: fundingResult.totalAmount,
-        fundingTxHash: fundingResult.transactions[0].hash,
+        fundingTxHash: fundingResult.transactions[0]?.hash ?? '',
         recoveredAmount: '0',
         netCost: '0',
         status: 'RUNNING',
@@ -437,14 +437,16 @@ export async function monitorTestRun(testRunId: string): Promise<void> {
           console.log(`[Monitor] Market ${market.contractMarketId} newly settled, fetching actual temperature...`);
 
           // Fetch actual temperature from weather provider
-          const actualTempF = await weatherProvider.getActualTemperature(
+          const resolveTimestamp = Math.floor(market.resolveTime.getTime() / 1000);
+          const reading = await weatherProvider.getFirstReadingAtOrAfter(
             market.latitude,
             market.longitude,
-            market.resolveTime
+            resolveTimestamp
           );
 
-          // Convert to tenths
-          const actualTempTenths = Math.round(actualTempF * 10);
+          // tempF_tenths is already in tenths
+          const actualTempTenths = reading.tempF_tenths;
+          const actualTempF = actualTempTenths / 10;
 
           // Determine outcome (YES if actual >= threshold, NO otherwise)
           const outcome = actualTempTenths >= market.thresholdTemp ? 'YES' : 'NO';
@@ -688,7 +690,10 @@ export async function finalizeTestRun(testRunId: string): Promise<TestResults> {
         marketsSettled: testRun.marketsSettled,
         temperatureData,
         totalVolume: testRun.totalVolume?.toString() || '0',
-        totalPayouts: payoutResult.totalPaidOut,
+        totalPayouts: payoutResult.verifications.reduce(
+          (sum, v) => sum + parseFloat(v.actualPayout || '0'),
+          0
+        ).toFixed(4),
         netGasCost: netCost,
         payoutVerified: allVerified,
         verificationDetails: allVerified

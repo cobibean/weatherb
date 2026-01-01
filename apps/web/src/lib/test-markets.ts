@@ -203,7 +203,8 @@ export async function createTestMarkets(
     const { rpcUrl, contractAddress, schedulerPrivateKey } = validateEnv();
 
     // Get city - either from CITIES constant or use custom city data
-    let city: { id: string; name: string; latitude: number; longitude: number; timezone: string };
+    // Note: shared City type doesn't have timezone, so we handle it separately
+    let city: { id: string; name: string; latitude: number; longitude: number; timezone?: string };
     
     if ('cityId' in params) {
       city = getCityById(params.cityId);
@@ -284,10 +285,11 @@ export async function createTestMarkets(
 
       if (!dbCity) {
         // Try case-insensitive match (e.g., "New York City" vs "New York")
+        const firstWord = city.name.split(' ')[0] ?? city.name;
         dbCity = await db.city.findFirst({
           where: { 
             name: { 
-              contains: city.name.split(' ')[0], // First word (e.g., "New")
+              contains: firstWord,
               mode: 'insensitive',
             },
           },

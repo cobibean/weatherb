@@ -189,7 +189,7 @@ export function decryptWalletKeys(encrypted: string): TestWallet[] {
   try {
     // Parse encrypted string: iv:authTag:encryptedData
     const parts = encrypted.split(':');
-    if (parts.length !== 3) {
+    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
       throw new Error('Invalid encrypted data format');
     }
 
@@ -291,6 +291,8 @@ export async function fundWallets(
 
   for (const wallet of wallets) {
     const hash = await walletClient.sendTransaction({
+      account: walletClient.account!,
+      chain: walletClient.chain,
       to: wallet.address,
       value: amountWei,
     });
@@ -394,6 +396,8 @@ export async function sweepWallets(
 
     // Send transaction
     const hash = await testWalletClient.sendTransaction({
+      account: testWalletClient.account!,
+      chain: testWalletClient.chain,
       to: toAddress,
       value: amountToSend,
     });
