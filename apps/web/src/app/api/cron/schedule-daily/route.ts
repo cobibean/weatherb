@@ -11,6 +11,39 @@ import {
   REDIS_KEYS,
 } from '@/lib/cron';
 import { recordProviderError, recordProviderSuccess } from '@/lib/provider-health';
+import prisma from '@/lib/prisma';
+
+/**
+ * Fetch active cities from the database.
+ * Falls back to hardcoded CITIES if database is empty or query fails.
+ */
+async function getActiveCities(): Promise<readonly City[]> {
+  try {
+    const dbCities = await prisma.city.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'asc' }, // Consistent ordering for rotation
+    });
+
+    if (dbCities.length === 0) {
+      console.log('No active cities in database, using hardcoded CITIES fallback');
+      return CITIES;
+    }
+
+    // Map Prisma City to shared City type
+    const cities: City[] = dbCities.map(c => ({
+      id: c.id,
+      name: c.name,
+      latitude: c.latitude,
+      longitude: c.longitude,
+    }));
+
+    console.log(`Using ${cities.length} active cities from database: ${cities.map(c => c.name).join(', ')}`);
+    return cities;
+  } catch (error) {
+    console.error('Failed to fetch cities from database, using fallback:', error);
+    return CITIES;
+  }
+}
 
 type MarketConfig = {
   city: City;
@@ -147,15 +180,16 @@ async function createMarketOnChain(
  * GET /api/cron/schedule-daily
  *
  * Vercel Cron job that creates daily weather markets.
- * Runs at 6:00 AM UTC by default (configured in vercel.json).
+ * Runs hourly 8pm-12am CST (staggered, 1 market per run).
  *
  * Flow:
  * 1. Verify request is from Vercel Cron
- * 2. Get city rotation index from Upstash
- * 3. Select N cities for today's markets
- * 4. For each city: fetch forecast, create market on-chain
- * 5. Update city index in Upstash
- * 6. Return JSON response with results
+ * 2. Fetch active cities from database (falls back to hardcoded if empty)
+ * 3. Get city rotation index from Upstash Redis
+ * 4. Select next city in round-robin rotation
+ * 5. Fetch weather forecast, create market on-chain
+ * 6. Update city index in Upstash
+ * 7. Return JSON response with results
  */
 export async function GET(request: Request): Promise<NextResponse> {
   // Verify the request is from Vercel Cron
@@ -180,15 +214,19 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   try {
+    // Fetch active cities from database (falls back to hardcoded if empty)
+    const activeCities = await getActiveCities();
+
     // Calculate base time (now) and spacing
     const nowSec = Math.floor(Date.now() / 1000);
     const spacingSeconds = Math.round(marketSpacingHours * 3600);
 
-    // Select markets for today
+    // Select markets for today using database cities
     const marketConfigs = await selectMarketsForDay({
       dailyMarketCount,
       baseTimeSec: nowSec,
       spacingSeconds,
+      cities: activeCities,
     });
 
     const results: CreateMarketResult[] = [];
