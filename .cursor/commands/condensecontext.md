@@ -1,0 +1,1 @@
+Can you condense the context from this conversation down into a context token councious message to a new agent to pick up where you left off. Point to files to read instead of spending context tokens on typing info the agent will find in a code file or plan file anyway. 

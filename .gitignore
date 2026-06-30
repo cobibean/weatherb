@@ -1,0 +1,58 @@
+# Environment files (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Next.js auto-generated files
+next-env.d.ts
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.tsbuildinfo
+.turbo/
+.vercel
+
+# Local audit reports
+contract-audit.html
+apps/web/next-env.d.ts
+
+# Local/private database and backup exports
+*.sqlite
+*.sqlite3
+*.db
+backups/
+apps/web/backups/
+
+# Local docs output
+/docs/

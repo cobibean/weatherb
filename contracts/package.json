@@ -1,0 +1,11 @@
+{
+  "name": "@weatherb/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test -vvv",
+    "lint": "echo \"(no eslint for Solidity)\"",
+    "typecheck": "echo \"(no tsc for Solidity)\""
+  }
+}

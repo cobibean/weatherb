@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter @weatherb/shared build && pnpm --filter @weatherb/web build",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/schedule-daily",
+      "schedule": "0 12-16 * * *"
+    },
+    {
+      "path": "/api/cron/settle-markets",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/update-trending",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 14 * * 6"
+    }
+  ]
+}

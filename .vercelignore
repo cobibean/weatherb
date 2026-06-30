@@ -1,0 +1,14 @@
+# Ignore common files not needed for deployment
+node_modules
+.git
+.env
+.env.local
+*.log
+.DS_Store
+contracts
+services
+# Ignore top-level docs folder but not app/docs route
+/weatherbdocs
+infra
+*.md
+!README.md

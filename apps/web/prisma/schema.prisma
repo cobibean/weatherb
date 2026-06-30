@@ -1,0 +1,364 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Epic 7: Voting/Suggestions Enums
+
+enum SuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+}
+
+enum TimeWindow {
+  MORNING // 6am-12pm
+  AFTERNOON // 12pm-6pm
+  EVENING // 6pm-12am
+  NIGHT // 12am-6am
+}
+
+enum TestStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum MarketStatus {
+  OPEN
+  CLOSED
+  RESOLVED
+  CANCELLED
+  NO_WINNERS
+}
+
+model SystemConfig {
+  id            String   @id @default("default")
+  cadence       Int      @default(5)
+  testMode      Boolean  @default(true)
+  dailyCount    Int      @default(5)
+  bettingBuffer Int      @default(600)
+  isPaused      Boolean  @default(false)
+  settlerPaused Boolean  @default(false)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model City {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  slug      String   @unique // Stable identifier for on-chain hashing (e.g., "nyc", "austin")
+  name      String
+  latitude  Float
+  longitude Float
+  timezone  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  suggestions Suggestion[] // NEW: Issue #4 - city normalization
+  markets     Market[]
+
+  @@index([isActive])
+}
+
+// Epic 8: Market tracking for test markets and public markets
+model Market {
+  id               String   @id @default(cuid())
+  contractMarketId Int // The on-chain market ID
+  cityId           String
+  city             City     @relation(fields: [cityId], references: [id])
+
+  cityName         String // Denormalized for query performance
+  latitude         Float
+  longitude        Float
+  timezone         String
+
+  thresholdTemp    Int // Stored as tenths (85.3°F → 853)
+  resolveTime      DateTime @db.Timestamptz(6)
+
+  status           MarketStatus @default(OPEN)
+  yesPool          String  @default("0") // Wei as string to avoid precision loss
+  noPool           String  @default("0") // Wei as string to avoid precision loss
+
+  // Settlement tracking (NEW)
+  isSettled        Boolean  @default(false)
+  settledAt        DateTime? @db.Timestamptz(6)
+  actualTemp       Int?     // Actual temp in tenths (same format as thresholdTemp)
+  outcome          String?  // "YES" or "NO"
+  sheetsLoggedAt   DateTime? @db.Timestamptz(6)
+
+  isTest           Boolean  @default(false) // Filter test markets from public view
+  testRunId        String?
+  testRun          TestRun? @relation(fields: [testRunId], references: [id])
+
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([isTest]) // Critical: Filter test markets from public queries
+  @@index([contractMarketId])
+  @@index([cityId])
+  @@index([testRunId])
+  @@index([resolveTime]) // For settlement cron queries
+  @@index([isTest, resolveTime]) // Combined index for public market queries
+  @@index([isSettled]) // NEW: For settlement queries
+  @@index([isTest, contractMarketId, sheetsLoggedAt])
+}
+
+// Epic 8: Test Run tracking for automated city testing
+model TestRun {
+  id             String     @id @default(cuid())
+  suggestionId   String
+  suggestion     Suggestion @relation(fields: [suggestionId], references: [id])
+
+  // Wallet management
+  walletKeys     String     @db.Text // AES-256 encrypted private keys (JSON array)
+  walletCount    Int        @default(3) // Number of wallets generated (default 3)
+  keysDisposed   Boolean    @default(false) // Track if keys have been securely wiped
+
+  // Market tracking
+  marketsCreated Int // Number of test markets created for this run
+  marketsSettled Int // Number of markets successfully settled
+  markets        Market[]
+
+  // Funding
+  fundingAmount  Decimal    @db.Decimal(10, 2) // Total FLR allocated for this test run
+  fundingTxHash  String? // Transaction hash of funding operation
+  recoveredAmount Decimal   @db.Decimal(10, 2) // Amount recovered from test wallets after completion
+  netCost        Decimal    @db.Decimal(10, 2) // Gas + fees cost (fundingAmount - recoveredAmount)
+
+  // Status tracking
+  status         TestStatus @default(RUNNING)
+  startedAt      DateTime   @default(now()) @db.Timestamptz(6)
+  completedAt    DateTime?  @db.Timestamptz(6)
+
+  // Results (populated after settlement)
+  actualTemp     Int? // Actual temperature observed (in tenths)
+  totalVolume    Float? // Total betting volume across all test markets
+  payoutVerified Boolean   @default(false) // Has payout been verified?
+  results        Json? // Detailed test results storage
+
+  // Error tracking
+  errorMessage   String?    @db.Text
+
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([suggestionId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([status, startedAt(sort: Desc)]) // Query active/recent test runs
+}
+
+// Epic 9: Magic Links for email-based admin actions
+model MagicLink {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique // SHA256 hash of token
+  suggestionId String
+  action       String    // 'approve' or 'deny'
+  used         Boolean   @default(false)
+  expiresAt    DateTime
+  usedAt       DateTime?
+  usedBy       String?   // Wallet address of who used it
+  createdAt    DateTime  @default(now())
+
+  suggestion Suggestion @relation(fields: [suggestionId], references: [id])
+
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@index([suggestionId])
+}
+
+// Epic 7: Suggestions Table (with all audit fixes applied)
+model Suggestion {
+  id String @id @default(cuid())
+
+  // City reference (Issue #4: normalization)
+  // Either reference existing city OR provide custom city details
+  cityId String?
+  city   City?   @relation(fields: [cityId], references: [id])
+
+  // Custom city details (when not in allowlist)
+  customCityName String?
+  latitude       Float?
+  longitude      Float?
+
+  timeWindow TimeWindow? // Issue #6: enum not string
+  comment    String?          @db.Text
+  wallet     String // lowercase wallet address
+  status     SuggestionStatus @default(PENDING)
+
+  // Vote tracking with trending support (Issue #2)
+  voteCount       Int       @default(0)
+  recentVoteCount Int       @default(0) // For trending (votes in last 7 days)
+  lastVoteAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  votes      Vote[]
+  testRuns   TestRun[] // Epic 8: Track test runs for this suggestion
+  magicLinks MagicLink[] // Epic 9: Track magic links for this suggestion
+
+  // All required indexes (Issues #1, #2, #5)
+  @@index([status, voteCount(sort: Desc)]) // Top voted by status
+  @@index([status, recentVoteCount(sort: Desc)]) // Trending by status
+  @@index([createdAt(sort: Desc)]) // Recent suggestions
+  @@index([wallet, status]) // User's suggestions by status
+  @@index([wallet, createdAt(sort: Desc)]) // User's recent suggestions
+  @@index([cityId]) // Suggestions by city
+  @@index([customCityName]) // Custom city lookup
+}
+
+// Epic 7: Votes Table (with all audit fixes applied)
+model Vote {
+  id           String     @id @default(cuid()) // Issue #7: Keep CUID for now
+  wallet       String // lowercase wallet address
+  suggestionId String
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([wallet, suggestionId]) // One vote per wallet per suggestion
+  @@index([suggestionId]) // Issue #1: CRITICAL FK index
+  @@index([wallet, createdAt(sort: Desc)]) // Issue #5: Wallet queries
+  @@index([createdAt]) // For trending calculations
+}
+
+model AdminLog {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  wallet    String
+  action    String
+  details   Json?    @db.JsonB // CHANGED: Use JSONB for better performance (Issue #8)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([wallet])
+  @@index([createdAt])
+  @@index([action])
+  @@index([wallet, createdAt(sort: Desc)]) // NEW: Issue #5 - wallet queries
+}
+
+model AdminSession {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  wallet    String
+  nonce     String
+  expiresAt DateTime @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([wallet])
+  @@index([expiresAt])
+  @@index([wallet, expiresAt]) // NEW: Issue #5 - optimize session lookups
+}
+
+model game_sessions {
+  id             String    @id
+  wallet_address String?
+  started_at     DateTime? @default(now()) @db.Timestamptz(6)
+  ended_at       DateTime? @db.Timestamptz(6)
+  final_budget   Decimal?  @db.Decimal(18, 2)
+  profit_loss    Decimal?  @db.Decimal(18, 2)
+  creators_paid  Int?      @default(0)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model receipts {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id   String
+  creator_id   String
+  creator_name String
+  amount       Decimal   @db.Decimal(18, 2)
+  currency     String?   @default("C2FLR")
+  status       String?   @default("pending")
+  tip_tx_hash  String?
+  flare_txid   String?
+  anchored_at  DateTime? @db.Timestamptz(6)
+  bundle_url   String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([session_id], map: "idx_receipts_session")
+  @@index([status], map: "idx_receipts_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model statements {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id  String
+  type        String
+  date        String
+  xml_content String
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([session_id], map: "idx_statements_session")
+}
+
+// ============================================================
+// BOT MODELS (Market-Making Bot)
+// ============================================================
+
+// Bot wallet registry
+model BotWallet {
+  id            String    @id @default(cuid())
+  address       String    @unique
+  encryptedKey  String    // AES-256-GCM encrypted private key
+  lastBetTime   DateTime?
+  totalBets     Int       @default(0)
+  totalSpentFlr Decimal   @default(0) @db.Decimal(20, 8)
+  status        String    @default("active") // active | low_balance | disabled
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bets     BotBet[]
+  fundings BotFunding[]
+
+  @@index([status])
+  @@index([lastBetTime])
+}
+
+// Bet audit log
+model BotBet {
+  id              String    @id @default(cuid())
+  walletId        String
+  wallet          BotWallet @relation(fields: [walletId], references: [id])
+  marketId        BigInt
+  betSide         String    // YES | NO
+  amountFlr       Decimal   @db.Decimal(20, 8)
+  txHash          String
+  gasUsed         BigInt?
+  strategy        String    // new_market | rebalance
+  poolRatioBefore Decimal?  @db.Decimal(10, 4)
+  createdAt       DateTime  @default(now())
+
+  @@index([walletId])
+  @@index([marketId])
+  @@index([createdAt(sort: Desc)])
+}
+
+// Treasury funding log
+model BotFunding {
+  id        String    @id @default(cuid())
+  walletId  String
+  wallet    BotWallet @relation(fields: [walletId], references: [id])
+  amountFlr Decimal   @db.Decimal(20, 8)
+  txHash    String
+  createdAt DateTime  @default(now())
+
+  @@index([walletId])
+  @@index([createdAt(sort: Desc)])
+}
+
+// Error tracking
+model BotError {
+  id           String   @id @default(cuid())
+  errorType    String   // transaction | funding | network | unknown
+  errorMessage String
+  stackTrace   String?  @db.Text
+  context      Json?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([errorType])
+}

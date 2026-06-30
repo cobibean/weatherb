@@ -1,0 +1,283 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import type { Market } from '@weatherb/shared/types';
+import { Header, Footer } from '@/components/layout';
+import { HeroCarousel, MarketGrid, BetModal } from '@/components/markets';
+import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
+import { TemperatureDisplay } from '@/components/ui/temperature-display';
+import { FaucetBanner } from './faucet-banner';
+import type { SerializedMarket } from '@/lib/contract-data';
+
+interface HomeClientProps {
+  markets: SerializedMarket[];
+}
+
+// Helper function to get cancellation reason
+function getCancellationReason(market: Market): string {
+  const totalPool = market.yesPool + market.noPool;
+  if (totalPool === BigInt(0)) {
+    return 'Cancelled (No Participants)';
+  }
+  return 'Cancelled (Admin)';
+}
+
+// Helper function to get status display text
+function getStatusDisplayText(market: Market): string {
+  if (market.status === 'resolved') {
+    return market.outcome ? 'YES Won' : 'NO Won';
+  }
+  if (market.status === 'noWinners') {
+    return 'Settled (No Winners)';
+  }
+  if (market.status === 'cancelled') {
+    return getCancellationReason(market);
+  }
+  return 'Unknown';
+}
+
+export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
+  const [pastMarkets, setPastMarkets] = useState<Market[] | null>(null);
+  const [pastOpen, setPastOpen] = useState(false);
+  const [pastLoading, setPastLoading] = useState(false);
+  const [pastLoadingMore, setPastLoadingMore] = useState(false);
+  const [pastError, setPastError] = useState<string | null>(null);
+  const [pastCursor, setPastCursor] = useState<string | null>(null);
+  const [selectedPastMarket, setSelectedPastMarket] = useState<Market | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const deserializeMarkets = (items: SerializedMarket[]): Market[] => {
+    return items.map((market) => ({
+      ...market,
+      yesPool: BigInt(market.yesPool),
+      noPool: BigInt(market.noPool),
+    }));
+  };
+
+  const markets: Market[] = useMemo(
+    () => deserializeMarkets(serializedMarkets),
+    [serializedMarkets]
+  );
+  // Markets are already filtered to active (open + closed) by the server
+  const [selectedMarket, setSelectedMarket] = useState<{ market: Market; side: 'yes' | 'no' } | null>(null);
+
+  const handleBetYes = (market: Market) => {
+    setSelectedMarket({ market, side: 'yes' });
+  };
+
+  const handleBetNo = (market: Market) => {
+    setSelectedMarket({ market, side: 'no' });
+  };
+
+  const handleCloseModal = () => {
+    setSelectedMarket(null);
+  };
+
+  const handleMarketClick = (market: Market) => {
+    setSelectedPastMarket(market);
+    setIsModalOpen(true);
+  };
+
+  const fetchPastMarkets = async (cursor?: string): Promise<{ markets: Market[]; nextCursor: string | null }> => {
+    const params = new URLSearchParams({
+      status: 'past',
+      limit: '50',
+    });
+    if (cursor) {
+      params.set('cursor', cursor);
+    }
+    const res = await fetch(`/api/markets?${params.toString()}`);
+    if (!res.ok) {
+      throw new Error('Failed to load past markets');
+    }
+
+    const data = (await res.json()) as { markets?: SerializedMarket[]; nextCursor?: string | null };
+    return {
+      markets: deserializeMarkets(data.markets ?? []),
+      nextCursor: data.nextCursor ?? null,
+    };
+  };
+
+  const handleTogglePastMarkets = async (): Promise<void> => {
+    if (pastOpen) {
+      setPastOpen(false);
+      return;
+    }
+
+    setPastOpen(true);
+    if (pastMarkets) return;
+
+    setPastLoading(true);
+    setPastError(null);
+
+    try {
+      const data = await fetchPastMarkets();
+      setPastMarkets(data.markets);
+      setPastCursor(data.nextCursor);
+    } catch (error) {
+      setPastError(error instanceof Error ? error.message : 'Failed to load past markets');
+    } finally {
+      setPastLoading(false);
+    }
+  };
+
+  const handleLoadMorePastMarkets = async (): Promise<void> => {
+    if (!pastCursor || pastLoadingMore) return;
+    setPastLoadingMore(true);
+    setPastError(null);
+
+    try {
+      const data = await fetchPastMarkets(pastCursor);
+      setPastMarkets((prev) => (prev ? [...prev, ...data.markets] : data.markets));
+      setPastCursor(data.nextCursor);
+    } catch (error) {
+      setPastError(error instanceof Error ? error.message : 'Failed to load past markets');
+    } finally {
+      setPastLoadingMore(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+
+      {/* Main content - header floats over hero */}
+      <main className="flex-1">
+        {/* Hero Carousel Section */}
+        <HeroCarousel
+          markets={markets}
+          onBetYes={handleBetYes}
+          onBetNo={handleBetNo}
+        />
+
+        {/* Faucet Banner - Get test tokens */}
+        <FaucetBanner />
+
+        {/* Market Grid Section */}
+        <MarketGrid
+          markets={markets}
+          onBetYes={handleBetYes}
+          onBetNo={handleBetNo}
+          className="bg-cloud-off"
+        />
+
+        {/* Past Markets Section */}
+        <section className="py-12 bg-neutral-50">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <button
+              type="button"
+              onClick={handleTogglePastMarkets}
+              className="w-full flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-5 py-4 text-left transition hover:bg-neutral-50"
+              aria-expanded={pastOpen}
+              aria-controls="past-markets-panel"
+            >
+              <div>
+                <h3 className="font-display text-lg font-bold text-neutral-800">
+                  Past Markets
+                </h3>
+                <p className="font-body text-sm text-neutral-500">
+                  View resolved and cancelled markets on demand.
+                </p>
+              </div>
+              <span className="font-body text-sm text-neutral-500">
+                {pastOpen ? 'Hide' : 'Show'}
+              </span>
+            </button>
+
+            {pastOpen && (
+              <div id="past-markets-panel" className="mt-6 space-y-4">
+                {pastLoading && (
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center">
+                    <p className="font-body text-sm text-neutral-500">Loading past markets...</p>
+                  </div>
+                )}
+                {pastError && (
+                  <div className="rounded-2xl border border-error-soft/40 bg-error-soft/10 p-6 text-center">
+                    <p className="font-body text-sm text-error-soft">{pastError}</p>
+                  </div>
+                )}
+                {!pastLoading && pastMarkets && pastMarkets.length === 0 && (
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center">
+                    <p className="font-body text-sm text-neutral-500">No past markets yet.</p>
+                  </div>
+                )}
+                {!pastLoading && pastMarkets && pastMarkets.length > 0 && (
+                  <div className="space-y-3">
+                    {pastMarkets.map((market) => {
+                      const thresholdValue = Math.round(market.thresholdF_tenths / 10);
+                      const resolvedTempValue =
+                        market.resolvedTempF_tenths !== undefined
+                          ? Math.round(market.resolvedTempF_tenths / 10)
+                          : null;
+                      return (
+                        <div
+                          key={market.id}
+                          className="rounded-2xl border border-neutral-200 bg-white p-5 cursor-pointer hover:shadow-md transition-all duration-200 hover:border-gray-200"
+                          onClick={() => handleMarketClick(market)}
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="font-display text-lg font-bold text-neutral-800">
+                                {market.cityName}
+                              </p>
+                              <p className="font-body text-sm text-neutral-500">
+                                Threshold:{' '}
+                                <TemperatureDisplay fahrenheit={thresholdValue} size="sm" />
+                                {' '} - {getStatusDisplayText(market)}
+                              </p>
+                            </div>
+                            <div className="text-sm text-neutral-500">
+                              {new Date(market.resolveTime).toLocaleString()}
+                            </div>
+                          </div>
+                          {resolvedTempValue !== null && (
+                            <p className="mt-3 text-sm text-neutral-600">
+                              Observed:{' '}
+                              <TemperatureDisplay fahrenheit={resolvedTempValue} size="sm" />
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {pastCursor && (
+                      <button
+                        type="button"
+                        onClick={handleLoadMorePastMarkets}
+                        disabled={pastLoadingMore}
+                        className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                      >
+                        {pastLoadingMore ? 'Loading...' : 'Load More'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+
+      {/* Bet Modal */}
+      {selectedMarket && (
+        <BetModal
+          market={selectedMarket.market}
+          side={selectedMarket.side}
+          isOpen={true}
+          onClose={handleCloseModal}
+        />
+      )}
+
+      {/* Market Summary Modal */}
+      <MarketSummaryModal
+        market={selectedPastMarket}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedPastMarket(null);
+        }}
+      />
+    </div>
+  );
+}

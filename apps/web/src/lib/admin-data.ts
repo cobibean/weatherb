@@ -1,0 +1,627 @@
+import { createPublicClient, decodeEventLog, http, keccak256, parseAbiItem, toBytes, type AbiEvent, type Hex } from 'viem';
+import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
+import { CITIES } from '@weatherb/shared/constants';
+import { formatFlr } from '@weatherb/shared/utils/payout';
+import { readProviderHealth, type ProviderHealth } from './provider-health';
+import prisma from './prisma';
+import type { TestStatus } from '@prisma/client';
+
+export interface AdminStats {
+  providerStatus: 'healthy' | 'degraded' | 'down';
+  marketsToday: number;
+  pendingSettlements: number;
+  fees24h: string;
+  totalVolume: string;
+  totalUsers: number;
+  isPaused: boolean;
+  isSettlerPaused: boolean;
+}
+
+export type AdminMarketStatus = 'Open' | 'Closed' | 'Resolved' | 'Cancelled' | 'NoWinners';
+
+export type AdminMarket = {
+  id: number;
+  cityId: string;
+  cityName: string;
+  resolveTime: number;
+  thresholdTenths: number;
+  status: AdminMarketStatus;
+  yesPool: string;
+  noPool: string;
+  outcome?: boolean;
+  resolvedTemp?: number;
+};
+
+export interface SystemConfigData {
+  cadence: number;
+  testMode: boolean;
+  dailyCount: number;
+  bettingBuffer: number;
+  isPaused: boolean;
+  settlerPaused: boolean;
+}
+
+export type TestingCity = {
+  id: string;
+  suggestionId: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  timezone: string | null;
+  status: TestStatus;
+  startedAt: string;
+};
+
+/**
+ * Get or create the default system config.
+ */
+export async function getSystemConfig(): Promise<SystemConfigData> {
+  let config = await prisma.systemConfig.findUnique({
+    where: { id: 'default' },
+  });
+
+  if (!config) {
+    config = await prisma.systemConfig.create({
+      data: { id: 'default' },
+    });
+  }
+
+  return {
+    cadence: config.cadence,
+    testMode: config.testMode,
+    dailyCount: config.dailyCount,
+    bettingBuffer: config.bettingBuffer,
+    isPaused: config.isPaused,
+    settlerPaused: config.settlerPaused,
+  };
+}
+
+/**
+ * Update system config.
+ */
+export async function updateSystemConfig(
+  data: Partial<Omit<SystemConfigData, 'isPaused' | 'settlerPaused'>>
+): Promise<SystemConfigData> {
+  const config = await prisma.systemConfig.upsert({
+    where: { id: 'default' },
+    create: {
+      id: 'default',
+      ...data,
+    },
+    update: data,
+  });
+
+  return {
+    cadence: config.cadence,
+    testMode: config.testMode,
+    dailyCount: config.dailyCount,
+    bettingBuffer: config.bettingBuffer,
+    isPaused: config.isPaused,
+    settlerPaused: config.settlerPaused,
+  };
+}
+
+type AdminMarketRaw = {
+  id: number;
+  cityId: string;
+  cityName: string;
+  resolveTime: number;
+  bettingDeadline: number;
+  thresholdTenths: number;
+  status: AdminMarketStatus;
+  yesPool: bigint;
+  noPool: bigint;
+  totalFees: bigint;
+  resolvedTempTenths?: number;
+  observedTimestamp?: number;
+  outcome?: boolean;
+};
+
+const STATUS_MAP: readonly AdminMarketStatus[] = ['Open', 'Closed', 'Resolved', 'Cancelled', 'NoWinners'] as const;
+
+function getContractAddress(): Hex {
+  const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as Hex | undefined;
+  if (!address) {
+    throw new Error('NEXT_PUBLIC_CONTRACT_ADDRESS environment variable is required');
+  }
+  return address;
+}
+
+function getRpcUrl(): string {
+  const url = process.env.RPC_URL;
+  if (!url) {
+    throw new Error('RPC_URL environment variable is required');
+  }
+  return url;
+}
+
+function getClient() {
+  return createPublicClient({
+    transport: http(getRpcUrl(), {
+      batch: {
+        wait: 50, // Wait up to 50ms to collect requests for batching
+        batchSize: 100, // Maximum requests per batch (most RPC providers support up to 100)
+      },
+    }),
+  });
+}
+
+function findCityByBytes32(cityIdHex: Hex): { slug: string; name: string } | null {
+  for (const city of CITIES) {
+    const hash = keccak256(toBytes(city.slug));
+    if (hash.toLowerCase() === cityIdHex.toLowerCase()) {
+      return {
+        slug: city.slug,
+        name: city.name,
+      };
+    }
+  }
+  return null;
+}
+
+export function mapMarketStatus(statusNum: number, bettingDeadlineSec: number, nowSec: number): AdminMarketStatus {
+  if (statusNum === 0 && nowSec >= bettingDeadlineSec) {
+    return 'Closed';
+  }
+  return STATUS_MAP[statusNum] ?? 'Open';
+}
+
+function toResolvedTemp(resolvedTempTenths?: number): number | undefined {
+  if (resolvedTempTenths === undefined) return undefined;
+  return Math.round(resolvedTempTenths / 10);
+}
+
+async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
+  try {
+    const client = getClient();
+    const contractAddress = getContractAddress();
+    const count = await client.readContract({
+      address: contractAddress,
+      abi: WEATHER_MARKET_ABI,
+      functionName: 'getMarketCount',
+    });
+
+    if (count === 0n) {
+      return [];
+    }
+
+    // Batch all getMarket calls using Promise.all with batched transport
+    const marketPromises = Array.from({ length: Number(count) }, (_, i) =>
+      client.readContract({
+        address: contractAddress,
+        abi: WEATHER_MARKET_ABI,
+        functionName: 'getMarket',
+        args: [BigInt(i)],
+      })
+    );
+
+    const marketResults = await Promise.all(marketPromises);
+
+    const markets: AdminMarketRaw[] = [];
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    for (let i = 0; i < marketResults.length; i++) {
+      const marketData = marketResults[i];
+      if (!marketData) continue;
+
+      const city = findCityByBytes32(marketData.cityId);
+      if (!city) {
+        continue;
+      }
+
+      const status = mapMarketStatus(
+        Number(marketData.status),
+        Number(marketData.bettingDeadline),
+        nowSec
+      );
+
+      const market: AdminMarketRaw = {
+        id: i,
+        cityId: city.slug,
+        cityName: city.name,
+        resolveTime: Number(marketData.resolveTime) * 1000,
+        bettingDeadline: Number(marketData.bettingDeadline) * 1000,
+        thresholdTenths: Number(marketData.thresholdTenths),
+        status,
+        yesPool: marketData.yesPool,
+        noPool: marketData.noPool,
+        totalFees: marketData.totalFees,
+      };
+
+      if (status === 'Resolved' || status === 'NoWinners') {
+        market.resolvedTempTenths = Number(marketData.resolvedTempTenths);
+        market.observedTimestamp = Number(marketData.observedTimestamp) * 1000;
+        if (status === 'Resolved') {
+          market.outcome = marketData.outcome;
+        }
+      }
+
+      markets.push(market);
+    }
+
+    return markets;
+  } catch (error) {
+    // Handle rate limiting and other RPC errors gracefully
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit')) {
+      console.warn('Rate limited while fetching markets, returning empty array');
+      return [];
+    }
+    // For other errors, log and return empty array to prevent dashboard failure
+    console.error('Failed to fetch markets:', error);
+    return [];
+  }
+}
+
+export async function getAdminMarkets(): Promise<AdminMarket[]> {
+  const markets = await fetchAdminMarketsRaw();
+  return markets.map((market) => {
+    const resolvedTemp = toResolvedTemp(market.resolvedTempTenths);
+    return {
+      id: market.id,
+      cityId: market.cityId,
+      cityName: market.cityName,
+      resolveTime: market.resolveTime,
+      thresholdTenths: market.thresholdTenths,
+      status: market.status,
+      yesPool: formatFlr(market.yesPool),
+      noPool: formatFlr(market.noPool),
+      ...(market.outcome !== undefined ? { outcome: market.outcome } : {}),
+      ...(resolvedTemp !== undefined ? { resolvedTemp } : {}),
+    };
+  });
+}
+
+/**
+ * Fetch unique bettor count from on-chain BetPlaced events.
+ * Uses larger block ranges and sequential processing to avoid RPC timeouts.
+ */
+async function fetchUniqueBettorCount(): Promise<number> {
+  const fromBlockEnv = process.env.CONTRACT_DEPLOY_BLOCK;
+  if (!fromBlockEnv) return 0;
+
+  let fromBlock: bigint;
+  try {
+    fromBlock = BigInt(fromBlockEnv);
+  } catch {
+    return 0;
+  }
+
+  try {
+    const client = getClient();
+    const contractAddress = getContractAddress();
+    const betPlacedEvent = parseAbiItem(
+      'event BetPlaced(uint256 indexed marketId, address indexed bettor, bool isYes, uint256 amount)'
+    ) as AbiEvent;
+
+    const latestBlock = await client.getBlockNumber();
+    const logs = await fetchLogsInBatches({
+      client,
+      address: contractAddress,
+      event: betPlacedEvent,
+      fromBlock,
+      toBlock: latestBlock,
+      // Use larger block ranges (2000 blocks) to reduce number of requests
+      // Flare Coston2 ~1.8s block time = ~1 hour of blocks
+      maxRange: 2000n,
+      // Process max 10 ranges in parallel to avoid overwhelming RPC
+      maxConcurrent: 10,
+    });
+
+    const wallets = new Set<string>();
+    for (const log of logs) {
+      const decoded = decodeEventLog({
+        abi: WEATHER_MARKET_ABI,
+        data: log.data,
+        topics: log.topics,
+      });
+      if (decoded.eventName !== 'BetPlaced') continue;
+      const bettor = (decoded.args as { bettor?: string }).bettor;
+      if (bettor) {
+        wallets.add(bettor.toLowerCase());
+      }
+    }
+
+    return wallets.size;
+  } catch (error) {
+    // Handle rate limiting, timeouts, and other RPC errors gracefully
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (
+      errorMessage.includes('429') || 
+      errorMessage.includes('Too Many Requests') || 
+      errorMessage.includes('rate limit') ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('TimeoutError')
+    ) {
+      console.warn('[BettorCount] RPC timeout or rate limit, returning 0');
+      return 0;
+    }
+    // For other errors, log and return 0 to prevent dashboard failure
+    console.error('[BettorCount] Failed to fetch unique bettor count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Fetch logs in batches with concurrency control.
+ * Processes ranges in chunks to avoid overwhelming RPC with too many parallel requests.
+ */
+async function fetchLogsInBatches(params: {
+  client: ReturnType<typeof getClient>;
+  address: Hex;
+  event: AbiEvent;
+  fromBlock: bigint;
+  toBlock: bigint;
+  maxRange: bigint;
+  maxConcurrent?: number;
+}) {
+  const { maxConcurrent = 10 } = params;
+  
+  // Calculate all batch ranges
+  const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+  let start = params.fromBlock;
+
+  while (start <= params.toBlock) {
+    const end = start + params.maxRange - 1n <= params.toBlock
+      ? start + params.maxRange - 1n
+      : params.toBlock;
+    
+    ranges.push({ fromBlock: start, toBlock: end });
+    start = end + 1n;
+  }
+
+  // Process in chunks to avoid RPC timeout from too many parallel requests
+  const allLogs: Awaited<ReturnType<typeof params.client.getLogs>>[] = [];
+  
+  for (let i = 0; i < ranges.length; i += maxConcurrent) {
+    const chunk = ranges.slice(i, i + maxConcurrent);
+    
+    const chunkPromises = chunk.map((range) =>
+      params.client.getLogs({
+        address: params.address,
+        event: params.event,
+        fromBlock: range.fromBlock,
+        toBlock: range.toBlock,
+      }).catch((error) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (
+          errorMessage.includes('429') || 
+          errorMessage.includes('Too Many Requests') || 
+          errorMessage.includes('rate limit')
+        ) {
+          throw new Error('Rate limited while fetching logs');
+        }
+        throw error;
+      })
+    );
+
+    const chunkResults = await Promise.all(chunkPromises);
+    allLogs.push(...chunkResults);
+  }
+  
+  return allLogs.flat();
+}
+
+export function deriveProviderStatus(health: ProviderHealth | null, nowMs: number = Date.now()): AdminStats['providerStatus'] {
+  if (!health) return 'degraded';
+
+  const lastSuccessMs = health.lastSuccessAt ? Date.parse(health.lastSuccessAt) : Number.NEGATIVE_INFINITY;
+  const lastErrorMs = health.lastErrorAt ? Date.parse(health.lastErrorAt) : Number.NEGATIVE_INFINITY;
+  const successAgeMs = nowMs - lastSuccessMs;
+  const errorAgeMs = nowMs - lastErrorMs;
+
+  // Markets resolve every 24 hours, so we need a threshold that matches the market cycle.
+  // 24 hours provides a reasonable buffer while still catching real issues.
+  const DOWN_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+  if (!Number.isFinite(lastSuccessMs) || successAgeMs > DOWN_THRESHOLD_MS) {
+    return 'down';
+  }
+
+  if (errorAgeMs < 30 * 60 * 1000 || health.recentErrors >= 3) {
+    return 'degraded';
+  }
+
+  return 'healthy';
+}
+
+/**
+ * Toggle the global pause state.
+ */
+export async function togglePause(isPaused: boolean): Promise<void> {
+  await prisma.systemConfig.upsert({
+    where: { id: 'default' },
+    create: { id: 'default', isPaused },
+    update: { isPaused },
+  });
+}
+
+/**
+ * Toggle the settler pause state.
+ */
+export async function toggleSettlerPause(settlerPaused: boolean): Promise<void> {
+  await prisma.systemConfig.upsert({
+    where: { id: 'default' },
+    create: { id: 'default', settlerPaused },
+    update: { settlerPaused },
+  });
+}
+
+/**
+ * Get admin stats for dashboard.
+ * Aggregates on-chain markets and provider health data.
+ */
+export async function getAdminStats(): Promise<AdminStats> {
+  const config = await getSystemConfig();
+
+  const [markets, providerHealth, totalUsers] = await Promise.all([
+    fetchAdminMarketsRaw(),
+    readProviderHealth(),
+    fetchUniqueBettorCount(),
+  ]);
+
+  const nowMs = Date.now();
+  const dayStart = new Date(nowMs);
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const dayStartMs = dayStart.getTime();
+  const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000;
+
+  const marketsToday = markets.filter(
+    (market) => market.resolveTime >= dayStartMs && market.resolveTime < dayEndMs
+  ).length;
+
+  const pendingSettlements = markets.filter(
+    (market) =>
+      (market.status === 'Open' || market.status === 'Closed') &&
+      market.resolveTime <= nowMs
+  ).length;
+
+  const totalVolumeWei = markets.reduce(
+    (total, market) => total + market.yesPool + market.noPool,
+    0n
+  );
+
+  const recentCutoffMs = nowMs - 24 * 60 * 60 * 1000;
+  const fees24hWei = markets.reduce((total, market) => {
+    if (market.status !== 'Resolved') return total;
+    const resolvedAt = market.observedTimestamp ?? market.resolveTime;
+    if (resolvedAt < recentCutoffMs) return total;
+    return total + market.totalFees;
+  }, 0n);
+
+  const providerStatus = deriveProviderStatus(providerHealth, nowMs);
+
+  return {
+    providerStatus,
+    marketsToday,
+    pendingSettlements,
+    fees24h: formatFlr(fees24hWei),
+    totalVolume: formatFlr(totalVolumeWei),
+    totalUsers,
+    isPaused: config.isPaused,
+    isSettlerPaused: config.settlerPaused,
+  };
+}
+
+/**
+ * Get all cities.
+ */
+export async function getCities() {
+  return prisma.city.findMany({
+    orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+  });
+}
+
+/**
+ * Get cities currently in active testing runs.
+ */
+export async function getTestingCities(): Promise<TestingCity[]> {
+  const testRuns = await prisma.testRun.findMany({
+    where: { status: 'RUNNING' },
+    include: {
+      suggestion: {
+        include: { city: true },
+      },
+    },
+    orderBy: { startedAt: 'desc' },
+  });
+
+  return testRuns.map((run) => {
+    const city = run.suggestion.city;
+    const name = city?.name ?? run.suggestion.customCityName ?? 'Unknown City';
+    const latitude = city?.latitude ?? run.suggestion.latitude ?? null;
+    const longitude = city?.longitude ?? run.suggestion.longitude ?? null;
+
+    return {
+      id: run.id,
+      suggestionId: run.suggestionId,
+      name,
+      latitude,
+      longitude,
+      timezone: city?.timezone ?? null,
+      status: run.status,
+      startedAt: run.startedAt.toISOString(),
+    };
+  });
+}
+
+/**
+ * Get active cities only.
+ */
+export async function getActiveCities() {
+  return prisma.city.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+  });
+}
+
+/**
+ * Create a new city.
+ */
+export async function createCity(data: {
+  slug: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+}) {
+  return prisma.city.create({ data });
+}
+
+/**
+ * Toggle city active status.
+ */
+export async function toggleCityActive(id: string, isActive: boolean) {
+  return prisma.city.update({
+    where: { id },
+    data: { isActive },
+  });
+}
+
+/**
+ * Get recent admin logs.
+ */
+export async function getRecentLogs(limit = 50) {
+  return prisma.adminLog.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+}
+
+/**
+ * Get logs with pagination.
+ */
+export async function getLogs(options: {
+  page?: number;
+  limit?: number;
+  action?: string;
+  wallet?: string;
+}) {
+  const page = options.page ?? 1;
+  const limit = options.limit ?? 20;
+  const skip = (page - 1) * limit;
+
+  const where: Record<string, unknown> = {};
+  if (options.action) where.action = options.action;
+  if (options.wallet) where.wallet = options.wallet.toLowerCase();
+
+  const [logs, total] = await Promise.all([
+    prisma.adminLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.adminLog.count({ where }),
+  ]);
+
+  return {
+    logs,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
