@@ -52,7 +52,7 @@ FORWARD_TO_EMAIL=your-personal-email@gmail.com
 ### Step 3: Run the Setup Script
 
 ```bash
-pnpm tsx scripts/setup-cloudflare-email.ts
+npm exec -- tsx scripts/setup-cloudflare-email.ts
 ```
 
 That's it! The script will:

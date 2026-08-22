@@ -1,18 +1,24 @@
 {
   "name": "weatherB",
   "private": true,
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "npm@11.19.0",
   "engines": {
-    "node": ">=20"
+    "node": "26.7.0",
+    "npm": "11.19.0"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "contracts"
+  ],
   "scripts": {
-    "dev": "pnpm -C apps/web dev",
-    "lint": "pnpm -r lint",
+    "dev": "npm --workspace=@weatherb/web run dev",
+    "lint": "npm run --workspaces --if-present lint",
     "format:check": "prettier --check .",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "typecheck": "npm run --workspaces --if-present typecheck",
+    "test": "npm run --workspaces --if-present test",
     "test:voting": "tsx scripts/test-voting-flow.ts",
-    "build": "pnpm -r build"
+    "build": "npm --workspace=@weatherb/shared run build && npm --workspace=@weatherb/market-bot run build && npm --workspace=@weatherb/web run build && npm --workspace=@weatherb/contracts run build"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",

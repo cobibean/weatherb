@@ -12,35 +12,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm format:check
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
 
   typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
+      - run: npm ci
+      - run: npm run typecheck
 
   contracts:
     runs-on: ubuntu-latest
@@ -59,17 +53,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: npm ci
+      - run: npm run test
 
   build:
     runs-on: ubuntu-latest
@@ -77,14 +68,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - run: npm ci
+      - run: npm run build

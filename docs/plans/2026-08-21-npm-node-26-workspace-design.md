@@ -27,14 +27,24 @@ npm ci
 npm run dev
 ```
 
-`npm run dev` starts the Next.js web workspace. npm resolves internal
-`workspace:*` dependencies and installs web-only packages such as `dotenv`.
+`npm run dev` starts the Next.js web workspace. npm resolves linked internal
+package dependencies and installs web-only packages such as `dotenv`.
 
 ## Failure handling
 
 If npm cannot construct the workspace lockfile or a Node 26 incompatibility
 appears, capture the exact package and error before making the narrowest
 compatible dependency adjustment. Do not silently fall back to pnpm.
+
+## Compatibility note
+
+npm 11.19.0 rejects the pnpm-specific `workspace:*` protocol in this project.
+The two internal dependencies use local `file:` links instead, while npm
+workspaces still manage installation and script execution.
+
+Coinbase's SDK marks its `@x402/*` imports as optional peers, but Thirdweb
+loads them during homepage compilation. The web workspace declares those four
+packages explicitly so a clean npm install can render the app.
 
 ## Verification
 

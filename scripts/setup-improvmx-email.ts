@@ -16,7 +16,7 @@
  * - Access to Vercel DNS settings (to add MX records)
  * 
  * Usage:
- *   pnpm tsx scripts/setup-improvmx-email.ts
+ *   npm exec -- tsx scripts/setup-improvmx-email.ts
  * 
  * Environment variables needed:
  *   IMPROVMX_API_KEY - Your ImprovMX API key (get from https://improvmx.com/api)

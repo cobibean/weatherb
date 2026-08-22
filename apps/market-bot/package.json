@@ -17,7 +17,7 @@
     "fund:all": "tsx src/scripts/fund-all-wallets.ts"
   },
   "dependencies": {
-    "@weatherb/shared": "workspace:*",
+    "@weatherb/shared": "file:../../packages/shared",
     "viem": "^2.21.0",
     "express": "^4.18.2",
     "@prisma/client": "^6.2.1",

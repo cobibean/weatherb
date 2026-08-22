@@ -55,8 +55,8 @@ weatherb/
 
 ### Prerequisites
 
-- Node.js 20+ (see `.nvmrc`)
-- pnpm 9+
+- Node.js 26.7.0 (see `.nvmrc`)
+- npm 11.19.0
 - Foundry
 - Docker (optional, for local Postgres + Redis)
 
@@ -65,7 +65,7 @@ weatherb/
 1. Install dependencies:
 
    ```bash
-   pnpm install
+   npm ci
    ```
 
 2. Start local services:
@@ -85,20 +85,20 @@ weatherb/
 4. Build contracts:
 
    ```bash
-   pnpm -C contracts build
+   npm --workspace=@weatherb/contracts run build
    ```
 
 5. Run dev server:
 
    ```bash
-   pnpm dev
+   npm run dev
    ```
 
 6. Run tests:
 
    ```bash
-   pnpm test
-   pnpm -C contracts test
+   npm test
+   npm --workspace=@weatherb/contracts run test
    ```
 
 See `.env.example` for required environment variables.

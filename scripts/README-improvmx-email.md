@@ -32,7 +32,7 @@ FORWARD_TO_EMAIL=your-personal-email@gmail.com
 ### Step 3: Run the Setup Script
 
 ```bash
-pnpm tsx scripts/setup-improvmx-email.ts
+npm exec -- tsx scripts/setup-improvmx-email.ts
 ```
 
 The script will:
