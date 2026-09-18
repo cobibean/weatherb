@@ -57,7 +57,7 @@ The system was using **3 weather providers** (MET Norway, NWS, Open-Meteo) with 
 
 4. **Environment & Config** ✅
    - `TOMORROW_IO_API_KEY` added to `.env` and `.env.example`
-   - API key already in place: `vdpg37hnLcFLGsiZrMmrJQ4CO6y8l8Bs`
+   - Tomorrow.io API key is configured through the environment (value intentionally omitted)
    - Old providers deprecated but not yet removed
 
 ### Build Status
@@ -260,7 +260,7 @@ This ensures:
 - `packages/shared/src/providers/tomorrow-io.ts` - Tomorrow.io provider
 - `packages/shared/src/providers/cached-provider.ts` - Smart caching
 - `packages/shared/src/providers/factory.ts` - Provider factory
-- `.env` - Has `TOMORROW_IO_API_KEY=vdpg37hnLcFLGsiZrMmrJQ4CO6y8l8Bs`
+- Environment variable: `TOMORROW_IO_API_KEY` (value intentionally omitted)
 
 ### Settlement Files (You'll Modify/Create)
 - `apps/web/src/app/api/markets/[marketId]/settle/route.ts` - **CREATE THIS**
