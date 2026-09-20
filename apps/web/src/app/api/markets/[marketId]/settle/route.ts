@@ -27,10 +27,9 @@ export async function POST(request: NextRequest, { params }: RouteParams): Promi
     const clients = createContractClients({ rpcUrl, privateKey });
     await requireRestartContract(clients.publicClient, address);
     const result = await settleMarket(clients, address, BigInt(marketId));
-    return NextResponse.json(
-      { success: result.action !== 'pending', result },
-      { status: result.action === 'pending' ? 409 : 200 },
-    );
+    const status =
+      result.action === 'pending' ? 409 : result.action === 'in_flight' ? 202 : 200;
+    return NextResponse.json({ success: status === 200, result }, { status });
   } catch (error) {
     console.error(`[SettleMarket] Market ${marketId} failed:`, error);
     return NextResponse.json(

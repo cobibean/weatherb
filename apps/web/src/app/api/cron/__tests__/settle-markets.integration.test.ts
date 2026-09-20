@@ -127,7 +127,22 @@ describe('Settlement and reconciliation routes', () => {
     expect(await response.json()).toMatchObject({ success: false, failed: 1, settled: 1 });
   });
   it('surfaces post-transaction database failure and repairs it on retry', async () => {
-    mocks.upsert.mockRejectedValueOnce(new Error('database disconnected'));
+    // Task 5 added an early tracking persist; the transient failure must hit the post-transaction write.
+    let rejected = false;
+    const upsert = mocks.upsert.getMockImplementation()!;
+    mocks.upsert.mockImplementation(
+      async (args: {
+        where: { contractMarketId: number };
+        create: { isSettled?: boolean };
+        update: { isSettled?: boolean };
+      }) => {
+        if (!rejected && (args.update?.isSettled ?? args.create?.isSettled) === true) {
+          rejected = true;
+          throw new Error('database disconnected');
+        }
+        return upsert(args);
+      },
+    );
     expect((await single()).status).toBe(503);
     expect(chain[0]!.status).toBe(2);
     expect((await single()).status).toBe(200);
@@ -144,7 +159,10 @@ describe('Settlement and reconciliation routes', () => {
   it('does not persist a reverted transaction as success', async () => {
     mocks.receipt.mockResolvedValueOnce({ status: 'reverted' });
     expect((await single()).status).toBe(503);
-    expect(mocks.upsert).not.toHaveBeenCalled();
+    // Task 5's early tracking persist upserts the OPEN row, so assert on row state instead of call counts.
+    expect(rows.get(0)?.isSettled).toBe(false);
+    expect(rows.get(0)?.status).not.toBe('RESOLVED');
+    expect(rows.get(0)?.status).not.toBe('CANCELLED');
   });
   it('recovers after a receipt timeout without a second transaction', async () => {
     mocks.receipt.mockRejectedValueOnce(new Error('timeout'));
@@ -157,5 +175,41 @@ describe('Settlement and reconciliation routes', () => {
     expect((await single('1.5')).status).toBe(400);
     expect((await single('9007199254740993')).status).toBe(400);
     expect(mocks.read).not.toHaveBeenCalled();
+  });
+  it('records the submitted hash before waiting for the receipt', async () => {
+    mocks.receipt.mockRejectedValueOnce(new Error('timeout'));
+    expect((await single()).status).toBe(503);
+    expect(rows.get(0)).toMatchObject({
+      settlementTxHash: '0xreceipt',
+      settlementAttempts: 1,
+      isSettled: false,
+    });
+  });
+  it('does not resubmit while a recent submission is still unmined', async () => {
+    mocks.receipt.mockRejectedValueOnce(new Error('timeout'));
+    await single();
+    chain[0]!.status = 0; // Simulate the mock write not having landed yet.
+    mocks.txReceipt.mockResolvedValueOnce(null);
+    const response = await single();
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({ result: { action: 'in_flight' } });
+    expect(mocks.write).toHaveBeenCalledTimes(1);
+  });
+  it('resubmits when the earlier submission is older than the grace period and unmined', async () => {
+    mocks.receipt.mockRejectedValueOnce(new Error('timeout'));
+    await single();
+    chain[0]!.status = 0;
+    mocks.txReceipt.mockResolvedValue(null);
+    vi.setSystemTime(new Date(Date.now() + 181_000));
+    chain[0]!.resolveTime = BigInt(Math.floor(Date.now() / 1000) - 100);
+    expect((await single()).status).toBe(200);
+    expect(mocks.write).toHaveBeenCalledTimes(2);
+  });
+  it('records a redacted weather error and increments attempts on provider failure', async () => {
+    mocks.reading.mockRejectedValueOnce(new Error('provider down apikey=zzz'));
+    await single();
+    expect(rows.get(0)).toMatchObject({ settlementAttempts: 1 });
+    expect(String(rows.get(0)?.lastSettlementError)).not.toContain('zzz');
+    expect(mocks.write).not.toHaveBeenCalled();
   });
 });

@@ -13,6 +13,14 @@ const mocks = vi.hoisted(() => ({
   lock: vi.fn(),
   findUnique: vi.fn(),
   upsert: vi.fn(),
+  update: vi.fn(),
+  findMany: vi.fn(),
+  aggregate: vi.fn(),
+  txReceipt: vi.fn(),
+  runCreate: vi.fn(),
+  runUpdate: vi.fn(),
+  queryRaw: vi.fn(),
+  executeRaw: vi.fn(),
   read: vi.fn(),
   simulate: vi.fn(),
   write: vi.fn(),
@@ -25,12 +33,22 @@ vi.mock('@/lib/prisma', () => ({
   default: {
     systemConfig: { findUnique: mocks.config },
     city: { findMany: mocks.cities },
-    market: { count: mocks.count },
+    market: {
+      count: mocks.count,
+      findUnique: mocks.findUnique,
+      findMany: mocks.findMany,
+      aggregate: mocks.aggregate,
+      update: mocks.update,
+    },
+    workerRun: { create: mocks.runCreate, update: mocks.runUpdate },
     $transaction: mocks.transaction,
+    $queryRaw: mocks.queryRaw,
+    $executeRaw: mocks.executeRaw,
   },
 }));
 vi.mock('@/lib/cron', () => ({
   verifyCronRequest: mocks.auth,
+  verifyWorkerRequest: mocks.auth,
   unauthorizedResponse: () => new Response('Unauthorized', { status: 401 }),
   createContractClients: () => ({
     publicClient: {
@@ -38,8 +56,12 @@ vi.mock('@/lib/cron', () => ({
       readContract: mocks.read,
       simulateContract: mocks.simulate,
       waitForTransactionReceipt: mocks.receipt,
+      getTransactionReceipt: mocks.txReceipt,
     },
-    walletClient: { account: { address: '0x123' }, writeContract: mocks.write },
+    walletClient: {
+      account: { address: '0x0000000000000000000000000000000000000123' },
+      writeContract: mocks.write,
+    },
   }),
 }));
 vi.mock('@/lib/provider-health', () => ({
@@ -60,7 +82,7 @@ vi.mock('@upstash/qstash', () => ({
 
 export const chain: ChainMarket[] = [];
 export const slots = new Map<bigint, bigint>();
-export const rows = new Map<number, { isSettled: boolean }>();
+export const rows = new Map<number, Record<string, unknown> & { isSettled: boolean }>();
 export function market(overrides: Partial<ChainMarket> = {}): ChainMarket {
   return {
     cityId: keccak256(toBytes('nyc')),
@@ -100,9 +122,11 @@ export function setupLifecycle(): void {
   mocks.findUnique.mockImplementation(
     async ({ where }) => rows.get(where.contractMarketId) ?? null,
   );
-  mocks.upsert.mockImplementation(async ({ create }) => {
-    rows.set(create.contractMarketId, create);
-    return create;
+  mocks.upsert.mockImplementation(async ({ where, create, update }) => {
+    const existing = rows.get(where.contractMarketId);
+    const next = existing ? { ...existing, ...update } : create;
+    rows.set(where.contractMarketId, next);
+    return next;
   });
   let deploymentKey: string | null = null;
   mocks.transaction.mockImplementation(async (fn) =>
@@ -150,6 +174,30 @@ export function setupLifecycle(): void {
     return '0xreceipt';
   });
   mocks.receipt.mockResolvedValue({ status: 'success', logs: [] });
+  mocks.update.mockImplementation(async ({ where, data }) => {
+    const row = rows.get(where.contractMarketId) ?? { isSettled: false };
+    const next = { ...row } as Record<string, unknown>;
+    for (const [key, value] of Object.entries(data))
+      next[key] =
+        value && typeof value === 'object' && 'increment' in (value as object)
+          ? Number(next[key] ?? 0) + (value as { increment: number }).increment
+          : value;
+    rows.set(where.contractMarketId, next as typeof row);
+    return next;
+  });
+  mocks.findMany.mockImplementation(async ({ where } = {}) =>
+    [...rows.entries()]
+      .filter(([, row]) => (where?.isSettled === undefined ? true : row.isSettled === where.isSettled))
+      .map(([contractMarketId, row]) => ({ contractMarketId, ...row })),
+  );
+  mocks.aggregate.mockImplementation(async () => ({
+    _max: { contractMarketId: rows.size ? Math.max(...rows.keys()) : null },
+  }));
+  mocks.txReceipt.mockResolvedValue({ status: 'success' });
+  mocks.runCreate.mockResolvedValue({ id: 'run-1' });
+  mocks.runUpdate.mockResolvedValue({});
+  mocks.queryRaw.mockResolvedValue([{ holder: 'run-1' }]);
+  mocks.executeRaw.mockResolvedValue(1);
 }
 
 export { mocks };
