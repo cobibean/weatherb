@@ -69,6 +69,16 @@ try {
     'weatherb_test',
     '-v',
     'ON_ERROR_STOP=1',
+    '-c',
+    "ALTER DATABASE weatherb_test SET TimeZone = 'UTC'",
+  ]);
+  run(join(pgBin, 'psql'), [
+    '-h',
+    dir,
+    '-d',
+    'weatherb_test',
+    '-v',
+    'ON_ERROR_STOP=1',
     '-f',
     join(root, 'scripts/development/bootstrap-roles.sql'),
   ]);
