@@ -225,4 +225,49 @@ describe('Settlement and reconciliation routes', () => {
     expect(readIds).not.toContain(0);
     expect(readIds).toContain(1);
   });
+  it('returns 409 busy and does not touch the chain when another worker holds the lease', async () => {
+    mocks.queryRaw.mockResolvedValueOnce([]);
+    const response = await GET(request());
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ busy: true });
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(mocks.runUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'busy' }) }),
+    );
+  });
+  it('records a succeeded sweep run with a summary and releases the lease', async () => {
+    expect((await GET(request())).status).toBe(200);
+    expect(mocks.runCreate).toHaveBeenCalledWith({
+      data: { kind: 'settle-sweep', trigger: 'manual' },
+    });
+    expect(mocks.runUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'succeeded', summary: expect.objectContaining({ settled: 1 }) }),
+      }),
+    );
+    expect(mocks.executeRaw).toHaveBeenCalled();
+  });
+  it('schedules one QStash delivery for a pending market and never a second', async () => {
+    vi.stubEnv('QSTASH_TOKEN', 'qs');
+    vi.stubEnv('APP_URL', 'https://worker.example');
+    chain[0]!.resolveTime = BigInt(Math.floor(Date.now() / 1000) + 600);
+    mocks.publish.mockResolvedValue({ messageId: 'msg_1' });
+    await GET(request());
+    await GET(request());
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://worker.example/api/markets/0/settle',
+        notBefore: Number(chain[0]!.resolveTime),
+      }),
+    );
+    expect(rows.get(0)).toMatchObject({ settlementMessageId: 'msg_1' });
+  });
+  it('a failed sweep run is recorded as failed', async () => {
+    mocks.read.mockResolvedValueOnce('2.0.0');
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.runUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'failed' }) }),
+    );
+  });
 });
