@@ -247,3 +247,50 @@ The same September 21 07:09:47 Central heartbeat now runs signer-free hosted
 reconciliation/check after local settlement and generated-wallet claims. This is
 still a local settlement worker: the Mac must remain awake for that window. No
 hosted cron, signer key, weather secret, or mainnet service was enabled.
+
+## September 20 — hosted settlement worker acceptance
+
+Settlement moved from the local Codex heartbeat to the dedicated Vercel worker
+`weatherb-arc-worker` (see [hosted runbook](arc-hosted-testnet.md), "Settlement
+worker"). Branch commits `b8747f8..0752d24` (plan:
+`docs/plans/2026-09-20-hosted-settlement-worker.md`). Full baseline green after Task
+11: lint, typecheck, 12 safety, 62 shared, 204 web, 18 database, 114 Foundry, build,
+ABI check.
+
+Provisioning (settlement paused throughout): Neon role `weatherb_worker` created and
+its permissions probed (Market/WorkerRun/WorkerLease CRUD allowed; `BotWallet` read and
+`CREATE TABLE` denied; no superuser/createrole/bypassrls). Migration
+`20260920210000_worker_operations` applied to the hosted database. Fresh hosted settler
+`0xa7640379553b124be096CdFC8D9AF820C624C219` generated into `.tools/arc-hosted/`
+(never printed). Worker project `prj_MYJO5DUwUjXXBCP40yBWmdIIiLt3` created without Git
+integration, 13 production env keys pushed, deployed. Checks: worker health 200 with
+`settler: paused`; anonymous settle route 401; authorized route
+`{ skipped: true, reason: "settler is paused" }`. QStash schedule
+`weatherb-arc-settle-sweep` (`*/2 * * * *`) created; paused sweeps recorded as `skipped`
+runs (commit `0752d24`). Public site redeployed with `ADMIN_WALLETS` only; the user
+logged in, saw the Read-only badge, and confirmed the Operations page.
+
+Handover (Task 13), 17:17–18:40 UTC:
+
+| Step | Evidence |
+|---|---|
+| Rotate settler (owner) | `0x2bf3792e569cfe46b6c37390fedeae94b3e244bfcec0b42fcacc541fbac44d78`; chain `settler()` = hosted address. `npm run arc:lifecycle -- settle` now refuses before touching the chain. |
+| Fund hosted settler | `0x10e382a6222478102e2be1c665d87212f62fb35e51aefca81015da3437a43e87`; balance 2 USDC. |
+| Unpause | first live sweep 17:20:01 `succeeded`; Markets 2 and 3 received per-market QStash deliveries for 2026-09-21 12:08 UTC. |
+| hosted-test-1 (market 4, 1,800 s) | resolve 17:51:53. Per-market delivery at T+0.3 s failed (no observation yet); 17:52:00 sweep settled at T+9 s: `0x974ebd50026f2b991477e927a99cfda42cd47648c6987aede2b24f29f2917abf`. RESOLVED, outcome NO, 93.1°F. A later delivery returned `reconciled`; one transaction. |
+| hosted-test-2 (market 5) | resolve 17:53:40. Two early deliveries failed on observation lag; 17:54:00 sweep settled at T+22 s: `0x7eaaeada8981a1f057ec57acf5c6ce4f8f411587c0772a4a865791c8fca89f04`. RESOLVED, outcome NO, 93.9°F. Two concurrent manual POSTs landed at T+66 s (later than intended) and both returned 200 `reconciled`; five triggers produced exactly one transaction. A literal `409 busy` was not captured in this run; the lease is covered by the database tests. |
+| hosted-test-3 (market 6) | resolve 18:25:16 with settlement paused. Health at T+54 s: `dueMarkets: 1`; at T+704 s: `overdueMarkets: 1`. Unpaused at 18:37; 18:38:01 sweep `cancelled: 1`: `0xfa5f67d6447fa7962f0cbf412923f387e443684a8e9b8344cdc5c95bb3b5d09c`. CANCELLED on chain and in the database; refunds left claimable. |
+
+Observations: Tomorrow.io publishes the first observation at or after `resolveTime`
+roughly 15–20 s late, so the per-market QStash delivery usually fails once and the
+two-minute sweep performs the settlement. `npm run arc:hosted -- reconcile` requires
+both worker flags paused; with settlement enabled the sweep itself syncs new markets,
+and `mark-test` must wait for that sync. The local development database needs
+`npm run arc:migrate` before `hosted-test`.
+
+State at 18:41 UTC: public and worker `/api/health` both `settler: enabled`,
+`lastSweepStatus: succeeded`, `overdueMarkets: 0`; hosted settler balance 1.99 USDC;
+owner 11.9 USDC; markets 0–6 on chain. Markets 2 and 3 remain untouched with no
+additional bets. Remaining: user cancels the `start-arc-testnet-lifecycle` heartbeat;
+Markets 2/3 settle 2026-09-21 12:08 UTC with no local process; then `claims`,
+`arc:hosted -- check`, and the Task 14 checklist.

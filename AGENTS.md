@@ -6,6 +6,10 @@
 > verification. The Flare, hosted cron, voting, audition, and Sheets details below
 > describe the retired/deferred implementation. They do not authorize re-enabling it.
 > Native USDC values use 18 decimals; the fresh restart is version 2.2.0.
+> Settlement runs from the dedicated Vercel worker `weatherb-arc-worker` triggered by
+> QStash; the public site holds no signer (see `docs/testing/arc-hosted-testnet.md`,
+> "Settlement worker"). Automatic market creation remains manual pending the
+> scheduler-role contract change (separate plan; see `docs/backlog-and-ideas.md`).
 
 ## What Is This?
 **weatherB**: Prediction market on Flare. Users bet YES/NO on temperature.
@@ -185,7 +189,7 @@ All settled/cancelled markets are logged to Google Sheets for data analysis:
 
 ## Quick Reference
 - **Deployment**: Vercel + Flare Coston2 (testnet) / Flare mainnet (prod)
-- **Cron Schedule**: `schedule-daily` (hourly 12-16 UTC), `settle-markets` (every 5 min)
+- **Cron Schedule** (historical Flare setup): `schedule-daily` (hourly 12-16 UTC), `settle-markets` (every 5 min). Arc restart: QStash `weatherb-arc-settle-sweep` every 2 min against the worker plus one per-market delivery at `resolveTime`; creation is manual.
 - **Settlement Flow**: Weather API → Settler Cron → `resolveMarket()` → on-chain
 - **City Lookup**: `slug` field → `keccak256` hash → matches on-chain `cityId`
 - **Test Wallet Encryption**: Uses `MAGIC_LINK_SECRET` env var for AES-256-GCM encryption
