@@ -3,10 +3,11 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Settings, MapPin, TrendingUp, ScrollText, CloudSun } from 'lucide-react';
+import { LayoutDashboard, Settings, MapPin, TrendingUp, ScrollText, CloudSun, Activity } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/operations', label: 'Operations', icon: Activity },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
   { href: '/admin/cities', label: 'Cities', icon: MapPin },
   { href: '/admin/markets', label: 'Markets', icon: TrendingUp },
