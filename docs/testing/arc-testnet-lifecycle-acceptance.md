@@ -294,3 +294,20 @@ owner 11.9 USDC; markets 0–6 on chain. Markets 2 and 3 remain untouched with n
 additional bets. Remaining: user cancels the `start-arc-testnet-lifecycle` heartbeat;
 Markets 2/3 settle 2026-09-21 12:08 UTC with no local process; then `claims`,
 `arc:hosted -- check`, and the Task 14 checklist.
+
+### Task 14 checklist — September 20, 19:27 UTC
+
+All items passed: `npm run verify` green on `6fc783a` (lint, typecheck, 12 safety, 62
+shared, 204 web, 114 Foundry, 18 database, build, ABI); both health endpoints
+`settler: enabled`, last successful sweep 83 s old, `overdueMarkets: 0`; public project
+production env holds only the eight pre-existing keys plus `ADMIN_WALLETS` (no signer,
+cron, weather, QStash, migration, worker-role, or admin-write keys); worker project
+holds thirteen keys with no `DIRECT_URL`, `ADMIN_*`, or `SCHEDULER_PRIVATE_KEY`; secret
+scan of the tracked tree found 0 leaks; `.env.arc-worker`, hosted settler file, and
+journal are gitignored; chain `settler()` equals the hosted address; QStash schedule
+`weatherb-arc-settle-sweep` active (`*/2 * * * *`, not paused). Database: markets 0–6
+as reported above; `WorkerRun` 47 succeeded, 31 skipped (paused window), 3 failed
+(pre-observation deliveries on markets 4–5).
+
+Pending for 2026-09-21: Markets 2/3 outcomes under the hosted worker with no local
+process, generated-wallet `claims`, and `arc:hosted -- check`.
