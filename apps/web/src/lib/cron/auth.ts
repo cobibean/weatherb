@@ -26,6 +26,15 @@ export function verifyCronRequest(request: Request): boolean {
 }
 
 /**
+ * Only the dedicated worker deployment may run signing automation. The public site never
+ * sets WEATHERB_WORKER_ROLE, so even a leaked signer key there cannot be exercised.
+ */
+export function verifyWorkerRequest(request: Request): boolean {
+  if (process.env.WEATHERB_WORKER_ROLE !== 'settler') return false;
+  return verifyCronRequest(request);
+}
+
+/**
  * Return a 401 Unauthorized response for invalid cron requests.
  */
 export function unauthorizedResponse(): NextResponse {

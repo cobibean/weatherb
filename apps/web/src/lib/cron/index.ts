@@ -47,5 +47,5 @@ export const REDIS_KEYS = {
 } as const;
 
 // Re-export utilities
-export { verifyCronRequest, unauthorizedResponse } from './auth';
+export { verifyCronRequest, verifyWorkerRequest, unauthorizedResponse } from './auth';
 export { createContractClients, WEATHER_MARKET_ABI } from './contract';
