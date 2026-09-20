@@ -60,6 +60,16 @@ it('rejects a wrong RPC chain before transaction simulation', async () => {
   ).rejects.toThrow('Switch to Arc');
   expect(mock.simulate).not.toHaveBeenCalled();
 });
+it.each(['2.2.0', '2.3.0'])('accepts contract version %s', async (version) => {
+  mock.read.mockImplementation(({ functionName }: { functionName: string }) =>
+    Promise.resolve(
+      functionName === 'version' ? version : functionName === 'minBetWei' ? 10n ** 16n : 100n,
+    ),
+  );
+  await expect(
+    prepareArcAction(wallet() as unknown as Wallet, address, 0n),
+  ).resolves.toBeUndefined();
+});
 it('rejects a disconnect and succeeds after reconnect', async () => {
   await expect(prepareArcAction(undefined, address, 0n)).rejects.toThrow('Reconnect');
   await expect(

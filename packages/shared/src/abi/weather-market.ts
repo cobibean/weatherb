@@ -1,10 +1,10 @@
-// Generated from contracts/out/WeatherMarketV2.sol/WeatherMarketV2.json.
-// Intended source version: 2.2.0; this does not upgrade any deployed contract.
+// Generated from contracts/out/WeatherMarketV2.sol/WeatherMarketV2.json by scripts/generate-contract-abi.mjs.
+// Intended source version: 2.3.0; this does not upgrade any deployed contract.
 export const WEATHER_MARKET_ABI = [
   {
     type: 'constructor',
     inputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -14,10 +14,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'string',
-        internalType: 'string',
-      },
+        internalType: 'string'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -26,17 +26,17 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
     outputs: [
       {
         name: '',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -46,10 +46,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'uint64',
-        internalType: 'uint64',
-      },
+        internalType: 'uint64'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -58,22 +58,22 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'bettor',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
     outputs: [
       {
         name: '',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -82,11 +82,11 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -95,11 +95,11 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -108,11 +108,11 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -121,32 +121,32 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'cityId',
         type: 'bytes32',
-        internalType: 'bytes32',
+        internalType: 'bytes32'
       },
       {
         name: 'resolveTime',
         type: 'uint64',
-        internalType: 'uint64',
+        internalType: 'uint64'
       },
       {
         name: 'thresholdTenths',
         type: 'uint256',
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'currency',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
     outputs: [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -155,27 +155,27 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'cityId',
         type: 'bytes32',
-        internalType: 'bytes32',
+        internalType: 'bytes32'
       },
       {
         name: 'thresholdTenths',
         type: 'uint256',
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'slot',
         type: 'uint64',
-        internalType: 'uint64',
-      },
+        internalType: 'uint64'
+      }
     ],
     outputs: [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -185,10 +185,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -197,22 +197,22 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
     outputs: [
       {
         name: 'yesPrice',
         type: 'uint256',
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'noPrice',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -221,8 +221,8 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
     outputs: [
       {
@@ -233,67 +233,67 @@ export const WEATHER_MARKET_ABI = [
           {
             name: 'cityId',
             type: 'bytes32',
-            internalType: 'bytes32',
+            internalType: 'bytes32'
           },
           {
             name: 'resolveTime',
             type: 'uint64',
-            internalType: 'uint64',
+            internalType: 'uint64'
           },
           {
             name: 'bettingDeadline',
             type: 'uint64',
-            internalType: 'uint64',
+            internalType: 'uint64'
           },
           {
             name: 'thresholdTenths',
             type: 'uint256',
-            internalType: 'uint256',
+            internalType: 'uint256'
           },
           {
             name: 'currency',
             type: 'address',
-            internalType: 'address',
+            internalType: 'address'
           },
           {
             name: 'status',
             type: 'uint8',
-            internalType: 'enum IWeatherMarket.MarketStatus',
+            internalType: 'enum IWeatherMarket.MarketStatus'
           },
           {
             name: 'yesPool',
             type: 'uint256',
-            internalType: 'uint256',
+            internalType: 'uint256'
           },
           {
             name: 'noPool',
             type: 'uint256',
-            internalType: 'uint256',
+            internalType: 'uint256'
           },
           {
             name: 'totalFees',
             type: 'uint256',
-            internalType: 'uint256',
+            internalType: 'uint256'
           },
           {
             name: 'resolvedTempTenths',
             type: 'uint256',
-            internalType: 'uint256',
+            internalType: 'uint256'
           },
           {
             name: 'observedTimestamp',
             type: 'uint64',
-            internalType: 'uint64',
+            internalType: 'uint64'
           },
           {
             name: 'outcome',
             type: 'bool',
-            internalType: 'bool',
-          },
-        ],
-      },
+            internalType: 'bool'
+          }
+        ]
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -303,10 +303,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'count',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -315,13 +315,13 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'bettor',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
     outputs: [
       {
@@ -332,22 +332,22 @@ export const WEATHER_MARKET_ABI = [
           {
             name: 'yesAmount',
             type: 'uint256',
-            internalType: 'uint256',
+            internalType: 'uint256'
           },
           {
             name: 'noAmount',
             type: 'uint256',
-            internalType: 'uint256',
+            internalType: 'uint256'
           },
           {
             name: 'claimed',
             type: 'bool',
-            internalType: 'bool',
-          },
-        ],
-      },
+            internalType: 'bool'
+          }
+        ]
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -356,17 +356,17 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'slot',
         type: 'uint64',
-        internalType: 'uint64',
-      },
+        internalType: 'uint64'
+      }
     ],
     outputs: [
       {
         name: '',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -375,16 +375,16 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '_owner',
         type: 'address',
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: '_settler',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -394,10 +394,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'bool',
-        internalType: 'bool',
-      },
+        internalType: 'bool'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -407,10 +407,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -420,17 +420,17 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
     name: 'pause',
     inputs: [],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -439,16 +439,16 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'isYes',
         type: 'bool',
-        internalType: 'bool',
-      },
+        internalType: 'bool'
+      }
     ],
     outputs: [],
-    stateMutability: 'payable',
+    stateMutability: 'payable'
   },
   {
     type: 'function',
@@ -458,10 +458,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'bytes32',
-        internalType: 'bytes32',
-      },
+        internalType: 'bytes32'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -470,11 +470,11 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -483,21 +483,34 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'marketId',
         type: 'uint256',
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'tempTenths',
         type: 'uint256',
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'observedTimestamp',
         type: 'uint64',
-        internalType: 'uint64',
-      },
+        internalType: 'uint64'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'scheduler',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address'
+      }
+    ],
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -506,11 +519,11 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'newBufferSeconds',
         type: 'uint64',
-        internalType: 'uint64',
-      },
+        internalType: 'uint64'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -519,11 +532,11 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'newFeeBps',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -532,11 +545,24 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'newMinBetWei',
         type: 'uint256',
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setScheduler',
+    inputs: [
+      {
+        name: 'newScheduler',
+        type: 'address',
+        internalType: 'address'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -545,11 +571,11 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'newSettler',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -559,10 +585,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    stateMutability: 'view',
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -571,18 +597,18 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'newOwner',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
     name: 'unpause',
     inputs: [],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'function',
@@ -591,16 +617,16 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'newImplementation',
         type: 'address',
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'data',
         type: 'bytes',
-        internalType: 'bytes',
-      },
+        internalType: 'bytes'
+      }
     ],
     outputs: [],
-    stateMutability: 'payable',
+    stateMutability: 'payable'
   },
   {
     type: 'function',
@@ -610,10 +636,10 @@ export const WEATHER_MARKET_ABI = [
       {
         name: '',
         type: 'string',
-        internalType: 'string',
-      },
+        internalType: 'string'
+      }
     ],
-    stateMutability: 'pure',
+    stateMutability: 'pure'
   },
   {
     type: 'function',
@@ -622,16 +648,16 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'token',
         type: 'address',
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'recipient',
         type: 'address',
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'nonpayable'
   },
   {
     type: 'event',
@@ -641,28 +667,28 @@ export const WEATHER_MARKET_ABI = [
         name: 'marketId',
         type: 'uint256',
         indexed: true,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'bettor',
         type: 'address',
         indexed: true,
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'isYes',
         type: 'bool',
         indexed: false,
-        internalType: 'bool',
+        internalType: 'bool'
       },
       {
         name: 'amount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -672,16 +698,16 @@ export const WEATHER_MARKET_ABI = [
         name: 'previousBuffer',
         type: 'uint64',
         indexed: false,
-        internalType: 'uint64',
+        internalType: 'uint64'
       },
       {
         name: 'newBuffer',
         type: 'uint64',
         indexed: false,
-        internalType: 'uint64',
-      },
+        internalType: 'uint64'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -691,10 +717,10 @@ export const WEATHER_MARKET_ABI = [
         name: 'by',
         type: 'address',
         indexed: true,
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -704,10 +730,10 @@ export const WEATHER_MARKET_ABI = [
         name: 'by',
         type: 'address',
         indexed: true,
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -717,16 +743,16 @@ export const WEATHER_MARKET_ABI = [
         name: 'previousFeeBps',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'newFeeBps',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -736,22 +762,22 @@ export const WEATHER_MARKET_ABI = [
         name: 'token',
         type: 'address',
         indexed: true,
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'recipient',
         type: 'address',
         indexed: true,
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'amount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -761,10 +787,10 @@ export const WEATHER_MARKET_ABI = [
         name: 'version',
         type: 'uint64',
         indexed: false,
-        internalType: 'uint64',
-      },
+        internalType: 'uint64'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -774,10 +800,10 @@ export const WEATHER_MARKET_ABI = [
         name: 'marketId',
         type: 'uint256',
         indexed: true,
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -787,34 +813,34 @@ export const WEATHER_MARKET_ABI = [
         name: 'marketId',
         type: 'uint256',
         indexed: true,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'cityId',
         type: 'bytes32',
         indexed: false,
-        internalType: 'bytes32',
+        internalType: 'bytes32'
       },
       {
         name: 'resolveTime',
         type: 'uint64',
         indexed: false,
-        internalType: 'uint64',
+        internalType: 'uint64'
       },
       {
         name: 'thresholdTenths',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'currency',
         type: 'address',
         indexed: false,
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -824,28 +850,28 @@ export const WEATHER_MARKET_ABI = [
         name: 'marketId',
         type: 'uint256',
         indexed: true,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'outcome',
         type: 'bool',
         indexed: false,
-        internalType: 'bool',
+        internalType: 'bool'
       },
       {
         name: 'resolvedTempTenths',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'observedTimestamp',
         type: 'uint64',
         indexed: false,
-        internalType: 'uint64',
-      },
+        internalType: 'uint64'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -855,16 +881,16 @@ export const WEATHER_MARKET_ABI = [
         name: 'previousMinBet',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'newMinBet',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -874,16 +900,16 @@ export const WEATHER_MARKET_ABI = [
         name: 'previousOwner',
         type: 'address',
         indexed: true,
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'newOwner',
         type: 'address',
         indexed: true,
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -893,22 +919,41 @@ export const WEATHER_MARKET_ABI = [
         name: 'marketId',
         type: 'uint256',
         indexed: true,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'bettor',
         type: 'address',
         indexed: true,
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'amount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    anonymous: false,
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'SchedulerUpdated',
+    inputs: [
+      {
+        name: 'previousScheduler',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'newScheduler',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      }
+    ],
+    anonymous: false
   },
   {
     type: 'event',
@@ -918,16 +963,16 @@ export const WEATHER_MARKET_ABI = [
         name: 'previousSettler',
         type: 'address',
         indexed: true,
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'newSettler',
         type: 'address',
         indexed: true,
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -937,10 +982,10 @@ export const WEATHER_MARKET_ABI = [
         name: 'implementation',
         type: 'address',
         indexed: true,
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -950,10 +995,10 @@ export const WEATHER_MARKET_ABI = [
         name: 'implementation',
         type: 'address',
         indexed: true,
-        internalType: 'address',
-      },
+        internalType: 'address'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'event',
@@ -963,22 +1008,22 @@ export const WEATHER_MARKET_ABI = [
         name: 'marketId',
         type: 'uint256',
         indexed: true,
-        internalType: 'uint256',
+        internalType: 'uint256'
       },
       {
         name: 'claimer',
         type: 'address',
         indexed: true,
-        internalType: 'address',
+        internalType: 'address'
       },
       {
         name: 'amount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256',
-      },
+        internalType: 'uint256'
+      }
     ],
-    anonymous: false,
+    anonymous: false
   },
   {
     type: 'error',
@@ -987,19 +1032,19 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'target',
         type: 'address',
-        internalType: 'address',
-      },
-    ],
+        internalType: 'address'
+      }
+    ]
   },
   {
     type: 'error',
     name: 'BetTooSmall',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'BettingClosed',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
@@ -1008,104 +1053,109 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'implementation',
         type: 'address',
-        internalType: 'address',
-      },
-    ],
+        internalType: 'address'
+      }
+    ]
   },
   {
     type: 'error',
     name: 'ERC1967NonPayable',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'FailedCall',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'FeeTooHigh',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'InsufficientBalance',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'InvalidInitialization',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'InvalidMarket',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'InvalidParams',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'InvalidStatus',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'NotCancelled',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'NotInitializing',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'NotOwner',
-    inputs: [],
+    inputs: []
+  },
+  {
+    type: 'error',
+    name: 'NotOwnerOrScheduler',
+    inputs: []
   },
   {
     type: 'error',
     name: 'NotResolved',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'NotSettler',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'NothingToClaim',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'OnlyNativeCurrency',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'Paused',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'TooEarly',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'TransferFailed',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
     name: 'UUPSUnauthorizedCallContext',
-    inputs: [],
+    inputs: []
   },
   {
     type: 'error',
@@ -1114,13 +1164,13 @@ export const WEATHER_MARKET_ABI = [
       {
         name: 'slot',
         type: 'bytes32',
-        internalType: 'bytes32',
-      },
-    ],
+        internalType: 'bytes32'
+      }
+    ]
   },
   {
     type: 'error',
     name: 'ZeroAddress',
-    inputs: [],
-  },
+    inputs: []
+  }
 ] as const;

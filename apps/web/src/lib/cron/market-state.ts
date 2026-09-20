@@ -1,4 +1,4 @@
-import { assertArcChain } from '@weatherb/shared/constants';
+import { assertArcChain, SUPPORTED_CONTRACT_VERSIONS, isSupportedContractVersion } from '@weatherb/shared/constants';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import {
   keccak256,
@@ -16,8 +16,8 @@ export async function requireRestartContract(client: PublicClient, address: Hex)
     abi: WEATHER_MARKET_ABI,
     functionName: 'version',
   });
-  if (version !== '2.2.0')
-    throw new Error('Automation requires the fresh restart contract version 2.2.0');
+  if (!isSupportedContractVersion(version))
+    throw new Error(`Automation requires the Arc restart contract (${SUPPORTED_CONTRACT_VERSIONS.join(' or ')})`);
   await bindDeployment(await client.getChainId(), address);
 }
 

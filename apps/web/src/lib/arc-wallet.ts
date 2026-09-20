@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ARC_TESTNET, assertArcChain } from '@weatherb/shared/constants';
+import { ARC_TESTNET, assertArcChain, isSupportedContractVersion } from '@weatherb/shared/constants';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { defineChain } from 'thirdweb';
 import { createWallet, type Wallet, type WalletId } from 'thirdweb/wallets';
@@ -44,7 +44,7 @@ export async function readArcSettings(): Promise<{
     read('minBetWei'),
     read('feeBps'),
   ]);
-  if (version !== '2.2.0')
+  if (!isSupportedContractVersion(version))
     throw new Error('The configured address is not the Arc restart contract.');
   return { address, minBetWei, feeBps };
 }
