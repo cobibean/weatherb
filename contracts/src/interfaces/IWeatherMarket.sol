@@ -67,6 +67,8 @@ interface IWeatherMarket {
 
     function setScheduler(address scheduler) external;
 
+    function setMarketDurationBounds(uint64 minSeconds, uint64 maxSeconds) external;
+
     function transferOwnership(address newOwner) external;
 
     function setMinBet(uint256 minBetWei) external;

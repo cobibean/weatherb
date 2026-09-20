@@ -26,6 +26,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     error NotCancelled();
     error NothingToClaim();
     error InvalidParams();
+    error DurationOutOfBounds();
     error ZeroAddress();
     error FeeTooHigh();
     error InsufficientBalance();
@@ -35,6 +36,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event SettlerUpdated(address indexed previousSettler, address indexed newSettler);
     event SchedulerUpdated(address indexed previousScheduler, address indexed newScheduler);
+    event MarketDurationBoundsUpdated(uint64 minSeconds, uint64 maxSeconds);
     event MinBetUpdated(uint256 previousMinBet, uint256 newMinBet);
     event BettingBufferUpdated(uint64 previousBuffer, uint64 newBuffer);
     event FeeBpsUpdated(uint256 previousFeeBps, uint256 newFeeBps);
@@ -161,6 +163,14 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         emit SchedulerUpdated(oldScheduler, newScheduler);
     }
 
+    /// @notice Bound the duration any market may declare. Zero disables that bound.
+    function setMarketDurationBounds(uint64 minSeconds, uint64 maxSeconds) external onlyOwner {
+        if (maxSeconds != 0 && minSeconds > maxSeconds) revert InvalidParams();
+        minMarketDurationSeconds = minSeconds;
+        maxMarketDurationSeconds = maxSeconds;
+        emit MarketDurationBoundsUpdated(minSeconds, maxSeconds);
+    }
+
     /// @notice Set the protocol fee in basis points
     /// @param newFeeBps Fee in basis points (100 = 1%, max 1000 = 10%)
     function setFeeBps(uint256 newFeeBps) external onlyOwner {
@@ -215,18 +225,17 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         return _createMarket(cityId, resolveTime, thresholdTenths, currency);
     }
 
-    /// @notice Create at most one scheduled market per UTC hour, 12:00–16:59 UTC (owner or scheduler).
-    /// @dev Retries return the original ID even after the hour expires. A fresh
-    /// deployment is required; this path is not used for legacy Coston2 contracts.
-    function createScheduledMarket(bytes32 cityId, uint256 thresholdTenths, uint64 slot)
+    /// @notice Create at most one market per UTC hour slot (owner or scheduler), declaring its duration.
+    /// @dev Retries return the original ID regardless of the duration passed. Which hours the daily
+    /// rotation uses is decided off-chain; the contract only enforces slot alignment and bounds.
+    function createScheduledMarket(bytes32 cityId, uint256 thresholdTenths, uint64 slot, uint64 durationSeconds)
         external onlyOwnerOrScheduler returns (uint256 marketId)
     {
         uint256 existing = scheduledMarketIds[slot];
         if (existing != 0) return existing - 1;
-        uint256 hour = (slot % 1 days) / 1 hours;
-        if (slot % 1 hours != 0 || hour < 12 || hour > 16) revert InvalidParams();
+        if (slot % 1 hours != 0) revert InvalidParams();
         if (block.timestamp < slot || block.timestamp >= uint256(slot) + 1 hours) revert InvalidParams();
-        marketId = _createMarket(cityId, uint64(block.timestamp + 1 days), thresholdTenths, address(0));
+        marketId = _createMarket(cityId, uint64(block.timestamp) + durationSeconds, thresholdTenths, address(0));
         scheduledMarketIds[slot] = marketId + 1;
     }
 
@@ -243,6 +252,9 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         
         uint64 currentTime = uint64(block.timestamp);
         if (resolveTime <= currentTime + bettingBufferSeconds) revert InvalidParams();
+        uint64 duration = resolveTime - currentTime;
+        if (duration < minMarketDurationSeconds) revert DurationOutOfBounds();
+        if (maxMarketDurationSeconds != 0 && duration > maxMarketDurationSeconds) revert DurationOutOfBounds();
         if (thresholdTenths == 0) revert InvalidParams();
         if (cityId == bytes32(0)) revert InvalidParams();
 
@@ -533,7 +545,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
 
     /// @notice Get contract version
     function version() external pure returns (string memory) {
-        return "2.3.0";
+        return "2.4.0";
     }
 
     // ============ Internal Functions ============
@@ -580,5 +592,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     // Each addition consumes one reserved slot without moving any existing storage.
     mapping(uint64 => uint256) private scheduledMarketIds;
     address public scheduler;
-    uint256[42] private __gap;
+    uint64 public minMarketDurationSeconds; // Packed into the tail of the scheduler slot.
+    uint64 public maxMarketDurationSeconds;
+    uint256[41] private __gap;
 }

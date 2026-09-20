@@ -80,27 +80,27 @@ contract ReadinessTest is Test {
         for (uint64 hour = 12; hour <= 16; hour++) {
             uint64 slot = day + hour * 1 hours;
             vm.warp(slot + 17);
-            uint256 id = market.createScheduledMarket(city, 850, slot);
+            uint256 id = market.createScheduledMarket(city, 850, slot, 86400);
             assertEq(id, hour - 12);
             assertEq(market.getMarket(id).resolveTime, block.timestamp + 1 days);
             vm.warp(slot + 3599);
-            assertEq(market.createScheduledMarket(keccak256("austin"), 900, slot), id);
+            assertEq(market.createScheduledMarket(keccak256("austin"), 900, slot, 86400), id);
             assertEq(market.getScheduledMarket(slot), id + 1);
         }
         assertEq(market.getMarketCount(), 5);
-        vm.warp(day + 17 hours);
+        vm.warp(day + 17 hours + 5 minutes);
+        uint256 late = market.createScheduledMarket(city, 850, day + 17 hours, 86400); // Hour 17 is now allowed.
+        assertEq(market.getMarket(late).resolveTime, block.timestamp + 1 days);
         vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
-        market.createScheduledMarket(city, 850, day + 17 hours);
-        vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
-        market.createScheduledMarket(city, 850, day + 16 hours + 1);
-        assertEq(market.createScheduledMarket(city, 850, day + 12 hours), 0); // Late replay is safe.
+        market.createScheduledMarket(city, 850, day + 16 hours + 1, 86400);
+        assertEq(market.createScheduledMarket(city, 850, day + 12 hours, 86400), 0); // Late replay is safe.
     }
     function test_scheduledRejectsExpiredMissingSlotAndUnauthorizedCaller() public {
         vm.warp(20 days + 13 hours);
         vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
-        market.createScheduledMarket(city, 850, 20 days + 12 hours);
+        market.createScheduledMarket(city, 850, 20 days + 12 hours, 86400);
         vm.prank(alice); vm.expectRevert(WeatherMarketV2.NotOwnerOrScheduler.selector);
-        market.createScheduledMarket(city, 850, 20 days + 13 hours);
+        market.createScheduledMarket(city, 850, 20 days + 13 hours, 86400);
     }
     function testFuzz_feeChangesPreservePayout(uint16 feeBefore, uint16 feeAfter, uint96 stake) public {
         feeBefore = uint16(bound(feeBefore, 0, 1000)); feeAfter = uint16(bound(feeAfter, 0, 1000));

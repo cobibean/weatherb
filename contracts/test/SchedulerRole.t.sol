@@ -19,7 +19,7 @@ contract SchedulerRoleTest is Test {
         vm.warp(SLOT + 5 minutes);
     }
     function test_versionAndDefaultScheduler() public view {
-        assertEq(market.version(), "2.3.0");
+        assertEq(market.version(), "2.4.0");
         assertEq(market.scheduler(), address(0));
     }
     function test_onlyOwnerSetsSchedulerAndEmits() public {
@@ -33,7 +33,7 @@ contract SchedulerRoleTest is Test {
     function test_schedulerCreatesScheduledAndArbitraryMarkets() public {
         market.setScheduler(scheduler);
         vm.prank(scheduler);
-        uint256 a = market.createScheduledMarket(city, 850, SLOT);
+        uint256 a = market.createScheduledMarket(city, 850, SLOT, 86400);
         assertEq(market.getScheduledMarket(SLOT), a + 1);
         assertEq(market.getMarket(a).resolveTime, uint64(block.timestamp + 1 days));
         vm.prank(scheduler);
@@ -41,26 +41,26 @@ contract SchedulerRoleTest is Test {
         assertEq(b, a + 1);
         // Idempotent slot reuse also works for the scheduler.
         vm.prank(scheduler);
-        assertEq(market.createScheduledMarket(city, 999, SLOT), a);
+        assertEq(market.createScheduledMarket(city, 999, SLOT, 86400), a);
     }
     function test_ownerStillCreates() public {
         market.setScheduler(scheduler);
-        market.createScheduledMarket(city, 850, SLOT);
+        market.createScheduledMarket(city, 850, SLOT, 86400);
         market.createMarket(city, uint64(block.timestamp + 2 hours), 900, address(0));
     }
     function test_strangerAndUnsetSchedulerCannotCreate() public {
         vm.prank(stranger); vm.expectRevert(WeatherMarketV2.NotOwnerOrScheduler.selector);
-        market.createScheduledMarket(city, 850, SLOT);
+        market.createScheduledMarket(city, 850, SLOT, 86400);
         vm.prank(stranger); vm.expectRevert(WeatherMarketV2.NotOwnerOrScheduler.selector);
         market.createMarket(city, uint64(block.timestamp + 2 hours), 900, address(0));
         vm.prank(scheduler); vm.expectRevert(WeatherMarketV2.NotOwnerOrScheduler.selector); // not set yet
-        market.createScheduledMarket(city, 850, SLOT);
+        market.createScheduledMarket(city, 850, SLOT, 86400);
     }
     function test_revocationStopsScheduler() public {
         market.setScheduler(scheduler);
         market.setScheduler(address(0));
         vm.prank(scheduler); vm.expectRevert(WeatherMarketV2.NotOwnerOrScheduler.selector);
-        market.createScheduledMarket(city, 850, SLOT);
+        market.createScheduledMarket(city, 850, SLOT, 86400);
     }
     function test_schedulerHasNoOtherAuthority() public {
         market.setScheduler(scheduler);
@@ -89,12 +89,12 @@ contract SchedulerRoleTest is Test {
         assertEq(uint256(vm.load(address(market), bytes32(SCHEDULER_SLOT + 1))), 0);                       // gap untouched
     }
     function test_upgradePreservesStateAndAddsScheduler() public {
-        uint256 id = market.createScheduledMarket(city, 850, SLOT);
+        uint256 id = market.createScheduledMarket(city, 850, SLOT, 86400);
         market.setFeeBps(250);
         vm.deal(stranger, 1 ether); vm.prank(stranger); market.placeBet{value: 0.5 ether}(id, true);
         WeatherMarketV2 next = new WeatherMarketV2();
         market.upgradeToAndCall(address(next), "");
-        assertEq(market.version(), "2.3.0");
+        assertEq(market.version(), "2.4.0");
         assertEq(market.owner(), address(this));
         assertEq(market.settler(), settler);
         assertEq(market.feeBps(), 250);
@@ -102,6 +102,7 @@ contract SchedulerRoleTest is Test {
         assertEq(market.getMarket(id).yesPool, 0.5 ether);
         assertEq(market.getScheduledMarket(SLOT), id + 1);
         assertEq(market.scheduler(), address(0));
+        assertEq(market.minMarketDurationSeconds(), 0);
         market.setScheduler(scheduler);
         assertEq(market.scheduler(), scheduler);
     }
