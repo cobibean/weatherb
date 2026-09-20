@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 
-export type WorkerRunKind = 'settle-sweep' | 'settle-market';
+export type WorkerRunKind = 'settle-sweep' | 'settle-market' | 'schedule-daily';
 export type WorkerRunStatus = 'succeeded' | 'failed' | 'skipped' | 'busy';
 export type WorkerRunOutcome<T> = {
   status: WorkerRunStatus;

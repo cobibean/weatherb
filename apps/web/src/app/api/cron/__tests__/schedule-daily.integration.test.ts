@@ -1,6 +1,6 @@
 import { mocks, chain, slots, rows, setupLifecycle, market } from '@/test/lifecycle-mocks';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { keccak256, toBytes } from 'viem';
+import { keccak256, toBytes, toEventSelector } from 'viem';
 import { CITIES } from '@weatherb/shared/constants';
 import * as readiness from '@/lib/cron/readiness';
 import { GET } from '../schedule-daily/route';
@@ -136,7 +136,10 @@ describe('Scheduled market creation and recovery', () => {
     mocks.publish.mockRejectedValueOnce(new Error('queue unavailable'));
     expect(await (await GET(request())).json()).toMatchObject({
       success: true,
-      settlementSchedule: { scheduled: false },
+      settlementSchedule: {
+        scheduled: false,
+        message: 'Queue unavailable; periodic settlement remains required',
+      },
     });
     expect(mocks.publish).toHaveBeenCalledWith(
       expect.objectContaining({ notBefore: Date.now() / 1000 + 86400 }),
@@ -149,5 +152,41 @@ describe('Scheduled market creation and recovery', () => {
     expect(responses.every((response) => response.status === 200)).toBe(true);
     expect(slots.size).toBe(1);
     expect(chain).toHaveLength(1);
+  });
+  it('records a skipped run while paused and no run on outage', async () => {
+    mocks.config.mockResolvedValue({ isPaused: true });
+    expect(await (await GET(request())).json()).toMatchObject({ skipped: true });
+    expect(mocks.runCreate).toHaveBeenCalledWith({ data: { kind: 'schedule-daily', trigger: 'manual' } });
+    expect(mocks.runUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'skipped' }) }));
+    mocks.runCreate.mockClear();
+    mocks.config.mockRejectedValue(new Error('offline'));
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.runCreate).not.toHaveBeenCalled();
+  });
+  it('returns 409 and logs busy when the scheduler lease is held', async () => {
+    mocks.queryRaw.mockResolvedValueOnce([]);
+    const response = await GET(request());
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ busy: true });
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(mocks.runUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'busy' }) }));
+  });
+  it('logs a succeeded run with the created market and releases the lease', async () => {
+    mocks.receipt.mockResolvedValue({ status: 'success', logs: [
+      { address: '0x0000000000000000000000000000000000000001', topics: [toEventSelector('MarketCreated(uint256,bytes32,uint64,uint256,address)')] },
+    ] });
+    expect((await GET(request())).status).toBe(200);
+    expect(mocks.runUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'succeeded', summary: expect.objectContaining({ created: 1, marketId: '0' }) }),
+    }));
+    expect(mocks.executeRaw).toHaveBeenCalled(); // release
+  });
+  it('schedules settlement once through the shared helper', async () => {
+    vi.stubEnv('QSTASH_TOKEN', 'qs'); vi.stubEnv('APP_URL', 'https://worker.example');
+    mocks.publish.mockResolvedValue({ messageId: 'msg-1' });
+    await GET(request());
+    await GET(request()); // same slot → reuse, no second publish
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ data: { settlementMessageId: expect.any(String) } }));
   });
 });
