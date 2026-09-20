@@ -16,7 +16,14 @@ type RouteParams = { params: Promise<{ marketId: string }> };
 export async function POST(request: NextRequest, { params }: RouteParams): Promise<NextResponse> {
   if (!verifyWorkerRequest(request)) return unauthorizedResponse();
   const readiness = await automationReadinessResponse('settler');
-  if (readiness) return readiness;
+  if (readiness) {
+    if (readiness.status === 200)
+      await recordWorkerRun('settle-market', triggerFromRequest(request), async () => ({
+        status: 'skipped',
+        summary: await readiness.clone().json(),
+      }));
+    return readiness;
+  }
   const { marketId } = await params;
   if (!/^\d+$/.test(marketId) || !Number.isSafeInteger(Number(marketId))) {
     return NextResponse.json({ success: false, error: 'Invalid marketId' }, { status: 400 });

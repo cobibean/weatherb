@@ -27,12 +27,24 @@ describe('Settlement and reconciliation routes', () => {
   it('skips paused settlement before chain reads', async () => {
     mocks.config.mockResolvedValue({ settlerPaused: true });
     expect(await (await GET(request())).json()).toMatchObject({ skipped: true });
+    expect(await (await single()).json()).toMatchObject({ skipped: true });
     expect(mocks.read).not.toHaveBeenCalled();
+    expect(mocks.runCreate).toHaveBeenNthCalledWith(1, {
+      data: { kind: 'settle-sweep', trigger: 'manual' },
+    });
+    expect(mocks.runCreate).toHaveBeenNthCalledWith(2, {
+      data: { kind: 'settle-market', trigger: 'manual' },
+    });
+    expect(mocks.runUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'skipped' }) }),
+    );
   });
   it('fails closed on database outage', async () => {
     mocks.config.mockRejectedValue(new Error('offline'));
     expect((await GET(request())).status).toBe(503);
+    expect((await single()).status).toBe(503);
     expect(mocks.read).not.toHaveBeenCalled();
+    expect(mocks.runCreate).not.toHaveBeenCalled();
   });
   it('requires configuration', async () => {
     vi.stubEnv('RPC_URL', '');

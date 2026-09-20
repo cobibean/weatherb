@@ -30,7 +30,14 @@ type SweepSummary = {
 export async function GET(request: Request): Promise<NextResponse> {
   if (!verifyWorkerRequest(request)) return unauthorizedResponse();
   const readiness = await automationReadinessResponse('settler');
-  if (readiness) return readiness;
+  if (readiness) {
+    if (readiness.status === 200)
+      await recordWorkerRun('settle-sweep', triggerFromRequest(request), async () => ({
+        status: 'skipped',
+        summary: await readiness.clone().json(),
+      }));
+    return readiness;
+  }
   const rpcUrl = process.env.RPC_URL;
   const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as Hex | undefined;
   const privateKey = process.env.SETTLER_PRIVATE_KEY as Hex | undefined;
