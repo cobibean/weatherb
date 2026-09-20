@@ -229,3 +229,21 @@ working teammate site can be deployed. No paid plan or alternate provider select
 Removed cron registrations from active vercel.json and saved definitions in
 `deferred/vercel-crons.json` so future deploys preserve the paused-hosted-jobs intent.
 The local September 21 settlement heartbeat and test markets remain intact.
+
+### September 20 — hosted teammate access
+
+The existing Arc proxy/markets are now available at
+https://weatherb-arc-testnet.vercel.app using a separate free Neon PostgreSQL 18
+project. See [hosted runbook](arc-hosted-testnet.md). Vercel deployment
+`dpl_9JaivbrVbc2Lvgs74mcPthzL5P18` built successfully. Unauthenticated HTTP checks:
+root, database health, active markets, and past markets all 200; settle cron 401.
+Health reports ready and both workers paused. Public active list contains only
+Austin ≥78°F market 2; NoWinners fixture 3 is retained with hosted `isTest=true`.
+Browser verified the homepage, 0.05 USDC pool, 60/40 shares, YES bet form, loaded
+contract minimum/fee settings, and MetaMask/Rabby/WalletConnect chooser. No hosted
+wallet transaction was signed; that acceptance remains for the user/teammates.
+
+The same September 21 07:09:47 Central heartbeat now runs signer-free hosted
+reconciliation/check after local settlement and generated-wallet claims. This is
+still a local settlement worker: the Mac must remain awake for that window. No
+hosted cron, signer key, weather secret, or mainnet service was enabled.

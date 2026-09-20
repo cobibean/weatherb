@@ -3,6 +3,13 @@ node_modules
 .git
 .env
 .env.local
+.env.*
+.tools
+.vercel
+backups
+apps/web/backups
+docs
+deferred
 *.log
 .DS_Store
 contracts

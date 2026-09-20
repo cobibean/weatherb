@@ -21,7 +21,7 @@
     "build": "npm --workspace=@weatherb/shared run build && node scripts/verification/run.mjs build && npm --workspace=@weatherb/contracts run build",
     "setup:contracts": "git submodule update --init --recursive && node scripts/setup-foundry.mjs",
     "check:abi": "node scripts/check-contract-abi.mjs",
-    "test:safety": "node --test scripts/verification/safety.test.mjs",
+    "test:safety": "node --test scripts/verification/*.test.mjs",
     "test:unit": "npm run test:safety && npm --workspace=@weatherb/shared run test && npm --workspace=@weatherb/web run test",
     "test:db": "node scripts/verification/database.mjs",
     "verify": "npm run lint && npm run typecheck && npm test && npm run test:db && npm run build && npm run check:abi",
@@ -34,7 +34,8 @@
     "arc:stop": "node scripts/development/setup-local.mjs stop",
     "arc:lifecycle": "node scripts/development/run.mjs lifecycle",
     "arc:configure": "node scripts/development/configure-arc.mjs",
-    "arc:wallets": "node scripts/development/setup-wallets.mjs"
+    "arc:wallets": "node scripts/development/setup-wallets.mjs",
+    "arc:hosted": "node scripts/development/hosted.mjs"
   },
   "devDependencies": {
     "@types/node": "24.13.5",
