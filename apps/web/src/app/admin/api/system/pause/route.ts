@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession, logAdminAction } from '@/lib/admin-session';
 import { togglePause, getSystemConfig } from '@/lib/admin-data';
 import { setPausedOnChain, getContractPausedState } from '@/lib/admin-contract';
+import { adminWritesEnabled, adminReadOnlyResponse } from '@/lib/admin-writes';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -9,6 +10,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
 
     const body = await request.json();
     const { isPaused } = body;
@@ -25,25 +27,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       txHash = await setPausedOnChain(isPaused);
     } catch (contractError) {
       console.error('Contract call failed:', contractError);
-      const errorMessage = contractError instanceof Error ? contractError.message : 'Unknown contract error';
+      const errorMessage =
+        contractError instanceof Error ? contractError.message : 'Unknown contract error';
 
       // Check for common errors
-      if (errorMessage.includes('NotOwner') || errorMessage.includes('Admin key does not match contract owner')) {
+      if (
+        errorMessage.includes('NotOwner') ||
+        errorMessage.includes('Admin key does not match contract owner')
+      ) {
         return NextResponse.json(
           { error: 'Admin wallet is not the contract owner' },
-          { status: 403 }
+          { status: 403 },
         );
       }
       if (errorMessage.includes('EnforcedPause') || errorMessage.includes('ExpectedPause')) {
         return NextResponse.json(
           { error: `Contract is already ${isPaused ? 'paused' : 'unpaused'}` },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       return NextResponse.json(
         { error: 'Contract call failed', details: errorMessage },
-        { status: 500 }
+        { status: 500 },
       );
     }
 

@@ -1,3 +1,5 @@
+import { requireDatabaseUrl } from '@weatherb/shared/utils/database-url';
+import { PrismaPg } from '@prisma/adapter-pg';
 #!/usr/bin/env npx tsx
 /**
  * Check TestRun wallet info and trace funding transactions
@@ -7,7 +9,7 @@ import { PrismaClient } from '@prisma/client';
 
 dotenvConfig({ path: '.env' });
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: requireDatabaseUrl(), connectionTimeoutMillis: 5000 }) });
 
 async function main() {
   const testRuns = await prisma.testRun.findMany({

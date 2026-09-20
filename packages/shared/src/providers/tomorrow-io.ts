@@ -1,3 +1,4 @@
+import { validateSettlementReading, SETTLEMENT_WINDOW_SECONDS } from '../utils/weather-timing';
 import type { WeatherProvider, WeatherReading, ProviderHealth } from '../types/provider';
 
 export interface TomorrowIoConfig {
@@ -81,7 +82,7 @@ export class TomorrowIoProvider implements WeatherProvider {
    * Example: 30.5°C → 86.9°F → 869 tenths
    */
   private celsiusToFahrenheitTenths(celsius: number): number {
-    const fahrenheit = (celsius * 9 / 5) + 32;
+    const fahrenheit = (celsius * 9) / 5 + 32;
     return Math.round(fahrenheit * 10);
   }
 
@@ -92,31 +93,30 @@ export class TomorrowIoProvider implements WeatherProvider {
    * @param longitude Location longitude
    * @returns Current temperature reading with timestamp
    */
-  async getCurrentTemperature(
-    latitude: number,
-    longitude: number
-  ): Promise<WeatherReading> {
+  async getCurrentTemperature(latitude: number, longitude: number): Promise<WeatherReading> {
     const url = new URL(this.realtimeUrl);
     url.searchParams.set('location', `${latitude},${longitude}`);
     url.searchParams.set('apikey', this.apiKey);
 
     const response = await fetch(url.toString(), {
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(
-        `Tomorrow.io Realtime API error: ${response.status} ${response.statusText} - ${errorText}`
+        `Tomorrow.io Realtime API error: ${response.status} ${response.statusText} - ${errorText}`,
       );
     }
 
     const data: TomorrowIoRealtimeResponse = await response.json();
 
     if (!data.data?.values?.temperature || !data.data?.time) {
-      throw new Error('Invalid response from Tomorrow.io Realtime API: missing temperature or time');
+      throw new Error(
+        'Invalid response from Tomorrow.io Realtime API: missing temperature or time',
+      );
     }
 
     const tempCelsius = data.data.values.temperature;
@@ -136,32 +136,26 @@ export class TomorrowIoProvider implements WeatherProvider {
    * For Tomorrow.io, we use the Realtime API which gives current conditions.
    * This is called during settlement, which should happen shortly after the market's resolve time.
    *
-   * Note: If settlement is delayed significantly (>1 hour), the temperature may differ
-   * from the actual temperature at resolve time. For historical queries, we'd need
-   * Tomorrow.io's Timeline API (historical data).
+   * Only observations within ten minutes after the target are accepted. Expired
+   * targets are rejected before fetching realtime data; the worker cancels them.
+   * This method does not substitute current conditions for historical observations.
    *
    * @param latitude Location latitude
    * @param longitude Location longitude
    * @param targetTimestamp Unix timestamp of when we want the temperature
-   * @returns Temperature reading as close as possible to target time
+   * @returns A validated observation within the settlement window
    */
   async getFirstReadingAtOrAfter(
     latitude: number,
     longitude: number,
-    targetTimestamp: number
+    targetTimestamp: number,
   ): Promise<WeatherReading> {
-    const reading = await this.getCurrentTemperature(latitude, longitude);
-
-    // Validate we're not too far from target time
-    const timeDiff = Math.abs(reading.observedTimestamp - targetTimestamp);
-
-    // Warn if reading is more than 10 minutes away from target
-    if (timeDiff > 600) {
-      console.warn(
-        `[Tomorrow.io] Reading timestamp ${reading.observedTimestamp} (${new Date(reading.observedTimestamp * 1000).toISOString()}) ` +
-        `is ${Math.floor(timeDiff / 60)} minutes away from target ${targetTimestamp} (${new Date(targetTimestamp * 1000).toISOString()})`
-      );
+    const now = Math.floor(Date.now() / 1000);
+    if (now < targetTimestamp || now > targetTimestamp + SETTLEMENT_WINDOW_SECONDS) {
+      throw new Error('Current weather cannot resolve this target time');
     }
+    const reading = await this.getCurrentTemperature(latitude, longitude);
+    validateSettlementReading(reading, targetTimestamp);
 
     return reading;
   }
@@ -177,11 +171,7 @@ export class TomorrowIoProvider implements WeatherProvider {
    * @param targetTimestamp Unix timestamp of when we want the forecast
    * @returns Forecast temperature in tenths of °F
    */
-  async getForecast(
-    latitude: number,
-    longitude: number,
-    targetTimestamp: number
-  ): Promise<number> {
+  async getForecast(latitude: number, longitude: number, targetTimestamp: number): Promise<number> {
     const url = new URL(this.forecastUrl);
     url.searchParams.set('location', `${latitude},${longitude}`);
     url.searchParams.set('apikey', this.apiKey);
@@ -192,14 +182,14 @@ export class TomorrowIoProvider implements WeatherProvider {
 
     const response = await fetch(url.toString(), {
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(
-        `Tomorrow.io Forecast API error: ${response.status} ${response.statusText} - ${errorText}`
+        `Tomorrow.io Forecast API error: ${response.status} ${response.statusText} - ${errorText}`,
       );
     }
 
@@ -238,7 +228,7 @@ export class TomorrowIoProvider implements WeatherProvider {
 
     console.log(
       `[Tomorrow.io] Forecast for ${new Date(targetTimestamp * 1000).toISOString()}: ` +
-      `${tempFTenths / 10}°F (from ${closestForecast.time}, ${Math.floor(minDiff / 1000 / 60)} min away)`
+        `${tempFTenths / 10}°F (from ${closestForecast.time}, ${Math.floor(minDiff / 1000 / 60)} min away)`,
     );
 
     return tempFTenths;
@@ -255,7 +245,7 @@ export class TomorrowIoProvider implements WeatherProvider {
   async healthCheck(): Promise<ProviderHealth> {
     const startTime = Date.now();
     const testLat = 40.7128; // NYC
-    const testLon = -74.0060;
+    const testLon = -74.006;
 
     try {
       const url = new URL(this.realtimeUrl);
@@ -264,7 +254,7 @@ export class TomorrowIoProvider implements WeatherProvider {
 
       const response = await fetch(url.toString(), {
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       });
 

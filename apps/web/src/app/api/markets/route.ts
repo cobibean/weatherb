@@ -1,3 +1,4 @@
+import { readDatabaseReadiness } from '@/lib/database-readiness';
 import { NextResponse } from 'next/server';
 import { fetchMarketsFromContract, type SerializedMarket } from '@/lib/contract-data';
 import { prisma } from '@/lib/prisma';
@@ -16,6 +17,17 @@ export const dynamic = 'force-dynamic';
  * - status: 'past' | 'active' | undefined (all)
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  if ((await readDatabaseReadiness()).status !== 'ready') {
+    return NextResponse.json({ error: 'Market database is unavailable' }, { status: 503 });
+  }
+  try {
+    return await getMarkets(request);
+  } catch {
+    return NextResponse.json({ error: 'Markets are temporarily unavailable' }, { status: 503 });
+  }
+}
+
+async function getMarkets(request: Request): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status');
   const limitParam = searchParams.get('limit');
@@ -29,7 +41,9 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     if (redis) {
       try {
-        const cached = await redis.get<{ markets: SerializedMarket[]; nextCursor: string | null }>(cacheKey);
+        const cached = await redis.get<{ markets: SerializedMarket[]; nextCursor: string | null }>(
+          cacheKey,
+        );
         if (cached?.markets) {
           return NextResponse.json(cached);
         }
@@ -41,7 +55,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     const where: {
       isTest: boolean;
       status: { in: DbMarketStatus[] };
-      OR?: Array<{ resolveTime: { lt: Date } } | { resolveTime: Date; contractMarketId: { lt: number } }>;
+      OR?: Array<
+        { resolveTime: { lt: Date } } | { resolveTime: Date; contractMarketId: { lt: number } }
+      >;
     } = {
       isTest: false,
       status: {
@@ -66,7 +82,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     const hasMore = dbMarkets.length > limit;
     const results = hasMore ? dbMarkets.slice(0, limit) : dbMarkets;
     const last = results[results.length - 1];
-    const nextCursor = hasMore && last ? `${last.resolveTime.getTime()}_${last.contractMarketId}` : null;
+    const nextCursor =
+      hasMore && last ? `${last.resolveTime.getTime()}_${last.contractMarketId}` : null;
 
     const markets = results.map((market) => mapDbMarketToSerialized(market));
     const response = { markets, nextCursor };
@@ -85,29 +102,34 @@ export async function GET(request: Request): Promise<NextResponse> {
   // Fetch markets from blockchain
   const { markets, error } = await fetchMarketsFromContract();
   if (error) {
-    return NextResponse.json({ error }, { status: 500 });
+    return NextResponse.json({ error: 'Market service is unavailable' }, { status: 503 });
   }
 
   // CRITICAL: Filter out test markets by cross-referencing with database
   // Get all test market IDs from database
   const testMarkets = await prisma.market.findMany({
     where: { isTest: true },
-    select: { contractMarketId: true }
+    select: { contractMarketId: true },
   });
 
-  const testMarketIds = new Set(testMarkets.map(m => m.contractMarketId.toString()));
+  const testMarketIds = new Set(testMarkets.map((m) => m.contractMarketId.toString()));
 
   // Filter out test markets from blockchain data
-  let filteredMarkets = markets.filter(market => !testMarketIds.has(market.id));
+  let filteredMarkets = markets.filter((market) => !testMarketIds.has(market.id));
 
   // Apply status filter
   if (status === 'past') {
     filteredMarkets = filteredMarkets.filter(
-      (market) => market.status === 'resolved' || market.status === 'cancelled' || market.status === 'noWinners'
+      (market) =>
+        market.status === 'resolved' ||
+        market.status === 'cancelled' ||
+        market.status === 'noWinners',
     );
   } else if (status === 'active') {
     // Active markets include both 'open' (can bet) and 'closed' (betting ended, waiting for resolution)
-    filteredMarkets = filteredMarkets.filter((market) => market.status === 'open' || market.status === 'closed');
+    filteredMarkets = filteredMarkets.filter(
+      (market) => market.status === 'open' || market.status === 'closed',
+    );
   }
 
   return NextResponse.json({ markets: filteredMarkets });
@@ -132,6 +154,7 @@ function mapDbMarketToSerialized(market: {
   status: DbMarketStatus;
   yesPool: string;
   noPool: string;
+  totalFees: string;
   actualTemp: number | null;
   outcome: string | null;
   city: { slug: string };
@@ -147,10 +170,11 @@ function mapDbMarketToSerialized(market: {
     longitude: market.longitude,
     resolveTime: market.resolveTime.getTime(),
     thresholdF_tenths: market.thresholdTemp,
-    currency: 'FLR',
+    currency: 'USDC',
     status,
     yesPool: market.yesPool,
     noPool: market.noPool,
+    totalFees: market.totalFees,
     ...(market.actualTemp !== null ? { resolvedTempF_tenths: market.actualTemp } : {}),
     ...(outcome !== undefined ? { outcome } : {}),
   };

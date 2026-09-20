@@ -28,9 +28,10 @@ const mobileNavItems = [
 
 interface AdminHeaderProps {
   wallet: string;
+  readOnly: boolean;
 }
 
-export function AdminHeader({ wallet }: AdminHeaderProps): React.ReactElement {
+export function AdminHeader({ wallet, readOnly }: AdminHeaderProps): React.ReactElement {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -64,7 +65,7 @@ export function AdminHeader({ wallet }: AdminHeaderProps): React.ReactElement {
 
         {/* Mobile logo */}
         <Link href="/admin" className="flex items-center gap-2 lg:hidden">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-medium to-sky-deep flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-sky-medium to-sky-deep flex items-center justify-center">
             <CloudSun className="w-4 h-4 text-white" />
           </div>
           <span className="font-display font-bold text-neutral-800">Admin</span>
@@ -79,6 +80,11 @@ export function AdminHeader({ wallet }: AdminHeaderProps): React.ReactElement {
             <User className="w-4 h-4 text-neutral-500" />
             <span className="font-mono text-sm text-neutral-600">{shortWallet}</span>
           </div>
+          {readOnly && (
+            <span className="px-2 py-1 rounded-lg bg-neutral-100 text-xs font-body text-neutral-600">
+              Read-only
+            </span>
+          )}
 
           <button
             onClick={handleLogout}
@@ -111,8 +117,12 @@ export function AdminHeader({ wallet }: AdminHeaderProps): React.ReactElement {
             >
               {/* Close button */}
               <div className="h-16 flex items-center justify-between px-4 border-b border-neutral-200">
-                <Link href="/admin" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-medium to-sky-deep flex items-center justify-center">
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-3"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <div className="w-9 h-9 rounded-xl bg-linear-to-br from-sky-medium to-sky-deep flex items-center justify-center">
                     <CloudSun className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -133,7 +143,8 @@ export function AdminHeader({ wallet }: AdminHeaderProps): React.ReactElement {
               <nav className="p-4">
                 <ul className="space-y-1">
                   {mobileNavItems.map((item) => {
-                    const isActive = pathname === item.href || 
+                    const isActive =
+                      pathname === item.href ||
                       (item.href !== '/admin' && pathname.startsWith(item.href));
                     const Icon = item.icon;
 
@@ -178,4 +189,3 @@ export function AdminHeader({ wallet }: AdminHeaderProps): React.ReactElement {
     </>
   );
 }
-

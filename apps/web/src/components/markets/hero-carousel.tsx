@@ -1,303 +1,143 @@
 'use client';
-
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
+import { useEffect, useRef } from 'react';
+import { ArrowLeft, ArrowRight, CloudSun } from 'lucide-react';
 import type { Market } from '@weatherb/shared/types';
-import { cn } from '@/lib/utils';
 import { HeroCard } from './hero-card';
-import { ParticleSystem } from '@/components/ui/particle-system';
+import { marketTime } from './market-presentation';
 import { HowWeatherbWorksModal } from '@/components/home/how-weatherb-works-modal';
 
-interface HeroCarouselProps {
-  markets: Market[];
-  onBetYes: (market: Market) => void;
-  onBetNo: (market: Market) => void;
-  autoPlayInterval?: number;
-  className?: string;
-}
-
-/**
- * Hero section carousel showcasing featured markets
- * Cycles through markets with smooth transitions and cloud particles
- */
 export function HeroCarousel({
   markets,
   onBetYes,
   onBetNo,
-  autoPlayInterval = 8000,
-  className,
-}: HeroCarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [showControls, setShowControls] = useState(false);
-  const hideControlsTimeout = useRef<number | null>(null);
-
-  const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % markets.length);
-  }, [markets.length]);
-
-  const goToPrev = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 + markets.length) % markets.length);
-  }, [markets.length]);
-
-  const revealControls = useCallback(() => {
-    setShowControls(true);
-    if (hideControlsTimeout.current) {
-      window.clearTimeout(hideControlsTimeout.current);
-    }
-    hideControlsTimeout.current = window.setTimeout(() => {
-      setShowControls(false);
-    }, 2500);
-  }, []);
-
-  // Auto-play
+  selectedId,
+  onSelect,
+  className = '',
+}: {
+  markets: Market[];
+  onBetYes: (market: Market) => void;
+  onBetNo: (market: Market) => void;
+  selectedId?: string | undefined;
+  onSelect: (id: string) => void;
+  className?: string;
+}): React.ReactElement {
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const index = Math.max(
+    0,
+    markets.findIndex((m) => m.id === selectedId),
+  );
+  const market = markets[index];
+  const selectorsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (isPaused || markets.length <= 1) return;
-
-    const timer = setInterval(goToNext, autoPlayInterval);
-    return () => clearInterval(timer);
-  }, [isPaused, autoPlayInterval, goToNext, markets.length]);
-
-  useEffect(() => {
-    if (markets.length <= 1) return undefined;
-    revealControls();
-    return () => {
-      if (hideControlsTimeout.current) {
-        window.clearTimeout(hideControlsTimeout.current);
-      }
-    };
-  }, [markets.length, revealControls]);
-
-  if (markets.length === 0) {
-    return (
-      <section className={cn('relative overflow-hidden', className)}>
-        {/* Background image - same as active state */}
-        <div className="absolute inset-0">
-          <Image
-            src="/backgrounds/hero-clouds.jpg"
-            alt="Sky background"
-            fill
-            className="object-cover"
-            priority
-            quality={85}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-transparent" />
-        </div>
-
-        {/* Floating cloud particles */}
-        <ParticleSystem
-          count={6}
-          type="cloud"
-          animate
-          className="opacity-40"
-        />
-
-        {/* Empty state content */}
-        <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-24 pb-8 md:pt-28 md:pb-12 min-h-screen flex flex-col justify-center">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 
-              className="font-display text-4xl md:text-5xl lg:text-6xl font-extrabold mb-3 tracking-tight"
-              style={{ textShadow: '0 4px 20px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4)' }}
-            >
-              <span className="text-white">Call the</span>
-              {' '}
-              <span 
-                style={{ 
-                  color: '#FF9AB3',
-                  textShadow: '0 0 30px rgba(255,154,179,0.6), 0 4px 20px rgba(0,0,0,0.5)' 
-                }}
-              >
-                Temp
-              </span>
-            </h1>
-            <p 
-              className="font-body text-lg md:text-xl text-white max-w-lg mx-auto font-semibold"
-              style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3)' }}
-            >
-              YES/NO bets on weather.
-            </p>
-            <div className="mt-3 mb-8">
-              <HowWeatherbWorksModal />
-            </div>
-            
-            {/* Empty state card */}
-            <motion.div
-              className="glass rounded-3xl p-8 md:p-12 max-w-md mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <div className="text-5xl mb-4">☀️</div>
-              <h2 className="font-display text-xl font-bold text-neutral-800 mb-2">
-                Clear skies ahead
-              </h2>
-              <p className="font-body text-neutral-600">
-                No active markets right now. Check back soon for new temperature predictions!
-              </p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-    );
-  }
-
-  const currentMarket = markets[currentIndex];
-  
-  // Guard against undefined market (shouldn't happen, but TypeScript needs assurance)
-  if (!currentMarket) {
-    return (
-      <div className={cn('relative min-h-[500px] flex items-center justify-center', className)}>
-        <p className="text-neutral-500">Loading market...</p>
-      </div>
-    );
-  }
-
+    const container = selectorsRef.current;
+    const selected = container?.querySelector<HTMLButtonElement>('[aria-pressed="true"]');
+    if (!container || !selected) return;
+    const left = selected.offsetLeft - container.offsetLeft;
+    if (left < container.scrollLeft) container.scrollLeft = left;
+    else if (left + selected.offsetWidth > container.scrollLeft + container.clientWidth)
+      container.scrollLeft = left + selected.offsetWidth - container.clientWidth;
+  }, [market?.id]);
+  const move = (step: number): void => {
+    const next = markets[(index + step + markets.length) % markets.length];
+    if (next) onSelect(next.id);
+  };
   return (
-    <section
-      className={cn('relative overflow-hidden', className)}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      {/* Background image */}
-      <div className="absolute inset-0">
-        <Image
-          src="/backgrounds/hero-clouds.jpg"
-          alt="Sky background"
-          fill
-          className="object-cover"
-          priority
-          quality={85}
+    <section className={`wb-hero ${className}`} aria-label="Featured markets">
+      <picture className="wb-scenery">
+        <source
+          media="(max-width: 639px)"
+          srcSet="/backgrounds/afterglow/hero-mobile-640.webp 640w, /backgrounds/afterglow/hero-mobile-941.webp 941w"
+          sizes="100vw"
         />
-        {/* Dark gradient overlay at top for hero text contrast */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-transparent" />
-        {/* Light gradient at bottom for card readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-transparent" />
-      </div>
-
-      {/* Floating cloud particles */}
-      <ParticleSystem
-        count={6}
-        type="cloud"
-        animate
-        className="opacity-40"
-      />
-
-      {/* Content container - fits in viewport */}
-      <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-24 pb-8 md:pt-28 md:pb-12 min-h-screen flex flex-col justify-center">
-        {/* Hero title */}
-        <motion.div
-          className="text-center mb-6"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <h1 
-            className="font-display text-4xl md:text-5xl lg:text-6xl font-extrabold mb-3 tracking-tight"
-            style={{ textShadow: '0 4px 20px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4)' }}
-          >
-            <span className="text-white">Call the</span>
-            {' '}
-            <span 
-              style={{ 
-                color: '#FF9AB3',
-                textShadow: '0 0 30px rgba(255,154,179,0.6), 0 4px 20px rgba(0,0,0,0.5)' 
-              }}
+        {/* Deliberate picture art direction; pre-encoded WebP sources need no Next transcoding. */}
+        <img
+          src="/backgrounds/afterglow/hero-desktop-1672.webp"
+          srcSet="/backgrounds/afterglow/hero-desktop-1024.webp 1024w, /backgrounds/afterglow/hero-desktop-1672.webp 1672w"
+          sizes="100vw"
+          alt=""
+          fetchPriority="high"
+        />
+      </picture>
+      <div className="wb-shell wb-hero-content">
+        {markets.length > 1 && (
+          <div className="wb-market-navigation">
+            <span className="wb-navigation-label">Featured market</span>
+            <div
+              className="wb-market-selectors"
+              ref={selectorsRef}
+              role="group"
+              aria-label="Select featured market"
             >
-              Temp
-            </span>
-          </h1>
-          <p 
-            className="font-body text-lg md:text-xl text-white max-w-lg mx-auto font-semibold"
-            style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3)' }}
+              {markets.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={item.id === market?.id}
+                  aria-label={`${item.cityName}, ${Math.round(item.thresholdF_tenths / 10)}°F or higher, resolves ${marketTime(item)}`}
+                  onClick={() => onSelect(item.id)}
+                >
+                  {item.cityName} {Math.round(item.thresholdF_tenths / 10)}°
+                  {markets.some(
+                    (other) =>
+                      other.id !== item.id &&
+                      other.cityName === item.cityName &&
+                      other.thresholdF_tenths === item.thresholdF_tenths,
+                  ) && <small>{marketTime(item)}</small>}
+                </button>
+              ))}
+            </div>
+            <div className="wb-market-arrows">
+              <button type="button" onClick={() => move(-1)} aria-label="Previous market">
+                <ArrowLeft size={18} />
+              </button>
+              <span aria-live="polite">
+                {index + 1} of {markets.length}
+              </span>
+              <button type="button" onClick={() => move(1)} aria-label="Next market">
+                <ArrowRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+        {market ? (
+          <div
+            onTouchStart={(event) => {
+              if ((event.target as HTMLElement).closest('button, a')) return;
+              const point = event.touches[0];
+              if (point) touch.current = { x: point.clientX, y: point.clientY };
+            }}
+            onTouchEnd={(event) => {
+              const point = event.changedTouches[0];
+              const start = touch.current;
+              touch.current = null;
+              if (!point || !start || markets.length < 2) return;
+              const dx = point.clientX - start.x;
+              const dy = point.clientY - start.y;
+              if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) move(dx < 0 ? 1 : -1);
+            }}
+            onTouchCancel={() => {
+              touch.current = null;
+            }}
           >
-            YES/NO bets on weather.
-          </p>
-          <div className="mt-3">
+            <HeroCard
+              market={market}
+              onBetYes={() => onBetYes(market)}
+              onBetNo={() => onBetNo(market)}
+            />
+          </div>
+        ) : (
+          <div className="wb-empty">
+            <CloudSun size={38} strokeWidth={1.3} />
+            <p className="wb-eyebrow">Weather worth watching</p>
+            <h1>Clear skies ahead.</h1>
+            <p>No active markets right now. Check back soon for new temperature predictions.</p>
             <HowWeatherbWorksModal />
           </div>
-        </motion.div>
-
-        {/* Carousel */}
-        <div
-          className="relative group"
-          onTouchStart={revealControls}
-          onTouchMove={revealControls}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentMarket.id}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <HeroCard
-                market={currentMarket}
-                onBetYes={() => onBetYes(currentMarket)}
-                onBetNo={() => onBetNo(currentMarket)}
-              />
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Navigation arrows - positioned outside the card with breathing room */}
-          {markets.length > 1 && (
-            <>
-              <button
-                onClick={goToPrev}
-                onFocus={revealControls}
-                className={cn(
-                  'absolute left-[calc(env(safe-area-inset-left)+0.5rem)] md:-left-16 lg:-left-20 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center rounded-full glass shadow-[0_10px_24px_rgba(15,23,42,0.16)] hover:bg-white/80 transition-colors focus-ring transition-opacity duration-300',
-                  showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-                  'md:opacity-70 md:pointer-events-auto md:group-hover:opacity-100'
-                )}
-                aria-label="Previous market"
-              >
-                <svg className="w-5 h-5 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={goToNext}
-                onFocus={revealControls}
-                className={cn(
-                  'absolute right-[calc(env(safe-area-inset-right)+0.5rem)] md:-right-16 lg:-right-20 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center rounded-full glass shadow-[0_10px_24px_rgba(15,23,42,0.16)] hover:bg-white/80 transition-colors focus-ring transition-opacity duration-300',
-                  showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-                  'md:opacity-70 md:pointer-events-auto md:group-hover:opacity-100'
-                )}
-                aria-label="Next market"
-              >
-                <svg className="w-5 h-5 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Dot indicators */}
+        )}
         {markets.length > 1 && (
-          <div className="flex justify-center gap-2 mt-8">
-            {markets.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={cn(
-                  'w-2.5 h-2.5 rounded-full transition-all duration-300 focus-ring',
-                  index === currentIndex
-                    ? 'bg-sky-medium w-8'
-                    : 'bg-neutral-300 hover:bg-neutral-400'
-                )}
-                aria-label={`Go to market ${index + 1}`}
-              />
-            ))}
-          </div>
+          <a className="wb-view-all" href="#active-markets">
+            Explore all {markets.length} markets <ArrowRight size={17} />
+          </a>
         )}
       </div>
     </section>

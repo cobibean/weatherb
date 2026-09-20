@@ -158,6 +158,16 @@ contract WeatherMarket is IWeatherMarket {
         settler = newSettler;
     }
 
+    /// @notice V1 has no scheduler role; satisfies the shared interface.
+    function setScheduler(address) external pure {
+        revert NotOwner();
+    }
+
+    /// @notice V1 has no duration bounds; satisfies the shared interface.
+    function setMarketDurationBounds(uint64, uint64) external pure {
+        revert NotOwner();
+    }
+
     /// @notice Set the minimum bet amount in wei.
     /// @param newMinBetWei Minimum bet amount, in wei.
     function setMinBet(uint256 newMinBetWei) external onlyOwner {

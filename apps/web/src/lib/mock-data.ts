@@ -3,7 +3,7 @@ import type { Market } from '@weatherb/shared/types';
 /**
  * Mock market data for UI development
  * Replace with real contract data when ready
- * 
+ *
  * Uses fixed timestamps to avoid SSR hydration mismatch.
  * In production, these would come from the blockchain/API.
  */
@@ -21,10 +21,10 @@ export const mockMarkets: Market[] = [
     longitude: -74.006,
     thresholdF_tenths: 720, // 72.0°F
     resolveTime: MOCK_BASE_TIME + 4 * 60 * 60 * 1000, // 4 hours from base
-    currency: 'FLR',
+    currency: 'USDC',
     status: 'open',
-    yesPool: BigInt('1000000000000000000000'), // 1000 FLR
-    noPool: BigInt('500000000000000000000'),   // 500 FLR
+    yesPool: BigInt('1000000000000000000000'), // 1000 USDC
+    noPool: BigInt('500000000000000000000'), // 500 USDC
   },
   {
     id: '2',
@@ -34,10 +34,10 @@ export const mockMarkets: Market[] = [
     longitude: -118.2437,
     thresholdF_tenths: 780, // 78.0°F
     resolveTime: MOCK_BASE_TIME + 6 * 60 * 60 * 1000, // 6 hours from base
-    currency: 'FLR',
+    currency: 'USDC',
     status: 'open',
-    yesPool: BigInt('750000000000000000000'),  // 750 FLR
-    noPool: BigInt('900000000000000000000'),   // 900 FLR
+    yesPool: BigInt('750000000000000000000'), // 750 USDC
+    noPool: BigInt('900000000000000000000'), // 900 USDC
   },
   {
     id: '3',
@@ -47,10 +47,10 @@ export const mockMarkets: Market[] = [
     longitude: -87.6298,
     thresholdF_tenths: 450, // 45.0°F
     resolveTime: MOCK_BASE_TIME + 2 * 60 * 60 * 1000, // 2 hours from base
-    currency: 'FLR',
+    currency: 'USDC',
     status: 'open',
-    yesPool: BigInt('300000000000000000000'),  // 300 FLR
-    noPool: BigInt('300000000000000000000'),   // 300 FLR (50/50!)
+    yesPool: BigInt('300000000000000000000'), // 300 USDC
+    noPool: BigInt('300000000000000000000'), // 300 USDC (50/50!)
   },
   {
     id: '4',
@@ -60,10 +60,10 @@ export const mockMarkets: Market[] = [
     longitude: -80.1918,
     thresholdF_tenths: 850, // 85.0°F
     resolveTime: MOCK_BASE_TIME + 8 * 60 * 60 * 1000, // 8 hours from base
-    currency: 'FLR',
+    currency: 'USDC',
     status: 'open',
-    yesPool: BigInt('2000000000000000000000'), // 2000 FLR
-    noPool: BigInt('400000000000000000000'),   // 400 FLR (YES heavy!)
+    yesPool: BigInt('2000000000000000000000'), // 2000 USDC
+    noPool: BigInt('400000000000000000000'), // 400 USDC (YES heavy!)
   },
   {
     id: '5',
@@ -73,9 +73,9 @@ export const mockMarkets: Market[] = [
     longitude: -122.3321,
     thresholdF_tenths: 550, // 55.0°F
     resolveTime: MOCK_BASE_TIME + 3 * 60 * 60 * 1000, // 3 hours from base
-    currency: 'FLR',
+    currency: 'USDC',
     status: 'open',
-    yesPool: BigInt('150000000000000000000'),  // 150 FLR
-    noPool: BigInt('850000000000000000000'),   // 850 FLR (NO heavy!)
+    yesPool: BigInt('150000000000000000000'), // 150 USDC
+    noPool: BigInt('850000000000000000000'), // 850 USDC (NO heavy!)
   },
 ];

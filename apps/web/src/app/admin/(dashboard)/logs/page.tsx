@@ -15,12 +15,8 @@ export default function LogsPage(): React.ReactElement {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">
-          Activity Logs
-        </h1>
-        <p className="font-body text-neutral-500">
-          View all admin actions and system events.
-        </p>
+        <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">Activity Logs</h1>
+        <p className="font-body text-neutral-500">View all admin actions and system events.</p>
       </div>
 
       <Suspense
@@ -37,4 +33,3 @@ export default function LogsPage(): React.ReactElement {
     </div>
   );
 }
-

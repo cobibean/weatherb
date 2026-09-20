@@ -1,0 +1,169 @@
+{
+  "checkedAt": "2026-09-19T22:22:43.787Z",
+  "chainId": 5042002,
+  "proxy": "0xd86e2774e4a9bf2e86199791068b9350b718b891",
+  "market": {
+    "cityId": "0x357e8ea1fefb357db68588579634b75f57d66ec252b111dc4cfdb8c0a6f3e680",
+    "resolveTime": "1789856281",
+    "bettingDeadline": "1789855681",
+    "thresholdTenths": "960",
+    "currency": "0x0000000000000000000000000000000000000000",
+    "status": 2,
+    "yesPool": "110000000000000000",
+    "noPool": "510000000000000000",
+    "totalFees": "1100000000000000",
+    "resolvedTempTenths": "958",
+    "observedTimestamp": "1789856340",
+    "outcome": false
+  },
+  "settlement": {
+    "hash": "0x65b231ea62e4b1493a32c62a578239a56592d17537005da39bb5f02d564f72c4",
+    "status": "success",
+    "blockNumber": "62984963",
+    "blockTimestamp": "1789856367",
+    "input": {
+      "functionName": "resolveMarket",
+      "args": [
+        "1",
+        "958",
+        "1789856340"
+      ]
+    },
+    "events": [
+      {
+        "eventName": "MarketResolved",
+        "args": {
+          "marketId": "1",
+          "outcome": false,
+          "resolvedTempTenths": "958",
+          "observedTimestamp": "1789856340"
+        },
+        "address": "0xd86e2774e4a9bf2e86199791068b9350b718b891",
+        "topics": [
+          "0x66960057ed17bcc1e8a24f67381654f4909a88b6fda81863d08a0d5cc527180a",
+          "0x0000000000000000000000000000000000000000000000000000000000000001"
+        ],
+        "data": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003be000000000000000000000000000000000000000000000000000000006aaf0a54",
+        "blockHash": "0xfca9cc74ea9004f693360c72b4d1114bcb1e9f956d08331be683f43aa4c3bad1",
+        "blockNumber": "62984963",
+        "blockTimestamp": "1789856367",
+        "transactionHash": "0x65b231ea62e4b1493a32c62a578239a56592d17537005da39bb5f02d564f72c4",
+        "transactionIndex": 7,
+        "logIndex": 18,
+        "removed": false
+      }
+    ]
+  },
+  "database": {
+    "httpStatus": 200,
+    "market": {
+      "id": "1",
+      "cityId": "austin",
+      "cityName": "Austin",
+      "latitude": 30.2672,
+      "longitude": -97.7431,
+      "resolveTime": 1789856281000,
+      "thresholdF_tenths": 960,
+      "currency": "USDC",
+      "status": "resolved",
+      "yesPool": "110000000000000000",
+      "noPool": "510000000000000000",
+      "totalFees": "1100000000000000",
+      "resolvedTempF_tenths": 958,
+      "outcome": false
+    }
+  },
+  "user": {
+    "address": "0x5d92A2486042Dd4cEE0BD6B5ffd98a8C3A6EA4Fe",
+    "payout": "606764705882352941",
+    "positionsHttpStatus": 200,
+    "positions": {
+      "positions": [
+        {
+          "marketId": "1",
+          "cityName": "Austin",
+          "cityId": "austin",
+          "latitude": 30.2672,
+          "longitude": -97.7431,
+          "thresholdTenths": 960,
+          "resolveTime": 1789856281000,
+          "betSide": "BOTH",
+          "status": "claimable",
+          "claimed": false,
+          "outcome": false,
+          "observedTempTenths": 958,
+          "betAmount": "600000000000000000",
+          "yesPool": "110000000000000000",
+          "noPool": "510000000000000000",
+          "claimableAmount": "606764705882352941"
+        }
+      ],
+      "stats": {
+        "totalBets": 1,
+        "activeBets": 0,
+        "resolvedBets": 1,
+        "wins": 1,
+        "losses": 0,
+        "winRate": 100,
+        "totalWagered": "600000000000000000",
+        "totalWinnings": "606764705882352941",
+        "totalClaimed": "0",
+        "totalClaimable": "606764705882352941",
+        "netProfit": "6764705882352941",
+        "roi": 1.1274509803921569
+      }
+    }
+  },
+  "testClaim": {
+    "hash": "0xd3b15f98f36bcf14d340a85f3f97ee484815b938906476a169ff696f8b9a48e6",
+    "expected": "12135294117647058",
+    "actual": "12135294117647058",
+    "gas": "2006025000000000"
+  },
+  "userClaim": {
+    "verifiedAt": "2026-09-19T22:25:38.845Z",
+    "hash": "0x8aac9f3281641f8cb0bdaad0514879b81b82e4845d752f4d15c55204cc4a21ec",
+    "status": "success",
+    "blockNumber": "62985559",
+    "amount": "606764705882352941",
+    "balanceDelta": "603118927382352941",
+    "gas": "3645778500000000",
+    "amountAfterAddingBackGas": "606764705882352941",
+    "positions": {
+      "positions": [
+        {
+          "marketId": "1",
+          "cityName": "Austin",
+          "cityId": "austin",
+          "latitude": 30.2672,
+          "longitude": -97.7431,
+          "thresholdTenths": 960,
+          "resolveTime": 1789856281000,
+          "betSide": "BOTH",
+          "status": "claimed",
+          "claimed": true,
+          "outcome": false,
+          "observedTempTenths": 958,
+          "betAmount": "600000000000000000",
+          "yesPool": "110000000000000000",
+          "noPool": "510000000000000000"
+        }
+      ],
+      "stats": {
+        "totalBets": 1,
+        "activeBets": 0,
+        "resolvedBets": 1,
+        "wins": 1,
+        "losses": 0,
+        "winRate": 100,
+        "totalWagered": "600000000000000000",
+        "totalWinnings": "0",
+        "totalClaimed": "0",
+        "totalClaimable": "0",
+        "netProfit": "-600000000000000000",
+        "roi": -100
+      }
+    },
+    "knownDisplayIssue": "Positions aggregate stats drop claimed winnings to zero and show incorrect net profit after claiming; claimed position status itself is correct."
+  }
+}

@@ -166,7 +166,7 @@ export function CitiesClient({ initialCities }: CitiesClientProps): React.ReactE
                   onChange={(e) => setNewCity({ ...newCity, name: e.target.value })}
                   placeholder="e.g., New York"
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-white font-body text-neutral-800 focus:outline-none focus:ring-2 focus:ring-sky-medium"
+                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-white font-body text-neutral-800 focus:outline-hidden focus:ring-2 focus:ring-sky-medium"
                 />
               </div>
               <div>
@@ -177,7 +177,7 @@ export function CitiesClient({ initialCities }: CitiesClientProps): React.ReactE
                   onChange={(e) => setNewCity({ ...newCity, timezone: e.target.value })}
                   placeholder="e.g., America/New_York"
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-white font-body text-neutral-800 focus:outline-none focus:ring-2 focus:ring-sky-medium"
+                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-white font-body text-neutral-800 focus:outline-hidden focus:ring-2 focus:ring-sky-medium"
                 />
               </div>
               <div>
@@ -189,7 +189,7 @@ export function CitiesClient({ initialCities }: CitiesClientProps): React.ReactE
                   onChange={(e) => setNewCity({ ...newCity, latitude: e.target.value })}
                   placeholder="e.g., 40.7128"
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-white font-body text-neutral-800 focus:outline-none focus:ring-2 focus:ring-sky-medium"
+                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-white font-body text-neutral-800 focus:outline-hidden focus:ring-2 focus:ring-sky-medium"
                 />
               </div>
               <div>
@@ -201,7 +201,7 @@ export function CitiesClient({ initialCities }: CitiesClientProps): React.ReactE
                   onChange={(e) => setNewCity({ ...newCity, longitude: e.target.value })}
                   placeholder="e.g., -74.0060"
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-white font-body text-neutral-800 focus:outline-none focus:ring-2 focus:ring-sky-medium"
+                  className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-white font-body text-neutral-800 focus:outline-hidden focus:ring-2 focus:ring-sky-medium"
                 />
               </div>
             </div>
@@ -219,7 +219,11 @@ export function CitiesClient({ initialCities }: CitiesClientProps): React.ReactE
                 disabled={isAdding}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-medium text-white font-body font-medium hover:bg-sky-deep transition-colors disabled:opacity-50"
               >
-                {isAdding ? <InlineLoader variant="minimal" size="sm" /> : <Plus className="w-4 h-4" />}
+                {isAdding ? (
+                  <InlineLoader variant="minimal" size="sm" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
                 Add City
               </button>
             </div>
@@ -343,4 +347,3 @@ export function CitiesClient({ initialCities }: CitiesClientProps): React.ReactE
     </div>
   );
 }
-

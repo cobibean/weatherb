@@ -12,7 +12,7 @@
  * 7. Verify claim succeeded
  *
  * Usage:
- *   pnpm exec tsx scripts/test/test-e2e-flow.ts
+ *   npm exec -- tsx scripts/test/test-e2e-flow.ts
  *
  * Options:
  *   SKIP_BET=true         - Skip placing bet, just check existing positions
@@ -229,7 +229,7 @@ async function main() {
     console.log(`⏳ Market not ready yet - resolves in ${Math.floor(timeUntilResolve / 60)} min ${timeUntilResolve % 60} sec`);
     console.log('   Options:');
     console.log('   1. Wait for Vercel Cron to settle it (runs every 5 min)');
-    console.log('   2. Come back after resolve time and run: SKIP_BET=true pnpm exec tsx scripts/test/test-e2e-flow.ts');
+    console.log('   2. Come back after resolve time and run: SKIP_BET=true npm exec -- tsx scripts/test/test-e2e-flow.ts');
   } else {
     console.log('✅ Market is past resolve time - ready for settlement');
 

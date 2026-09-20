@@ -1,0 +1,13 @@
+[
+  "apps/web/src/components/home/home-client.tsx",
+  "apps/web/src/components/layout/footer.tsx",
+  "apps/web/src/components/layout/header.tsx",
+  "apps/web/src/components/layout/wallet-button.tsx",
+  "apps/web/src/components/markets/bet-modal.tsx",
+  "apps/web/src/components/markets/hero-card.tsx",
+  "apps/web/src/components/markets/hero-carousel.tsx",
+  "apps/web/src/components/markets/market-card.tsx",
+  "apps/web/src/components/markets/market-grid.tsx",
+  "apps/web/src/lib/contract-data.ts",
+  "packages/shared/src/types/market.ts"
+]

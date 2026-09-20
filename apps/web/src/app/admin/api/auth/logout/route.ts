@@ -4,7 +4,7 @@ import { clearAdminSession, getAdminSession, logAdminAction } from '@/lib/admin-
 export async function POST(): Promise<NextResponse> {
   try {
     const session = await getAdminSession();
-    
+
     if (session) {
       await logAdminAction(session.wallet, 'LOGOUT', { sessionId: session.sessionId });
     }
@@ -19,4 +19,3 @@ export async function POST(): Promise<NextResponse> {
     return NextResponse.json({ success: true });
   }
 }
-

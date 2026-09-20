@@ -21,7 +21,9 @@ describe('Admin Session Logic', () => {
       const generateNonce = () => {
         const bytes = new Uint8Array(32);
         crypto.getRandomValues(bytes);
-        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        return Array.from(bytes)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
       };
 
       const nonce1 = generateNonce();
@@ -34,14 +36,14 @@ describe('Admin Session Logic', () => {
 
   describe('admin wallet validation', () => {
     it('checks wallet against allowlist', () => {
-      const adminWallets = ['0xABC', '0xDEF'].map(w => w.toLowerCase());
+      const adminWallets = ['0xABC', '0xDEF'].map((w) => w.toLowerCase());
       const wallet = '0xabc';
 
       expect(adminWallets.includes(wallet.toLowerCase())).toBe(true);
     });
 
     it('rejects non-admin wallets', () => {
-      const adminWallets = ['0xABC', '0xDEF'].map(w => w.toLowerCase());
+      const adminWallets = ['0xABC', '0xDEF'].map((w) => w.toLowerCase());
       const wallet = '0x123';
 
       expect(adminWallets.includes(wallet.toLowerCase())).toBe(false);
@@ -81,4 +83,3 @@ describe('Admin Session Logic', () => {
     });
   });
 });
-

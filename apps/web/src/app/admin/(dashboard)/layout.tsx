@@ -3,8 +3,13 @@ import { redirect } from 'next/navigation';
 import { getAdminSession } from '@/lib/admin-session';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
+import { adminWritesEnabled } from '@/lib/admin-writes';
 
-export default async function AdminLayout({ children }: { children: ReactNode }): Promise<React.ReactElement> {
+export default async function AdminLayout({
+  children,
+}: {
+  children: ReactNode;
+}): Promise<React.ReactElement> {
   // Validate session on the server
   const session = await getAdminSession();
 
@@ -20,12 +25,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
         {/* Header */}
-        <AdminHeader wallet={session.wallet} />
+        <AdminHeader wallet={session.wallet} readOnly={!adminWritesEnabled()} />
 
         {/* Page content */}
-        <main className="flex-1 px-4 pb-4 pt-20 lg:px-6 lg:pb-6 lg:pt-20">
-          {children}
-        </main>
+        <main className="flex-1 px-4 pb-4 pt-20 lg:px-6 lg:pb-6 lg:pt-20">{children}</main>
       </div>
     </div>
   );

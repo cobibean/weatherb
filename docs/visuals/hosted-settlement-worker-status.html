@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>weatherB — what runs without you now</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #f6efe4;
+    --paper-2: #efe4d2;
+    --ink: #1f1a17;
+    --ink-2: #4a413b;
+    --ink-3: #8a7d72;
+    --line: #d9cbb6;
+    --sunset: #e8622a;
+    --sunset-soft: #f5b28f;
+    --auto: #1f7a6d;
+    --auto-soft: #cfe6e0;
+    --manual: #b33a2f;
+    --manual-soft: #f1d3cc;
+    --gold: #d79a2b;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --sans: "Instrument Sans", system-ui, sans-serif;
+    --serif: "Fraunces", Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 17px; line-height: 1.55;
+    background-image:
+      radial-gradient(1200px 600px at 85% -10%, rgba(232,98,42,.18), transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, rgba(215,154,43,.14), transparent 60%);
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .5; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  main { max-width: 1120px; margin: 0 auto; padding: 56px 28px 120px; }
+  .reveal { opacity: 0; transform: translateY(14px); animation: rise .7s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 6vw, 72px); line-height: 1.02; margin: 10px 0 18px; letter-spacing: -.01em; font-variation-settings: "opsz" 144; }
+  h1 em { font-style: italic; color: var(--sunset); }
+  h2 { font-family: var(--serif); font-weight: 500; font-size: 30px; margin: 0 0 6px; letter-spacing: -.01em; }
+  h3 { font-family: var(--sans); font-weight: 600; font-size: 15px; margin: 0 0 4px; }
+  p.lede { font-size: 20px; color: var(--ink-2); max-width: 720px; margin: 0; }
+  section { margin-top: 84px; }
+  .sec-head { display: flex; align-items: baseline; gap: 18px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 28px; }
+  .sec-head .num { font-family: var(--mono); color: var(--sunset); font-size: 14px; }
+  .sub { color: var(--ink-3); font-size: 16px; margin: 0; }
+
+  /* Verdict cards */
+  .verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 42px; }
+  .card { background: rgba(255,255,255,.55); border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px; position: relative; overflow: hidden; backdrop-filter: blur(4px); }
+  .card::after { content: ""; position: absolute; inset: auto -30% -60% auto; width: 60%; aspect-ratio: 1; border-radius: 50%; opacity: .25; filter: blur(30px); }
+  .card.auto::after { background: var(--auto); }
+  .card.manual::after { background: var(--manual); }
+  .pill { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; }
+  .pill.auto { background: var(--auto-soft); color: var(--auto); }
+  .pill.manual { background: var(--manual-soft); color: var(--manual); }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill.auto .dot { animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(31,122,109,.5);} 50% { box-shadow: 0 0 0 7px rgba(31,122,109,0);} }
+  .card .big { font-family: var(--serif); font-size: 34px; line-height: 1.1; margin: 14px 0 10px; }
+  .card p { margin: 0; color: var(--ink-2); }
+  .card ul { margin: 12px 0 0; padding-left: 18px; color: var(--ink-2); }
+
+  /* Flow */
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; align-items: stretch; }
+  .node { position: relative; padding: 18px 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.6); min-height: 170px; }
+  .node + .node { margin-left: 26px; }
+  .node + .node::before { content: ""; position: absolute; left: -27px; top: 50%; width: 26px; height: 2px; background: var(--ink-3); opacity: .5; }
+  .node + .node::after { content: ""; position: absolute; left: -8px; top: calc(50% - 5px); width: 0; height: 0; border-left: 8px solid var(--ink-3); border-top: 6px solid transparent; border-bottom: 6px solid transparent; opacity: .6; }
+  .node .who { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+  .node.auto .who { color: var(--auto); } .node.manual .who { color: var(--manual); } .node.chain .who { color: var(--gold); }
+  .node.manual { border-style: dashed; border-color: #d7a39b; background: rgba(241,211,204,.35); }
+  .node .t { font-family: var(--serif); font-size: 21px; line-height: 1.15; margin-bottom: 8px; }
+  .node .d { font-size: 14px; color: var(--ink-2); }
+  .node code, .mono { font-family: var(--mono); font-size: 12.5px; background: var(--paper-2); padding: 1px 6px; border-radius: 6px; }
+  .flow-note { margin-top: 18px; font-size: 15px; color: var(--ink-2); display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .flow-note div { border-left: 3px solid var(--line); padding-left: 12px; }
+  .flow-note b { display: block; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+
+  /* Keys table */
+  table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,.55); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 15px; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); background: var(--paper-2); }
+  tr:last-child td { border-bottom: 0; }
+  .yes { color: var(--auto); font-weight: 600; } .no { color: var(--manual); font-weight: 600; } .dead { color: var(--ink-3); text-decoration: line-through; }
+
+  /* Timeline */
+  .tl { position: relative; padding-left: 34px; }
+  .tl::before { content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(var(--sunset), var(--gold)); opacity: .5; }
+  .ev { position: relative; padding: 0 0 26px; }
+  .ev::before { content: ""; position: absolute; left: -31px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--paper); border: 3px solid var(--sunset); }
+  .ev.ok::before { border-color: var(--auto); } .ev.cancel::before { border-color: var(--gold); }
+  .ev .time { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: .06em; }
+  .ev .t { font-family: var(--serif); font-size: 22px; margin: 2px 0 4px; }
+  .ev .d { color: var(--ink-2); font-size: 15px; max-width: 760px; }
+  .ev a { color: var(--sunset); text-decoration: none; border-bottom: 1px solid var(--sunset-soft); }
+  .ev a:hover { border-bottom-color: var(--sunset); }
+
+  /* Safety grid */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .g { background: rgba(255,255,255,.55); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; }
+  .g .n { font-family: var(--serif); font-size: 40px; line-height: 1; color: var(--sunset); font-weight: 300; margin-bottom: 8px; }
+  .g p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+
+  /* Next */
+  .next { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .n-card { border-radius: 14px; padding: 20px 22px; border: 1px solid var(--line); background: rgba(255,255,255,.55); }
+  .n-card.you { border-color: #d7a39b; background: rgba(241,211,204,.35); }
+  .n-card ol { margin: 8px 0 0; padding-left: 20px; color: var(--ink-2); }
+  .n-card li { margin: 6px 0; }
+  footer { margin-top: 90px; color: var(--ink-3); font-size: 13px; font-family: var(--mono); border-top: 1px solid var(--line); padding-top: 16px; }
+  @media (max-width: 900px) {
+    .verdict, .next, .grid, .flow-note { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr; }
+    .node + .node { margin-left: 0; margin-top: 26px; }
+    .node + .node::before { left: 50%; top: -27px; width: 2px; height: 26px; }
+    .node + .node::after { left: calc(50% - 6px); top: -9px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid var(--ink-3); border-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="reveal">
+    <div class="kicker">weatherB · Arc Testnet · 20 September 2026</div>
+    <h1>What runs <em>without you</em> now.</h1>
+    <p class="lede">The short version: markets now <strong>create themselves and settle themselves</strong> from hosted infrastructure — no Codex, no heartbeat, Mac closed. The owner key never left your Mac; two narrow hosted keys do the work. Updated 21:40 UTC after the 2.4.0 upgrade.</p>
+  </header>
+
+  <div class="verdict">
+    <div class="card auto reveal" style="animation-delay:.1s">
+      <span class="pill auto"><span class="dot"></span>Automated · live</span>
+      <div class="big">Settlement &amp; cancellation</div>
+      <p>Every two minutes a hosted worker checks the chain, fetches the Austin reading, and resolves any market whose time has come. If no valid reading arrives inside the 10-minute window, it cancels and unlocks refunds. Proven three times today on real 30-minute markets.</p>
+    </div>
+    <div class="card auto reveal" style="animation-delay:.2s">
+      <span class="pill auto"><span class="dot"></span>Automated · live since 21:02 UTC</span>
+      <div class="big">Creating the daily markets</div>
+      <p>The contract gained a <em>scheduler</em> role (2.3.0) so creation no longer needs the owner key. At 12:05, 13:05, 14:05, 15:05 and 16:05 UTC the worker creates one public 24-hour market for the next city in rotation. Every night at 02:30 UTC a hidden 30-minute canary market runs the whole create→settle loop so problems surface in half an hour, not a day. Duration is now declared per market on chain (2.4.0), bounded 15 min – 7 days.</p>
+    </div>
+  </div>
+
+  <section class="reveal" style="animation-delay:.3s">
+    <div class="sec-head"><span class="num">01</span><div><h2>How a market gets settled now</h2><p class="sub">Left to right. Green = machines. Gold = the blockchain. You are not in this diagram.</p></div></div>
+    <div class="flow">
+      <div class="node auto"><div class="who">Vercel worker · scheduler key</div><div class="t">Create a market</div><div class="d">QStash fires 12–16 UTC at :05. One market per UTC hour slot; duration declared per call (daily = 24 h, canary = 30 min).</div></div>
+      <div class="node chain"><div class="who">Arc Testnet</div><div class="t">Market sits open</div><div class="d">Bets close 10 min before resolve. Single <code>settler</code> address may resolve/cancel.</div></div>
+      <div class="node auto"><div class="who">QStash · Upstash</div><div class="t">Pokes the worker</div><div class="d">Sweep <code>*/2 * * * *</code> plus one nudge per market at its <code>resolveTime</code>.</div></div>
+      <div class="node auto"><div class="who">Vercel · weatherb-arc-worker</div><div class="t">Decides &amp; signs</div><div class="d">Only place the settler key exists. Reads Tomorrow.io, calls <code>resolveMarket</code> or <code>cancelMarket</code>, waits for the receipt.</div></div>
+      <div class="node auto"><div class="who">Neon DB → public site</div><div class="t">You watch</div><div class="d"><code>/admin/operations</code> (read-only) and <code>/api/health</code> show runs, alerts, balances.</div></div>
+    </div>
+    <div class="flow-note">
+      <div><b>Why two triggers</b>Tomorrow.io publishes the reading ~15–20 s late, so the per-market nudge usually fails once. The 2-minute sweep is the one that actually settles. Either alone would work; both together is belt-and-braces.</div>
+      <div><b>Why a separate project</b>The public website has zero secrets. Even a bug there can't leak or use the signing key. The worker runs the same code with a different env and a locked-down database role.</div>
+      <div><b>Why it can't double-settle</b>The contract only accepts one settlement; the worker holds a per-signer lease; and it records the tx hash <em>before</em> waiting, so a crash mid-flight is recognised, not repeated.</div>
+    </div>
+  </section>
+
+  <section class="reveal" style="animation-delay:.4s">
+    <div class="sec-head"><span class="num">02</span><div><h2>Who can sign what</h2><p class="sub">The structural guarantee: there is exactly one settler, and it lives on the worker.</p></div></div>
+    <table>
+      <thead><tr><th>Key</th><th>Where it lives</th><th>Create markets</th><th>Settle / cancel</th><th>Upgrade / rotate roles</th></tr></thead>
+      <tbody>
+        <tr><td><b>Owner</b> <span class="mono">0x528C…C292</span></td><td>Your Mac only (<span class="mono">.tools/</span>)</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes — the only one</td></tr>
+        <tr><td><b>Hosted scheduler</b> <span class="mono">0xe7B3…7cd7</span></td><td>Worker project env only · 2 USDC gas</td><td class="yes">Yes (bounded 15 min – 7 d)</td><td class="no">No</td><td class="no">No</td></tr>
+        <tr><td><b>Hosted settler</b> <span class="mono">0xa764…C219</span></td><td>Worker project env only · 1.99 USDC gas</td><td class="no">No</td><td class="yes">Yes — the only one</td><td class="no">No</td></tr>
+        <tr><td><b>Old local settler</b> <span class="mono">0x764E…FfA9</span></td><td>Your Mac</td><td class="no">No</td><td class="dead">Was yes — now inert</td><td class="no">No</td></tr>
+        <tr><td><b>Public website</b> weatherb-arc-testnet</td><td>Vercel · no keys at all</td><td class="no">No</td><td class="no">No (routes refuse without worker role)</td><td class="no">No</td></tr>
+        <tr><td><b>Admin panel</b> <span class="mono">0xE657…fA50</span></td><td>Your browser wallet</td><td class="no">Read-only</td><td class="no">Read-only</td><td class="no">Read-only</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="reveal" style="animation-delay:.5s">
+    <div class="sec-head"><span class="num">03</span><div><h2>What actually happened today</h2><p class="sub">Real transactions on Arc Testnet. Nothing simulated. All times UTC.</p></div></div>
+    <div class="tl">
+      <div class="ev"><div class="time">17:17 · owner tx</div><div class="t">Settler role rotated to the hosted key</div><div class="d">From that moment the local settlement command refuses to run and the old key can't settle. <a href="https://explorer.testnet.arc.io/tx/0x2bf3792e569cfe46b6c37390fedeae94b3e244bfcec0b42fcacc541fbac44d78" target="_blank" rel="noreferrer">setSettler receipt ↗</a> · funded with 2 USDC.</div></div>
+      <div class="ev"><div class="time">17:20 · first live sweep</div><div class="t">Hosted settlement switched on</div><div class="d">Worker's first unpaused run succeeded and scheduled the per-market nudges for tomorrow's Markets 2 and 3.</div></div>
+      <div class="ev ok"><div class="time">17:51:53 → settled at +9 s</div><div class="t">Test 1 · Market 4 · happy path</div><div class="d">Austin came in at 93.1°F → outcome NO. Per-market nudge failed once (no reading yet); the sweep settled it. A later duplicate nudge just said “already done”. <a href="https://explorer.testnet.arc.io/tx/0x974ebd50026f2b991477e927a99cfda42cd47648c6987aede2b24f29f2917abf" target="_blank" rel="noreferrer">resolveMarket receipt ↗</a></div></div>
+      <div class="ev ok"><div class="time">17:53:40 → settled at +22 s</div><div class="t">Test 2 · Market 5 · hammered with duplicates</div><div class="d">Five separate triggers hit this one market (3 QStash, 2 concurrent manual). Exactly <b>one</b> transaction on chain. 93.9°F → NO. <a href="https://explorer.testnet.arc.io/tx/0x7eaaeada8981a1f057ec57acf5c6ce4f8f411587c0772a4a865791c8fca89f04" target="_blank" rel="noreferrer">receipt ↗</a></div></div>
+      <div class="ev cancel"><div class="time">18:25:16 → cancelled at +12 min 45 s</div><div class="t">Test 3 · Market 6 · deliberately missed window</div><div class="d">Settlement was paused through the whole 10-minute window. Health showed <span class="mono">dueMarkets: 1</span>, then <span class="mono">overdueMarkets: 1</span>. On unpause the sweep cancelled it and both stakes became refundable — the “nothing valid happened, give everyone their money back” path. <a href="https://explorer.testnet.arc.io/tx/0xfa5f67d6447fa7962f0cbf412923f387e443684a8e9b8344cdc5c95bb3b5d09c" target="_blank" rel="noreferrer">cancelMarket receipt ↗</a></div></div>
+      <div class="ev"><div class="time">19:27 · checklist</div><div class="t">Everything verified</div><div class="d">Full test suite green · public site env has no secrets · worker env has no owner/admin keys · secret scan 0 findings · schedule active · 47 successful runs, 31 paused, 3 expected early failures.</div></div>
+      <div class="ev"><div class="time">20:3x · owner tx</div><div class="t">Contract upgraded to 2.3.0 — scheduler role</div><div class="d">Storage layout frozen and checked against the 2.2.0 baseline; state snapshot identical before and after. Scheduler key assigned and funded. <a href="https://explorer.testnet.arc.io/tx/0x5f89d29a81375edbe22b67173a21942bc2818c58a8229aea7ed210f31c1018c4" target="_blank" rel="noreferrer">upgrade receipt ↗</a></div></div>
+      <div class="ev"><div class="time">21:00 · owner tx</div><div class="t">Contract upgraded to 2.4.0 — duration declared per market</div><div class="d">First attempt was refused by the bytecode guard (journal replayed the 2.3.0 receipt) — fixed, no gas wasted. Bounds set to 15 min – 7 days. <a href="https://explorer.testnet.arc.io/tx/0x7811710e3816c06fe9c068eefa799a04d78a79020211fa7b86df159953c8fd67" target="_blank" rel="noreferrer">upgrade receipt ↗</a></div></div>
+      <div class="ev ok"><div class="time">21:02 → settled 21:32</div><div class="t">First canary · Market 7 · created and settled by the worker alone</div><div class="d">Scheduler key created a hidden 30-minute market; second trigger returned the same market (no duplicate); settler key resolved it 30 minutes later. Concurrent sweep correctly reported <span class="mono">busy</span>. <a href="https://explorer.testnet.arc.io/tx/0xf8fc28a377cc0ad553f7d3a97cbb63bd0326d696fed2fda38e8f7ef2bde0878a" target="_blank" rel="noreferrer">create ↗</a> · <a href="https://explorer.testnet.arc.io/tx/0xc08c208d617934a8648d036a35a384708422375aec1a8c6aae968846617f5303" target="_blank" rel="noreferrer">settle ↗</a></div></div>
+    </div>
+  </section>
+
+  <section class="reveal" style="animation-delay:.6s">
+    <div class="sec-head"><span class="num">04</span><div><h2>Safety nets, in plain words</h2><p class="sub">Six things that keep unattended operation boring.</p></div></div>
+    <div class="grid">
+      <div class="g"><div class="n">1</div><h3>One settler on chain</h3><p>The contract accepts settlement from exactly one address. It's the worker's. Nothing else can even try.</p></div>
+      <div class="g"><div class="n">2</div><h3>One run at a time</h3><p>A database lease per signer. If two runs overlap, the second says “busy” and leaves.</p></div>
+      <div class="g"><div class="n">3</div><h3>Remembers what it sent</h3><p>Tx hash is saved before waiting for confirmation. If the function dies mid-flight, the next run checks that hash instead of sending again.</p></div>
+      <div class="g"><div class="n">4</div><h3>The sweep always wins</h3><p>Even if QStash drops a nudge, the 2-minute sweep finds every unsettled market and handles it — including cancellation after the window.</p></div>
+      <div class="g"><div class="n">5</div><h3>Chain is the truth</h3><p>The database is rebuilt from on-chain state after every action. A DB hiccup can never cause a second transaction.</p></div>
+      <div class="g"><div class="n">6</div><h3>Admin is read-only</h3><p>All write buttons are disabled and their routes return 403 until a single env flag is flipped after a security review.</p></div>
+    </div>
+  </section>
+
+  <section class="reveal" style="animation-delay:.7s">
+    <div class="sec-head"><span class="num">05</span><div><h2>What's left</h2><p class="sub">Two small things now, one contract change later.</p></div></div>
+    <div class="next">
+      <div class="n-card you"><span class="pill manual"><span class="dot"></span>You</span>
+        <ol>
+          <li><b>Cancel the Codex heartbeat</b> <span class="mono">start-arc-testnet-lifecycle</span>. It's redundant and its settlement step would revert anyway.</li>
+          <li><b>Tomorrow, do nothing.</b> 12:05 UTC: first automated public market. 12:08: Markets 2 and 3 settle. 13:05–16:05: four more. Mac closed. Check <span class="mono">/admin/operations</span> if you're curious.</li>
+        </ol>
+      </div>
+      <div class="n-card"><span class="pill auto"><span class="dot"></span>Next engineering scope</span>
+        <ol>
+          <li><b>Contract freeze, then audit.</b> 2.4.0 is the version to audit; no further contract changes until the audit scope is set.</li>
+          <li><b>Fine-grained admin permissions</b> (backlog) before enabling any writes on the hosted panel.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <footer>branch codex/arc-phase-1-baseline · commits b8747f8…4fb8794 · plans docs/plans/2026-09-20-*.md · runbook docs/testing/arc-hosted-testnet.md · contract 2.4.0</footer>
+</main>
+</body>
+</html>

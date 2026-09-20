@@ -19,18 +19,12 @@ describe('MarketSummaryModal', () => {
     noPool: BigInt(50e18),
     resolvedTempF_tenths: 680,
     observedTimestamp: 1735344100,
-    outcome: true
+    outcome: true,
   };
 
   it('should render modal when open', () => {
     const onClose = vi.fn();
-    render(
-      <MarketSummaryModal
-        market={mockMarket}
-        isOpen={true}
-        onClose={onClose}
-      />
-    );
+    render(<MarketSummaryModal market={mockMarket} isOpen={true} onClose={onClose} />);
 
     expect(screen.getByText(/Market Summary/i)).toBeInTheDocument();
     expect(screen.getByText(/Seattle/i)).toBeInTheDocument();
@@ -39,11 +33,7 @@ describe('MarketSummaryModal', () => {
   it('should not render when closed', () => {
     const onClose = vi.fn();
     const { container } = render(
-      <MarketSummaryModal
-        market={mockMarket}
-        isOpen={false}
-        onClose={onClose}
-      />
+      <MarketSummaryModal market={mockMarket} isOpen={false} onClose={onClose} />,
     );
 
     expect(container.firstChild).toBeNull();
@@ -51,13 +41,7 @@ describe('MarketSummaryModal', () => {
 
   it('should call onClose when close button clicked', () => {
     const onClose = vi.fn();
-    render(
-      <MarketSummaryModal
-        market={mockMarket}
-        isOpen={true}
-        onClose={onClose}
-      />
-    );
+    render(<MarketSummaryModal market={mockMarket} isOpen={true} onClose={onClose} />);
 
     const closeButton = screen.getByRole('button', { name: /close/i });
     fireEvent.click(closeButton);
@@ -66,13 +50,7 @@ describe('MarketSummaryModal', () => {
   });
 
   it('should display settled market info', () => {
-    render(
-      <MarketSummaryModal
-        market={mockMarket}
-        isOpen={true}
-        onClose={() => {}}
-      />
-    );
+    render(<MarketSummaryModal market={mockMarket} isOpen={true} onClose={() => {}} />);
 
     expect(screen.getByText(/YES Won/i)).toBeInTheDocument();
     expect(screen.getByText(/68°F/i)).toBeInTheDocument(); // Observed temp

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 // Our design system colors with pre-calculated percentages
 const designColors = [
@@ -18,57 +18,43 @@ const designColors = [
 const total = designColors.reduce((sum, item) => sum + item.value, 0);
 
 // Pre-calculate percentages (static, no floating point issues)
-const colorData = designColors.map(c => ({
+const colorData = designColors.map((c) => ({
   ...c,
   percentage: ((c.value / total) * 100).toFixed(1),
 }));
 
 export function ColorPalettePieChart(): React.ReactElement {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [segments, setSegments] = useState<Array<{
-    name: string;
-    hex: string;
-    value: number;
-    percentage: string;
-    path: string;
-  }>>([]);
-
-  // Calculate paths only on client to avoid hydration mismatch
-  useEffect(() => {
-    let currentAngle = 0;
-    const calculated = colorData.map((item) => {
+  const segments = (() => {
+    const calculated = colorData.map((item, index) => {
       const angle = (item.value / total) * 360;
-      const startAngle = currentAngle;
-      const endAngle = currentAngle + angle;
-      currentAngle = endAngle;
-      
+      const startAngle = colorData
+        .slice(0, index)
+        .reduce((sum, color) => sum + (color.value / total) * 360, 0);
+      const endAngle = startAngle + angle;
+
       const startRad = (startAngle - 90) * (Math.PI / 180);
       const endRad = (endAngle - 90) * (Math.PI / 180);
-      
+
       const radius = 100;
       const x1 = 120 + radius * Math.cos(startRad);
       const y1 = 120 + radius * Math.sin(startRad);
       const x2 = 120 + radius * Math.cos(endRad);
       const y2 = 120 + radius * Math.sin(endRad);
-      
+
       const largeArcFlag = angle > 180 ? 1 : 0;
       const path = `M 120 120 L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
-      
+
       return { ...item, path };
     });
-    setSegments(calculated);
-  }, []);
+    return calculated;
+  })();
 
   return (
     <div className="flex flex-col lg:flex-row items-center gap-8">
       {/* SVG Pie Chart - added overflow visible and extra padding in viewBox */}
       <div className="relative">
-        <svg 
-          width="240" 
-          height="240" 
-          viewBox="-20 -20 280 280"
-          style={{ overflow: 'visible' }}
-        >
+        <svg width="240" height="240" viewBox="-20 -20 280 280" style={{ overflow: 'visible' }}>
           {segments.length > 0 ? (
             segments.map((segment, index) => (
               <motion.path
@@ -103,16 +89,11 @@ export function ColorPalettePieChart(): React.ReactElement {
           >
             Theme
           </text>
-          <text
-            x="120"
-            y="135"
-            textAnchor="middle"
-            className="font-body text-xs fill-neutral-500"
-          >
+          <text x="120" y="135" textAnchor="middle" className="font-body text-xs fill-neutral-500">
             Colors
           </text>
         </svg>
-        
+
         {/* Hover tooltip */}
         {hoveredIndex !== null && segments[hoveredIndex] && (
           <motion.div
@@ -137,17 +118,10 @@ export function ColorPalettePieChart(): React.ReactElement {
             onMouseEnter={() => setHoveredIndex(index)}
             onMouseLeave={() => setHoveredIndex(null)}
           >
-            <div
-              className="w-4 h-4 rounded-full flex-shrink-0"
-              style={{ backgroundColor: color.hex }}
-            />
+            <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: color.hex }} />
             <div>
-              <p className="font-body text-sm font-medium text-neutral-800">
-                {color.name}
-              </p>
-              <p className="font-mono text-xs text-neutral-500">
-                {color.hex}
-              </p>
+              <p className="font-body text-sm font-medium text-neutral-800">{color.name}</p>
+              <p className="font-mono text-xs text-neutral-500">{color.hex}</p>
             </div>
           </div>
         ))}
@@ -162,7 +136,7 @@ export function ColorSwatches(): React.ReactElement {
       {colorData.map((color) => (
         <div key={color.name} className="text-center">
           <div
-            className="w-full aspect-square rounded-xl mb-2 shadow-sm"
+            className="w-full aspect-square rounded-xl mb-2 shadow-xs"
             style={{ backgroundColor: color.hex }}
           />
           <p className="font-mono text-xs text-neutral-600">{color.hex}</p>
@@ -171,4 +145,3 @@ export function ColorSwatches(): React.ReactElement {
     </div>
   );
 }
-

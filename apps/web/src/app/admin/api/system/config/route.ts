@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAdminSession, logAdminAction } from '@/lib/admin-session';
 import { getSystemConfig, updateSystemConfig } from '@/lib/admin-data';
+import { adminWritesEnabled, adminReadOnlyResponse } from '@/lib/admin-writes';
 
 const updateConfigSchema = z.object({
   cadence: z.number().int().min(1).max(60).optional(),
@@ -32,13 +33,15 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
+
     const body = await request.json();
     const parseResult = updateConfigSchema.safeParse(body);
 
     if (!parseResult.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,12 +52,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       dailyCount?: number;
       bettingBuffer?: number;
     } = {};
-    
+
     if (parseResult.data.cadence !== undefined) updateData.cadence = parseResult.data.cadence;
     if (parseResult.data.testMode !== undefined) updateData.testMode = parseResult.data.testMode;
-    if (parseResult.data.dailyCount !== undefined) updateData.dailyCount = parseResult.data.dailyCount;
-    if (parseResult.data.bettingBuffer !== undefined) updateData.bettingBuffer = parseResult.data.bettingBuffer;
-    
+    if (parseResult.data.dailyCount !== undefined)
+      updateData.dailyCount = parseResult.data.dailyCount;
+    if (parseResult.data.bettingBuffer !== undefined)
+      updateData.bettingBuffer = parseResult.data.bettingBuffer;
+
     const newConfig = await updateSystemConfig(updateData);
 
     // Log changes
@@ -78,4 +83,3 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to update config' }, { status: 500 });
   }
 }
-

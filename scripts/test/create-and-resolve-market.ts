@@ -2,7 +2,7 @@
  * Script to create a test market and immediately resolve it to verify
  * the full flow including Google Sheets logging.
  * 
- * Usage: pnpm tsx scripts/test/create-and-resolve-market.ts
+ * Usage: npm exec -- tsx scripts/test/create-and-resolve-market.ts
  */
 import { config } from 'dotenv';
 import { resolve } from 'path';

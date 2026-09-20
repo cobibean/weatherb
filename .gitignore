@@ -6,7 +6,7 @@
 
 # Dependencies
 node_modules/
-.pnpm-store/
+.tools/
 
 # Build outputs
 dist/
@@ -32,7 +32,6 @@ contracts/broadcast/
 # Logs
 *.log
 npm-debug.log*
-pnpm-debug.log*
 
 # Testing
 coverage/
@@ -53,6 +52,3 @@ apps/web/next-env.d.ts
 *.db
 backups/
 apps/web/backups/
-
-# Local docs output
-/docs/

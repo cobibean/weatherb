@@ -1,196 +1,211 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mocks, chain, slots, rows, setupLifecycle, market } from '@/test/lifecycle-mocks';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { keccak256, toBytes, toEventSelector } from 'viem';
+import { CITIES } from '@weatherb/shared/constants';
+import * as readiness from '@/lib/cron/readiness';
 import { GET } from '../schedule-daily/route';
+const request = (query = ''): Request => new Request(`http://localhost/api/cron/schedule-daily${query}`);
+beforeEach(setupLifecycle);
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 
-import { TEST_PRIVATE_KEY_A } from '@/test/public-safe-fixtures';
-// Mock Next.js
-vi.mock('next/server', () => ({
-  NextResponse: {
-    json: (data: unknown, init?: ResponseInit) => ({
-      json: async () => data,
-      status: init?.status ?? 200,
-    }),
-  },
-}));
-
-// Mock weather provider
-vi.mock('@weatherb/shared/providers', () => ({
-  createWeatherProviderFromEnv: vi.fn(() => ({
-    getForecast: vi.fn(async () => 753), // 75.3°F
-  })),
-}));
-
-// Mock Redis
-const mockRedis = {
-  get: vi.fn(async () => 0),
-  set: vi.fn(async () => undefined),
-};
-
-// Mock viem contract clients
-const mockPublicClient = {
-  simulateContract: vi.fn(async () => ({
-    request: {},
-    result: 0n, // marketId
-  })),
-  waitForTransactionReceipt: vi.fn(async () => ({})),
-};
-
-const mockWalletClient = {
-  account: { address: '0xScheduler' as const },
-  writeContract: vi.fn(async () => '0xTransactionHash' as const),
-};
-
-// Mock lib/cron
-vi.mock('@/lib/cron', () => ({
-  verifyCronRequest: vi.fn(() => true),
-  unauthorizedResponse: vi.fn(() => ({ status: 401 })),
-  createContractClients: vi.fn(() => ({
-    publicClient: mockPublicClient,
-    walletClient: mockWalletClient,
-  })),
-  getUpstashRedis: vi.fn(() => mockRedis),
-  REDIS_KEYS: { CITY_INDEX: 'weatherb:city:index' },
-}));
-
-describe('Schedule Daily Route Integration Tests', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    // Set required env vars
-    process.env.RPC_URL = 'https://test-rpc.flare.network';
-    process.env.NEXT_PUBLIC_CONTRACT_ADDRESS = '0x1234567890123456789012345678901234567890';
-    process.env.SCHEDULER_PRIVATE_KEY = TEST_PRIVATE_KEY_A;
-    process.env.DAILY_MARKET_COUNT = '2';
-    process.env.MARKET_SPACING_HOURS = '3';
+describe('Scheduled market creation and recovery', () => {
+  it('checks authorization before accessing services', async () => {
+    mocks.auth.mockReturnValue(false);
+    expect((await GET(request())).status).toBe(401);
+    expect(mocks.cities).not.toHaveBeenCalled();
   });
-
-  it('creates markets successfully', async () => {
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(data.success).toBe(true);
-    expect(data.created).toBe(2);
-    expect(data.failed).toBe(0);
-    expect(data.results).toHaveLength(2);
-    expect(data.results[0]).toMatchObject({
-      marketId: '0',
-      thresholdTenths: 750, // 753 rounded to 750
+  it('does no chain work while paused', async () => {
+    mocks.config.mockResolvedValue({ isPaused: true });
+    expect(await (await GET(request())).json()).toMatchObject({ skipped: true });
+    expect(mocks.read).not.toHaveBeenCalled();
+  });
+  it.each(['offline', 'unseeded'])('fails closed with %s database', async (failure) => {
+    if (failure === 'offline') mocks.config.mockRejectedValue(new Error('offline'));
+    else mocks.cities.mockResolvedValue([]);
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.read).not.toHaveBeenCalled();
+  });
+  it('requires configuration', async () => {
+    vi.stubEnv('RPC_URL', '');
+    expect((await GET(request())).status).toBe(500);
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+  it('rejects legacy contracts', async () => {
+    mocks.read.mockResolvedValueOnce('2.0.0');
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+  it('does not create outside the five UTC hours', async () => {
+    vi.setSystemTime(new Date('2026-09-19T17:00:00Z'));
+    expect(await (await GET(request())).json()).toMatchObject({ created: 0, skipped: true });
+    expect(mocks.forecast).not.toHaveBeenCalled();
+  });
+  it('rejects zero active cities without fallback', async () => {
+    mocks.cities.mockResolvedValueOnce(CITIES).mockResolvedValue([]);
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+  it.each([
+    [753, 750],
+    [755, 760],
+    [749, 750],
+  ])('rounds %i to %i and persists the actual chain ID', async (forecast, threshold) => {
+    mocks.forecast.mockResolvedValue(forecast);
+    expect(await (await GET(request())).json()).toMatchObject({
+      success: true,
+      market: { marketId: '0', thresholdTenths: threshold },
     });
-  });
-
-  it('returns 401 when cron auth fails', async () => {
-    const { verifyCronRequest, unauthorizedResponse } = await import('@/lib/cron');
-    vi.mocked(verifyCronRequest).mockReturnValueOnce(false);
-    vi.mocked(unauthorizedResponse).mockReturnValueOnce(
-      new Response('Unauthorized', { status: 401 }) as never
+    expect(mocks.simulate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        functionName: 'createScheduledMarket',
+        args: [keccak256(toBytes('nyc')), BigInt(threshold), BigInt(Date.now() / 1000), 86400n],
+      }),
     );
-
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    const response = await GET(request);
-
-    expect(response.status).toBe(401);
+    expect(rows.get(0)).toMatchObject({
+      thresholdTemp: threshold,
+      resolveTime: new Date(Date.now() + 86400000),
+    });
+    expect(rows.has(9999)).toBe(false);
+    expect(mocks.receipt.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.upsert.mock.invocationCallOrder[0]!,
+    );
   });
-
-  it('returns 500 when missing env vars', async () => {
-    delete process.env.RPC_URL;
-
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(data.success).toBe(false);
-    expect(data.error).toContain('Missing configuration');
+  it('reuses the slot on repeat requests without fetching weather or writing again', async () => {
+    await GET(request());
+    expect(await (await GET(request())).json()).toMatchObject({
+      created: 0,
+      market: { marketId: '0' },
+    });
+    expect(mocks.write).toHaveBeenCalledTimes(1);
+    expect(chain).toHaveLength(1);
   });
-
-  it('continues on individual market failures', async () => {
-    const mockProvider = {
-      getForecast: vi.fn()
-        .mockResolvedValueOnce(750)
-        .mockRejectedValueOnce(new Error('Weather API error')),
-    };
-
-    const { createWeatherProviderFromEnv } = await import('@weatherb/shared/providers');
-    vi.mocked(createWeatherProviderFromEnv).mockReturnValue(mockProvider as never);
-
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(data.success).toBe(true);
-    expect(data.created).toBe(1);
-    expect(data.failed).toBe(1);
-    expect(data.errors).toHaveLength(1);
-    expect(data.errors[0].error).toContain('Weather API error');
+  it('rotates using durable chain count, not a pre-transaction Redis increment', async () => {
+    chain.push(market({ status: 3 }));
+    await GET(request());
+    expect(mocks.forecast).toHaveBeenCalledWith(
+      CITIES[1]!.latitude,
+      CITIES[1]!.longitude,
+      Date.now() / 1000 + 86400,
+    );
   });
-
-  it('respects DAILY_MARKET_COUNT limit', async () => {
-    process.env.DAILY_MARKET_COUNT = '6';
-
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(data.success).toBe(false);
-    expect(data.error).toContain('must be <= 5');
+  it('reports DB failure after successful creation, then recovers without another creation', async () => {
+    mocks.upsert.mockRejectedValueOnce(new Error('database disconnected'));
+    expect((await GET(request())).status).toBe(503);
+    expect(chain).toHaveLength(1);
+    expect((await GET(request())).status).toBe(200);
+    expect(rows.has(0)).toBe(true);
+    expect(mocks.write).toHaveBeenCalledTimes(1);
   });
-
-  it('rotates cities using Redis index', async () => {
-    mockRedis.get.mockResolvedValueOnce(2); // Start at index 2
-
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    await GET(request);
-
-    expect(mockRedis.get).toHaveBeenCalledWith('weatherb:city:index');
-    expect(mockRedis.set).toHaveBeenCalledWith('weatherb:city:index', 4); // 2 + 2 markets
+  it('recovers an earlier slot even outside creation hours', async () => {
+    mocks.upsert.mockRejectedValueOnce(new Error('offline'));
+    await GET(request());
+    vi.setSystemTime(new Date('2026-09-19T18:00:00Z'));
+    expect((await GET(request())).status).toBe(200);
+    expect(rows.has(0)).toBe(true);
+    expect(mocks.write).toHaveBeenCalledTimes(1);
   });
-
-  it.skip('calculates resolve times with correct spacing', async () => {
-    // TODO: Requires E2E testing framework (Playwright) to properly mock viem clients
-    process.env.MARKET_SPACING_HOURS = '2';
-    process.env.DAILY_MARKET_COUNT = '3';
-
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    await GET(request);
-
-    type SimulateContractCall = {
-      args: readonly [unknown, unknown, ...unknown[]];
-    };
-    const calls = mockPublicClient.simulateContract.mock
-      .calls as unknown as Array<[SimulateContractCall]>;
-    expect(calls).toHaveLength(3);
-
-    const resolveTimes = calls.map(([call]) => Number(call.args[1]));
-
-    // Should be spaced 2 hours (7200 seconds) apart
-    expect(resolveTimes[1]! - resolveTimes[0]!).toBe(7200);
-    expect(resolveTimes[2]! - resolveTimes[1]!).toBe(7200);
+  it('recovers an ambiguous receipt without resubmitting', async () => {
+    mocks.receipt.mockRejectedValueOnce(new Error('RPC timeout'));
+    expect((await GET(request())).status).toBe(503);
+    expect((await GET(request())).status).toBe(200);
+    expect(mocks.write).toHaveBeenCalledTimes(1);
   });
-
-  it('rounds forecast to nearest whole degree', async () => {
-    const mockProvider = {
-      getForecast: vi.fn()
-        .mockResolvedValueOnce(754) // 75.4°F → 750 (rounds down)
-        .mockResolvedValueOnce(755), // 75.5°F → 760 (rounds up)
-    };
-
-    const { createWeatherProviderFromEnv } = await import('@weatherb/shared/providers');
-    vi.mocked(createWeatherProviderFromEnv).mockReturnValue(mockProvider as never);
-
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(data.results[0].thresholdTenths).toBe(750);
-    expect(data.results[1].thresholdTenths).toBe(760);
+  it('rejects a reverted receipt and does not publish settlement', async () => {
+    mocks.receipt.mockResolvedValueOnce({ status: 'reverted' });
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
-
-  it.skip('waits for transaction confirmation', async () => {
-    // TODO: Requires E2E testing framework (Playwright) to properly mock viem clients
-    const request = new Request('http://localhost/api/cron/schedule-daily');
-    await GET(request);
-
-    expect(mockPublicClient.waitForTransactionReceipt).toHaveBeenCalled();
+  it('does not write after weather failure', async () => {
+    mocks.forecast.mockRejectedValue(new Error('unavailable'));
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+  it('does not write unsupported negative thresholds', async () => {
+    mocks.forecast.mockResolvedValue(-50);
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+  it('schedules confirmed resolve time and tolerates queue failure visibly', async () => {
+    vi.stubEnv('QSTASH_TOKEN', 'fixture');
+    vi.stubEnv('APP_URL', 'http://localhost');
+    mocks.publish.mockRejectedValueOnce(new Error('queue unavailable'));
+    expect(await (await GET(request())).json()).toMatchObject({
+      success: true,
+      settlementSchedule: {
+        scheduled: false,
+        message: 'Queue unavailable; periodic settlement remains required',
+      },
+    });
+    expect(mocks.publish).toHaveBeenCalledWith(
+      expect.objectContaining({ notBefore: Date.now() / 1000 + 86400 }),
+    );
+  });
+  it('handles concurrent requests with the same contract slot', async () => {
+    // Concurrent dynamic import mocking is not reliable in Vitest; preflight is tested separately above.
+    vi.spyOn(readiness, 'automationReadinessResponse').mockResolvedValue(null);
+    const responses = await Promise.all([GET(request()), GET(request())]);
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+    expect(slots.size).toBe(1);
+    expect(chain).toHaveLength(1);
+  });
+  it('records a skipped run while paused and no run on outage', async () => {
+    mocks.config.mockResolvedValue({ isPaused: true });
+    expect(await (await GET(request())).json()).toMatchObject({ skipped: true });
+    expect(mocks.runCreate).toHaveBeenCalledWith({ data: { kind: 'schedule-daily', trigger: 'manual' } });
+    expect(mocks.runUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'skipped' }) }));
+    mocks.runCreate.mockClear();
+    mocks.config.mockRejectedValue(new Error('offline'));
+    expect((await GET(request())).status).toBe(503);
+    expect(mocks.runCreate).not.toHaveBeenCalled();
+  });
+  it('returns 409 and logs busy when the scheduler lease is held', async () => {
+    mocks.queryRaw.mockResolvedValueOnce([]);
+    const response = await GET(request());
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ busy: true });
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(mocks.runUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'busy' }) }));
+  });
+  it('logs a succeeded run with the created market and releases the lease', async () => {
+    mocks.receipt.mockResolvedValue({ status: 'success', logs: [
+      { address: '0x0000000000000000000000000000000000000001', topics: [toEventSelector('MarketCreated(uint256,bytes32,uint64,uint256,address)')] },
+    ] });
+    expect((await GET(request())).status).toBe(200);
+    expect(mocks.runUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'succeeded', summary: expect.objectContaining({ created: 1, marketId: '0' }) }),
+    }));
+    expect(mocks.executeRaw).toHaveBeenCalled(); // release
+  });
+  it('schedules settlement once through the shared helper', async () => {
+    vi.stubEnv('QSTASH_TOKEN', 'qs'); vi.stubEnv('APP_URL', 'https://worker.example');
+    mocks.publish.mockResolvedValue({ messageId: 'msg-1' });
+    await GET(request());
+    await GET(request()); // same slot → reuse, no second publish
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ data: { settlementMessageId: expect.any(String) } }));
+  });
+  it('creates a short hidden test market at any hour when test=1', async () => {
+    vi.setSystemTime(new Date('2026-09-20T20:07:00Z'));
+    const response = await GET(request('?duration=1800&test=1'));
+    expect(response.status).toBe(200);
+    expect(mocks.simulate).toHaveBeenCalledWith(expect.objectContaining({ functionName: 'createScheduledMarket', args: [expect.any(String), expect.any(BigInt), BigInt(Date.UTC(2026, 8, 20, 20) / 1000), 1800n] }));
+    expect(rows.get(0)).toMatchObject({ isTest: true });
+    expect(Number(chain[0]!.resolveTime) - Math.floor(Date.now() / 1000)).toBe(1800);
+  });
+  it('declares 86400 for daily markets and refuses other durations without test=1', async () => {
+    expect((await GET(request('?duration=1800'))).status).toBe(400);
+    await GET(request());
+    expect(mocks.simulate).toHaveBeenCalledWith(expect.objectContaining({ args: expect.arrayContaining([86400n]) }));
+    expect(rows.get(0)).toMatchObject({ isTest: false });
+  });
+  it('rejects out-of-range or malformed durations', async () => {
+    for (const q of ['?duration=899&test=1', '?duration=604801&test=1', '?duration=abc&test=1'])
+      expect((await GET(request(q))).status).toBe(400);
+    expect(mocks.write).not.toHaveBeenCalled();
   });
 });

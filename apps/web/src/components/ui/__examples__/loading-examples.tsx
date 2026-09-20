@@ -16,7 +16,7 @@ import {
   InlineLoader,
 } from '@/components/ui/loading-spinner';
 
-export function LoadingExamples() {
+export function LoadingExamples(): React.ReactElement {
   const [showOverlay, setShowOverlay] = useState(false);
 
   return (
@@ -24,12 +24,8 @@ export function LoadingExamples() {
       <div className="max-w-6xl mx-auto space-y-16">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-neutral-800 mb-2">
-            Loading Animations
-          </h1>
-          <p className="text-neutral-600">
-            On-brand loading states for weatherB
-          </p>
+          <h1 className="text-4xl font-bold text-neutral-800 mb-2">Loading Animations</h1>
+          <p className="text-neutral-600">On-brand loading states for weatherB</p>
         </div>
 
         {/* Main Spinners */}
@@ -206,9 +202,7 @@ export function LoadingExamples() {
           <h2 className="text-2xl font-bold text-neutral-800">Full-Page Overlay</h2>
 
           <div className="card">
-            <p className="text-neutral-600 mb-4">
-              Click to trigger a full-page loading overlay
-            </p>
+            <p className="text-neutral-600 mb-4">Click to trigger a full-page loading overlay</p>
             <button
               className="btn-primary"
               onClick={() => {
@@ -229,9 +223,7 @@ export function LoadingExamples() {
             {/* Modal Loading State */}
             <div className="card">
               <h3 className="font-semibold text-neutral-800 mb-2">Modal Loading</h3>
-              <p className="text-sm text-neutral-600 mb-4">
-                When loading data in a modal dialog
-              </p>
+              <p className="text-sm text-neutral-600 mb-4">When loading data in a modal dialog</p>
               <div className="bg-white/95 backdrop-blur-xl rounded-2xl px-8 py-10 shadow-glass-lg border border-white/50 inline-block">
                 <LoadingSpinner size="lg" variant="default" label="Loading market data" />
               </div>
@@ -240,9 +232,7 @@ export function LoadingExamples() {
             {/* Card Loading State */}
             <div className="card">
               <h3 className="font-semibold text-neutral-800 mb-2">Card Content Loading</h3>
-              <p className="text-sm text-neutral-600 mb-4">
-                Skeleton loader for card content
-              </p>
+              <p className="text-sm text-neutral-600 mb-4">Skeleton loader for card content</p>
               <div className="space-y-3 max-w-md">
                 <LoadingSkeleton variant="default" />
                 <LoadingSkeleton variant="text" />
@@ -253,9 +243,7 @@ export function LoadingExamples() {
             {/* Inline Text Loading */}
             <div className="card">
               <h3 className="font-semibold text-neutral-800 mb-2">Inline Loading</h3>
-              <p className="text-sm text-neutral-600 mb-4">
-                Loading dots for text content
-              </p>
+              <p className="text-sm text-neutral-600 mb-4">Loading dots for text content</p>
               <p className="text-neutral-800">
                 Fetching latest data <LoadingDots variant="sky" className="inline-flex" />
               </p>
@@ -265,11 +253,7 @@ export function LoadingExamples() {
       </div>
 
       {/* Overlay Component */}
-      <LoadingOverlay
-        isLoading={showOverlay}
-        label="Loading data"
-        variant="default"
-      />
+      <LoadingOverlay isLoading={showOverlay} label="Loading data" variant="default" />
     </div>
   );
 }

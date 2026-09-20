@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import type { Suggestion, Vote, SuggestionStatus, TimeWindow } from '@prisma/client';
+import type { Market, Suggestion, SuggestionStatus, TimeWindow, WorkerLease, WorkerRun } from '@prisma/client';
+import { describe, expect, it } from 'vitest';
 
 describe('Schema Types', () => {
   it('should have correct Suggestion type', () => {
@@ -27,5 +27,22 @@ describe('Schema Types', () => {
     const window: TimeWindow = 'AFTERNOON';
     expect(status).toBe('PENDING');
     expect(window).toBe('AFTERNOON');
+  });
+});
+
+describe('worker operations schema', () => {
+  it('exposes settlement tracking and worker models', () => {
+    const market: Pick<
+      Market,
+      'settlementAttempts' | 'settlementTxHash' | 'settlementSubmittedAt' | 'settlementMessageId'
+    > = {
+      settlementAttempts: 0,
+      settlementTxHash: null,
+      settlementSubmittedAt: null,
+      settlementMessageId: null,
+    };
+    const run: Pick<WorkerRun, 'kind' | 'status'> = { kind: 'settle-sweep', status: 'running' };
+    const lease: Pick<WorkerLease, 'id' | 'holder'> = { id: 'settler:0xabc', holder: 'run-1' };
+    expect([market, run, lease]).toHaveLength(3);
   });
 });

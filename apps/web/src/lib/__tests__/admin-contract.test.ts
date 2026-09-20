@@ -50,4 +50,3 @@ describe('Admin Contract Helpers', () => {
     });
   });
 });
-

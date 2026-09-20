@@ -9,7 +9,7 @@ type DocsPageProps = {
 export const dynamicParams = false;
 export const dynamic = 'force-static';
 
-export function generateStaticParams() {
+export function generateStaticParams(): { slug: string[] }[] {
   const slugs = docNav
     .map((item) => item.slug)
     .filter((slug) => slug !== 'README')
@@ -18,7 +18,7 @@ export function generateStaticParams() {
   return [{ slug: [] }, ...slugs];
 }
 
-export default async function DocsCatchAllPage({ params }: DocsPageProps) {
+export default async function DocsCatchAllPage({ params }: DocsPageProps): Promise<React.ReactElement> {
   const { slug: slugSegments } = await params;
   if (slugSegments && slugSegments.length > 1) {
     notFound();

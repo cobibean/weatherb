@@ -8,7 +8,7 @@ A prediction market on Flare where users bet YES/NO on temperature outcomes.
 
 ## Status
 
-Testnet (Coston2). Core product complete (Epics 0-7). Epic 8 in progress; Epics 9-10 planned.
+Arc/USDC restart in progress. Phases 1–3 establish a reproducible verification baseline and a fresh local development database. Supabase provisioning is deferred; Arc transactions and wallet configuration are later work. All hosted schedules remain paused.
 
 ---
 
@@ -28,8 +28,8 @@ Testnet (Coston2). Core product complete (Epics 0-7). Epic 8 in progress; Epics 
 | Layer | Choice |
 | --- | --- |
 | Blockchain | Flare (Coston2 testnet / Flare mainnet) |
-| Contracts | Foundry + Solidity 0.8.24 (UUPS) |
-| Frontend | Next.js 16.1, React 19, Tailwind, shadcn/ui |
+| Contracts | Foundry 1.8.3 + Solidity 0.8.37 (UUPS) |
+| Frontend | Next.js 16.3, React 19, Tailwind, shadcn/ui |
 | Wallet | Thirdweb + WalletConnect |
 | Database | PostgreSQL + Prisma |
 | Deployment | Vercel + Upstash Redis |
@@ -42,8 +42,9 @@ Testnet (Coston2). Core product complete (Epics 0-7). Epic 8 in progress; Epics 
 ```
 weatherb/
 ├── contracts/        # Foundry — WeatherMarketV2.sol (UUPS)
-├── apps/web/         # Next.js 16.1 — app, admin, cron routes
+├── apps/web/         # Next.js 16.3 — app, admin, cron routes
 ├── packages/shared/  # Types, ABIs, constants, providers
+├── deferred/         # Preserved optional features; outside the active app
 ├── docs/epics/       # Internal build plans
 ├── weatherbdocs/     # Public docs (GitBook-ready)
 └── infra/            # Local Postgres/Redis
@@ -55,53 +56,66 @@ weatherb/
 
 ### Prerequisites
 
-- Node.js 20+ (see `.nvmrc`)
-- pnpm 9+
-- Foundry
-- Docker (optional, for local Postgres + Redis)
+- Node.js 24.21.0 (see `.nvmrc`)
+- npm 12.0.2
+- Foundry 1.8.3 (installed locally by `npm run setup:contracts`)
+- PostgreSQL CLI tools for disposable database tests: Homebrew `postgresql@14` on macOS or `postgresql-16` on Ubuntu. Set `WEATHERB_PG_BIN` for a different installation.
+- Docker (optional, for ordinary development Postgres + Redis)
 
 ### Setup
 
 1. Install dependencies:
 
    ```bash
-   pnpm install
+   nvm install
+   nvm use
+   npm install --global npm@12.0.2
+   npm ci
+   npm run setup:contracts
    ```
 
-2. Start local services:
+2. Create and seed the private local development database (PostgreSQL tools required):
 
    ```bash
-   docker compose -f infra/docker-compose.yml up -d
+   npm run arc:setup
+   npm run arc:migrate
+   npm run arc:seed
+   npm run arc:check
    ```
 
-3. Environment:
+3. Start the app on loopback with its separate development profile:
 
    ```bash
-   cp .env.example .env
+   npm run dev
    ```
 
-   `FLARE_CONTRACT_REGISTRY_ADDRESS` (Coston2 + Flare mainnet): `0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019`
-
-4. Build contracts:
+4. Verify without credentials or live services:
 
    ```bash
-   pnpm -C contracts build
+   npm run verify
    ```
 
-5. Run dev server:
+`npm run verify` runs lint, typechecking, safety/unit/contract tests, disposable
+PostgreSQL integration tests, the full production build, and ABI consistency.
+It does not require `.env`, Supabase, Redis, RPC access, or wallet keys. The database
+runner creates its own private cluster and removes it on completion. It refuses
+caller-supplied test targets. See [verification](docs/testing/development-verification.md)
+for individual commands and the active/deferred boundary.
 
-   ```bash
-   pnpm dev
-   ```
+Development uses ignored `.env.arc-dev`; root `.env` remains legacy and is not loaded
+by the `arc:*` commands. `npm run dev` starts the owned local cluster if needed.
+Stop PostgreSQL with `npm run arc:stop`; data is preserved. Arc RPC/wallet configuration
+is intentionally absent, so active markets show unavailable while database history
+is empty. See [local database setup](docs/testing/arc-development-database.md).
 
-6. Run tests:
+The root `npm run build` is a credential-free **verification artifact** with dummy
+public configuration. Deployments must use the web workspace's normal build with
+explicit destination configuration; do not publish the verification artifact.
 
-   ```bash
-   pnpm test
-   pnpm -C contracts test
-   ```
-
-See `.env.example` for required environment variables.
+See the [readiness plan](docs/plans/2026-09-18-arc-usdc-readiness-plan.md),
+[phase 1 baseline](docs/plans/2026-09-18-phase-1-development-baseline.md),
+[phase 2 report](docs/plans/2026-09-18-phase-2-safe-verification.md), and
+[phase 3 report](docs/plans/2026-09-19-phase-3-development-database.md).
 
 ---
 
@@ -121,8 +135,8 @@ Market creation and settlement are handled by Vercel Cron jobs. Schedules are de
 
 - `/api/cron/schedule-daily` - Creates markets based on daily configuration
 - `/api/cron/settle-markets` - Settles eligible markets every 5 minutes
-- `/api/cron/update-trending` - Updates suggestion trends
-- `/api/cron/weekly-report` - Weekly reporting job
+- `/api/cron/update-trending` - Deferred; returns HTTP 410
+- `/api/cron/weekly-report` - Deferred; returns HTTP 410
 
 Required environment variables:
 - `RPC_URL` - Flare RPC endpoint

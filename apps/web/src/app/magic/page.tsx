@@ -1,10 +1,5 @@
-import { Suspense } from 'react';
-import { MagicLinkConfirmationClient } from './magic-link-confirmation';
+import { notFound } from 'next/navigation';
 
-export default function MagicLinkConfirmation(): React.ReactElement {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <MagicLinkConfirmationClient />
-    </Suspense>
-  );
+export default function DeferredPage(): never {
+  notFound();
 }

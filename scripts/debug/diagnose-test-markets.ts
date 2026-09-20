@@ -1,3 +1,5 @@
+import { requireDatabaseUrl } from '@weatherb/shared/utils/database-url';
+import { PrismaPg } from '@prisma/adapter-pg';
 #!/usr/bin/env npx tsx
 /**
  * Diagnostic script to analyze why test markets didn't resolve
@@ -21,7 +23,7 @@ if (!RPC_URL || !CONTRACT_ADDRESS) {
   process.exit(1);
 }
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: requireDatabaseUrl(), connectionTimeoutMillis: 5000 }) });
 const client = createPublicClient({
   transport: http(RPC_URL),
 });

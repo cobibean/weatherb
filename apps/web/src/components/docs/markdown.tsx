@@ -97,7 +97,7 @@ export const renderInlineMarkdown = (input: string): ReactNode[] => {
       return (
         <code
           key={`code-${index}`}
-          className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-sm text-neutral-700"
+          className="rounded-sm bg-[#0c2134] px-1.5 py-0.5 font-mono text-sm text-[#f4f7fb]"
         >
           {token.value}
         </code>
@@ -111,7 +111,7 @@ export const renderInlineMarkdown = (input: string): ReactNode[] => {
             href={token.href}
             target="_blank"
             rel="noreferrer noopener"
-            className="text-sky-deep underline decoration-sky-deep/40 underline-offset-4 hover:decoration-sky-deep"
+            className="text-[#a6d6f2] underline decoration-sky-deep/40 underline-offset-4 hover:decoration-sky-deep"
           >
             {token.value}
           </a>
@@ -124,7 +124,7 @@ export const renderInlineMarkdown = (input: string): ReactNode[] => {
           href={token.href}
           target="_blank"
           rel="noreferrer noopener"
-          className="text-sky-deep underline decoration-sky-deep/40 underline-offset-4 hover:decoration-sky-deep"
+          className="text-[#a6d6f2] underline decoration-sky-deep/40 underline-offset-4 hover:decoration-sky-deep"
         >
           {token.value}
         </Link>
@@ -142,7 +142,7 @@ export const renderMarkdownParagraphs = (markdown: string): ReactNode[] => {
   return trimmed.split(/\n\s*\n/).map((paragraph, index) => {
     const cleanParagraph = paragraph.replace(/\n+/g, ' ');
     return (
-      <p key={`paragraph-${index}`} className="text-base leading-relaxed text-neutral-700">
+      <p key={`paragraph-${index}`} className="text-base leading-relaxed text-[#f4f7fb]">
         {renderInlineMarkdown(cleanParagraph)}
       </p>
     );

@@ -1,0 +1,18 @@
+{
+  "foundry_v1.8.3_darwin_amd64.tar.gz": {
+    "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.3/foundry_v1.8.3_darwin_amd64.tar.gz",
+    "sha256": "1b469229681b31e3c66a07132811b99460b2874a0a48de3b29500234454f47b8"
+  },
+  "foundry_v1.8.3_darwin_arm64.tar.gz": {
+    "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.3/foundry_v1.8.3_darwin_arm64.tar.gz",
+    "sha256": "562f9c2f9094e512f1efc1e005c79de7642c27ffc1e7e9dcf8e31baa54577d6e"
+  },
+  "foundry_v1.8.3_linux_amd64.tar.gz": {
+    "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.3/foundry_v1.8.3_linux_amd64.tar.gz",
+    "sha256": "7ca48e6ca3cac1bce1403ca67e5bc1dc3bc1fd818199c9957c7165079c228568"
+  },
+  "foundry_v1.8.3_linux_arm64.tar.gz": {
+    "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.3/foundry_v1.8.3_linux_arm64.tar.gz",
+    "sha256": "93fc23be26c8a902ca58fe54aa6ca28c880b58af95d052674933161df7928e6d"
+  }
+}

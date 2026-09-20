@@ -1,3 +1,5 @@
+import { requireDatabaseUrl } from '@weatherb/shared/utils/database-url';
+import { PrismaPg } from '@prisma/adapter-pg';
 #!/usr/bin/env npx tsx
 /**
  * FORCE resolution script for test markets - BYPASSES TIME CHECK.
@@ -30,7 +32,7 @@ if (!RPC_URL || !CONTRACT_ADDRESS || !SETTLER_PRIVATE_KEY) {
   process.exit(1);
 }
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: requireDatabaseUrl(), connectionTimeoutMillis: 5000 }) });
 const STATUS_MAP = ['Open', 'Closed', 'Resolved', 'Cancelled', 'NoWinners'] as const;
 
 // Parse args

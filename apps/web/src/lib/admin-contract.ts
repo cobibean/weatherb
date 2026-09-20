@@ -1,3 +1,5 @@
+import { ARC_TESTNET, assertArcChain } from '@weatherb/shared/constants';
+import { requireRestartContract } from './cron/market-state';
 import { createContractClients } from './cron/contract';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { createPublicClient, http, type Hex } from 'viem';
@@ -21,7 +23,8 @@ async function resolveOwnerPrivateKey(params: {
     throw new Error('Missing ADMIN_PRIVATE_KEY or SCHEDULER_PRIVATE_KEY environment variable');
   }
 
-  const publicClient = createPublicClient({ transport: http(params.rpcUrl) });
+  const publicClient = createPublicClient({ chain: ARC_TESTNET, transport: http(params.rpcUrl) });
+  assertArcChain(await publicClient.getChainId());
   const owner = await publicClient.readContract({
     address: params.contractAddress,
     abi: WEATHER_MARKET_ABI,
@@ -63,6 +66,7 @@ export async function getAdminContractClients(): Promise<AdminContractClients> {
 
   const privateKey = await resolveOwnerPrivateKey({ rpcUrl, contractAddress });
   const clients = createContractClients({ rpcUrl, privateKey });
+  await requireRestartContract(clients.publicClient, contractAddress);
 
   return {
     ...clients,
@@ -87,7 +91,8 @@ export async function cancelMarketOnChain(marketId: number): Promise<Hex> {
   });
 
   const txHash = await walletClient.writeContract(request);
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== 'success') throw new Error(`Cancellation reverted: ${txHash}`);
 
   return txHash;
 }

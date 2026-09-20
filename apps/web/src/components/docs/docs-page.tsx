@@ -18,19 +18,19 @@ const withContractBlock = (page: DocPage): DocSection[] => {
   return [...page.sections, contractBlock];
 };
 
-export function DocsPage({ page }: DocsPageProps) {
+export function DocsPage({ page }: DocsPageProps): React.ReactElement {
   const sections = withContractBlock(page);
 
   return (
     <article className="space-y-10">
       <header>
-        <h1 className="font-display text-3xl sm:text-4xl text-neutral-900">{page.title}</h1>
+        <h1 className="font-display text-3xl sm:text-4xl text-[#f4f7fb]">{page.title}</h1>
       </header>
 
       {sections.map((section) => (
         <section key={section.id} id={section.id} className="scroll-mt-24 space-y-4">
           {shouldShowHeading(section, page.title) && (
-            <h2 className="font-display text-2xl text-neutral-900">{section.title}</h2>
+            <h2 className="font-display text-2xl text-[#f4f7fb]">{section.title}</h2>
           )}
           <div className="space-y-5">
             {section.blocks.map((block, index) => (

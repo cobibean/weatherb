@@ -1,33 +1,35 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
-import { Sora, Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
+import '@/components/home/afterglow.css';
+import '@/components/layout/afterglow-interiors.css';
 import { Providers } from './providers';
 
 // Bold, geometric display font for headings
-const sora = Sora({
-  subsets: ['latin'],
+const sora = localFont({
+  src: '../fonts/sora.ttf',
   variable: '--font-sora',
   display: 'swap',
-  weight: ['400', '600', '700', '800'],
+  weight: '100 800',
 });
 
 // Clean, modern body font with personality
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
+const jakarta = localFont({
+  src: '../fonts/plus-jakarta-sans.ttf',
   variable: '--font-jakarta',
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  weight: '200 800',
 });
 
 export const metadata: Metadata = {
   title: 'weatherB | Call the Temp',
-  description: 'YES/NO bets on weather. Powered by Flare.',
-  keywords: ['weather', 'prediction market', 'betting', 'temperature', 'flare', 'blockchain'],
+  description: 'YES/NO bets on weather. Powered by Arc.',
+  keywords: ['weather', 'prediction market', 'betting', 'temperature', 'arc', 'blockchain'],
   authors: [{ name: 'weatherB Team' }],
   openGraph: {
     title: 'weatherB | Call the Temp',
-    description: 'YES/NO bets on weather. Powered by Flare.',
+    description: 'YES/NO bets on weather. Powered by Arc.',
     type: 'website',
   },
 };

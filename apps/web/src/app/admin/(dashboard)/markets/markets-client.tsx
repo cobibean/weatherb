@@ -19,12 +19,13 @@ import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
 import type { AdminMarket } from '@/lib/admin-data';
 import type { Market } from '@weatherb/shared/types';
 import type { SerializedMarket } from '@/lib/contract-data';
-import { formatFlr } from '@weatherb/shared/utils/payout';
+import { formatUsdc } from '@weatherb/shared/utils/payout';
 
 interface MarketsClientProps {
   markets: AdminMarket[];
   isPaused: boolean;
   isSettlerPaused: boolean;
+  writesEnabled: boolean;
 }
 
 // Helper function to convert AdminMarket to Market format for the modal
@@ -37,10 +38,11 @@ function convertToMarket(adminMarket: AdminMarket): Market {
     longitude: 0, // Not available in AdminMarket, but not used by modal
     resolveTime: adminMarket.resolveTime,
     thresholdF_tenths: adminMarket.thresholdTenths,
-    currency: 'FLR',
+    currency: 'USDC',
     status: adminMarket.status.toLowerCase() as Market['status'],
     yesPool: BigInt(adminMarket.yesPool),
     noPool: BigInt(adminMarket.noPool),
+    totalFees: BigInt(adminMarket.totalFees ?? '0'),
   };
 
   // Only add optional properties if they exist
@@ -54,7 +56,12 @@ function convertToMarket(adminMarket: AdminMarket): Market {
   return market;
 }
 
-export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPaused: initialSettlerPaused }: MarketsClientProps): React.ReactElement {
+export function MarketsClient({
+  markets,
+  isPaused: initialPaused,
+  isSettlerPaused: initialSettlerPaused,
+  writesEnabled,
+}: MarketsClientProps): React.ReactElement {
   const router = useRouter();
   const [isPaused, setIsPaused] = useState(initialPaused);
   const [isSettlerPaused, setIsSettlerPaused] = useState(initialSettlerPaused);
@@ -76,7 +83,7 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isPaused: newState }),
     });
-    
+
     if (res.ok) {
       setIsPaused(newState);
       router.refresh();
@@ -90,7 +97,7 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settlerPaused: newState }),
     });
-    
+
     if (res.ok) {
       setIsSettlerPaused(newState);
       router.refresh();
@@ -155,9 +162,11 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
         );
       case 'Resolved':
         return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            outcome ? 'bg-success-soft/50 text-neutral-800' : 'bg-error-soft/50 text-neutral-800'
-          }`}>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium ${
+              outcome ? 'bg-success-soft/50 text-neutral-800' : 'bg-error-soft/50 text-neutral-800'
+            }`}
+          >
             {outcome ? 'YES Won' : 'NO Won'}
           </span>
         );
@@ -180,7 +189,9 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
 
   const openMarkets = markets.filter((m) => m.status === 'Open' || m.status === 'Closed');
 
-  const fetchPastMarkets = async (cursor?: string): Promise<{ markets: AdminMarket[]; nextCursor: string | null }> => {
+  const fetchPastMarkets = async (
+    cursor?: string,
+  ): Promise<{ markets: AdminMarket[]; nextCursor: string | null }> => {
     const params = new URLSearchParams({
       status: 'past',
       limit: '50',
@@ -254,6 +265,7 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
       <EmergencyControls
         isPaused={isPaused}
         isSettlerPaused={isSettlerPaused}
+        writesEnabled={writesEnabled}
         onPauseToggle={handlePauseToggle}
         onSettlerPauseToggle={handleSettlerPauseToggle}
       />
@@ -314,8 +326,8 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
                       </div>
                       <div className="flex items-center gap-4 mt-1 text-sm text-neutral-500">
                         <span className="flex items-center gap-1">
-                          <Thermometer className="w-3.5 h-3.5" />
-                          ≥{formatTemp(market.thresholdTenths)}
+                          <Thermometer className="w-3.5 h-3.5" />≥
+                          {formatTemp(market.thresholdTenths)}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />
@@ -328,11 +340,11 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
                   <div className="flex items-center gap-4">
                     <div className="text-center">
                       <p className="font-body text-xs text-neutral-400">YES Pool</p>
-                      <p className="font-mono font-bold text-success-soft">{market.yesPool} FLR</p>
+                      <p className="font-mono font-bold text-success-soft">{formatUsdc(BigInt(market.yesPool))} USDC</p>
                     </div>
                     <div className="text-center">
                       <p className="font-body text-xs text-neutral-400">NO Pool</p>
-                      <p className="font-mono font-bold text-error-soft">{market.noPool} FLR</p>
+                      <p className="font-mono font-bold text-error-soft">{formatUsdc(BigInt(market.noPool))} USDC</p>
                     </div>
 
                     <button
@@ -345,7 +357,8 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
 
                     <button
                       onClick={() => setConfirmCancel(market.id)}
-                      disabled={cancellingId === market.id}
+                      disabled={!writesEnabled || cancellingId === market.id}
+                      title={writesEnabled ? undefined : 'Admin panel is read-only'}
                       className="px-3 py-2 rounded-xl bg-error-soft/20 text-error-soft hover:bg-error-soft/30 transition-colors disabled:opacity-50"
                     >
                       {cancellingId === market.id ? (
@@ -410,8 +423,8 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
                       </div>
                       <div className="flex items-center gap-4 mt-1 text-sm text-neutral-400">
                         <span className="flex items-center gap-1">
-                          <Thermometer className="w-3.5 h-3.5" />
-                          ≥{formatTemp(market.thresholdTenths)}
+                          <Thermometer className="w-3.5 h-3.5" />≥
+                          {formatTemp(market.thresholdTenths)}
                           {market.resolvedTemp !== undefined && (
                             <span className="ml-1">→ {market.resolvedTemp}°F</span>
                           )}
@@ -427,11 +440,11 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
                   <div className="flex items-center gap-4">
                     <div className="text-center">
                       <p className="font-body text-xs text-neutral-400">YES Pool</p>
-                      <p className="font-mono text-neutral-500">{market.yesPool} FLR</p>
+                      <p className="font-mono text-neutral-500">{formatUsdc(BigInt(market.yesPool))} USDC</p>
                     </div>
                     <div className="text-center">
                       <p className="font-body text-xs text-neutral-400">NO Pool</p>
-                      <p className="font-mono text-neutral-500">{market.noPool} FLR</p>
+                      <p className="font-mono text-neutral-500">{formatUsdc(BigInt(market.noPool))} USDC</p>
                     </div>
 
                     <button
@@ -477,7 +490,7 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md p-6 bg-white rounded-2xl shadow-xl"
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-error-soft/30 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-error-soft/30 flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-6 h-6 text-error-soft" />
                 </div>
                 <div className="flex-1">
@@ -485,8 +498,8 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
                     Cancel Market #{confirmCancel}?
                   </h3>
                   <p className="font-body text-neutral-600 mb-4">
-                    This will cancel the market and allow all bettors to claim refunds.
-                    This action cannot be undone.
+                    This will cancel the market and allow all bettors to claim refunds. This action
+                    cannot be undone.
                   </p>
 
                   <div className="flex items-center gap-3">
@@ -531,9 +544,10 @@ export function MarketsClient({ markets, isPaused: initialPaused, isSettlerPause
 }
 
 function mapSerializedToAdminMarket(market: SerializedMarket): AdminMarket {
-  const resolvedTemp = market.resolvedTempF_tenths !== undefined
-    ? Math.round(market.resolvedTempF_tenths / 10)
-    : undefined;
+  const resolvedTemp =
+    market.resolvedTempF_tenths !== undefined
+      ? Math.round(market.resolvedTempF_tenths / 10)
+      : undefined;
   const outcome = market.outcome;
 
   return {
@@ -543,8 +557,9 @@ function mapSerializedToAdminMarket(market: SerializedMarket): AdminMarket {
     resolveTime: market.resolveTime,
     thresholdTenths: market.thresholdF_tenths,
     status: mapPastStatus(market.status),
-    yesPool: formatFlr(BigInt(market.yesPool)),
-    noPool: formatFlr(BigInt(market.noPool)),
+    yesPool: market.yesPool,
+    noPool: market.noPool,
+    totalFees: market.totalFees ?? '0',
     ...(outcome !== undefined ? { outcome } : {}),
     ...(resolvedTemp !== undefined ? { resolvedTemp } : {}),
   };

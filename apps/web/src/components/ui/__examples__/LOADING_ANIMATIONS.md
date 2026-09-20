@@ -5,6 +5,7 @@ Clean, subtle, Apple-level loading animations that match weatherB's UI/UX design
 ## Design Philosophy
 
 These loading animations follow weatherB's aesthetic principles:
+
 - **Clean & Minimal**: No unnecessary motion or distraction
 - **Branded**: Uses weatherB's sky/sunset color palette
 - **Subtle**: Gentle animations that feel premium
@@ -27,12 +28,14 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 ```
 
 **Props:**
+
 - `size?: 'sm' | 'md' | 'lg'` - Default: `'md'`
 - `variant?: 'default' | 'sunset' | 'sky' | 'minimal'` - Default: `'default'`
 - `label?: string` - Optional loading text
 - `className?: string` - Additional CSS classes
 
 **Variants:**
+
 - `default` - Sky blue gradient (primary brand colors)
 - `sunset` - Sunset pink/orange gradient (warm CTAs)
 - `sky` - Pure sky blue gradient (cool actions)
@@ -48,14 +51,18 @@ Pulsing dot animation for inline loading states.
 import { LoadingDots } from '@/components/ui/loading-spinner';
 
 // Inline with text
-<p>Fetching data <LoadingDots variant="sky" /></p>
+<p>
+  Fetching data <LoadingDots variant="sky" />
+</p>;
 ```
 
 **Props:**
+
 - `variant?: 'default' | 'sunset' | 'sky' | 'minimal'`
 - `className?: string`
 
 **Best for:**
+
 - Inline text loading
 - Compact spaces
 - Minimal visual impact
@@ -74,14 +81,16 @@ import { LoadingSkeleton } from '@/components/ui/loading-spinner';
   <LoadingSkeleton variant="default" />
   <LoadingSkeleton variant="text" />
   <LoadingSkeleton variant="text" className="w-2/3" />
-</div>
+</div>;
 ```
 
 **Props:**
+
 - `variant?: 'default' | 'card' | 'text'`
 - `className?: string`
 
 **Best for:**
+
 - Content placeholders
 - Card loading states
 - List items
@@ -97,19 +106,17 @@ import { LoadingOverlay } from '@/components/ui/loading-spinner';
 
 const [isLoading, setIsLoading] = useState(false);
 
-<LoadingOverlay
-  isLoading={isLoading}
-  label="Processing transaction"
-  variant="sunset"
-/>
+<LoadingOverlay isLoading={isLoading} label="Processing transaction" variant="sunset" />;
 ```
 
 **Props:**
+
 - `isLoading: boolean` - Show/hide overlay
 - `label?: string` - Loading message
 - `variant?: 'default' | 'sunset' | 'sky' | 'minimal'`
 
 **Best for:**
+
 - Form submissions
 - Transaction processing
 - Page transitions
@@ -126,14 +133,16 @@ import { InlineLoader } from '@/components/ui/loading-spinner';
 <button className="btn-primary" disabled>
   <InlineLoader variant="minimal" size="sm" />
   Processing
-</button>
+</button>;
 ```
 
 **Props:**
+
 - `variant?: 'default' | 'sunset' | 'sky' | 'minimal'`
 - `size?: 'sm' | 'md'`
 
 **Best for:**
+
 - Button loading states
 - Icon replacements
 - Inline indicators
@@ -145,14 +154,16 @@ import { InlineLoader } from '@/components/ui/loading-spinner';
 ### Modal Loading State
 
 ```tsx
-{isLoading && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-    <motion.div className="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl px-8 py-10 shadow-glass-lg border border-white/50">
-      <LoadingSpinner size="lg" variant="default" label="Loading market data" />
-    </motion.div>
-  </div>
-)}
+{
+  isLoading && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <motion.div className="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl px-8 py-10 shadow-glass-lg border border-white/50">
+        <LoadingSpinner size="lg" variant="default" label="Loading market data" />
+      </motion.div>
+    </div>
+  );
+}
 ```
 
 ### Button States
@@ -186,17 +197,17 @@ import { InlineLoader } from '@/components/ui/loading-spinner';
 ### Card Content
 
 ```tsx
-{isLoading ? (
-  <div className="card space-y-3">
-    <LoadingSkeleton variant="card" />
-    <LoadingSkeleton variant="default" />
-    <LoadingSkeleton variant="text" className="w-3/4" />
-  </div>
-) : (
-  <div className="card">
-    {/* Actual content */}
-  </div>
-)}
+{
+  isLoading ? (
+    <div className="card space-y-3">
+      <LoadingSkeleton variant="card" />
+      <LoadingSkeleton variant="default" />
+      <LoadingSkeleton variant="text" className="w-3/4" />
+    </div>
+  ) : (
+    <div className="card">{/* Actual content */}</div>
+  );
+}
 ```
 
 ### Inline Text
@@ -212,12 +223,12 @@ import { InlineLoader } from '@/components/ui/loading-spinner';
 
 ## Variant Selection Guide
 
-| Context | Recommended Variant | Reasoning |
-|---------|-------------------|-----------|
-| Primary action (bet, submit) | `sunset` | Matches warm CTA colors |
-| Data fetching | `default` | Neutral, brand-aligned |
-| Cool actions (view, cancel) | `sky` | Matches secondary UI |
-| Subtle states (inline, buttons) | `minimal` | Low visual weight |
+| Context                         | Recommended Variant | Reasoning               |
+| ------------------------------- | ------------------- | ----------------------- |
+| Primary action (bet, submit)    | `sunset`            | Matches warm CTA colors |
+| Data fetching                   | `default`           | Neutral, brand-aligned  |
+| Cool actions (view, cancel)     | `sky`               | Matches secondary UI    |
+| Subtle states (inline, buttons) | `minimal`           | Low visual weight       |
 
 ---
 
@@ -274,16 +285,19 @@ Visit `/examples/loading` to see all variants and sizes.
 ## Migration from Old Loading States
 
 ### Before (generic spinner):
+
 ```tsx
 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600" />
 ```
 
 ### After (branded spinner):
+
 ```tsx
 <LoadingSpinner size="lg" variant="default" label="Loading" />
 ```
 
 ### Benefits:
+
 ✅ On-brand colors and gradients
 ✅ Smooth, Apple-quality animations
 ✅ Automatic accessibility support
@@ -295,6 +309,7 @@ Visit `/examples/loading` to see all variants and sizes.
 ## Future Enhancements
 
 Potential additions:
+
 - [ ] Progress bar with percentage
 - [ ] Circular progress indicator
 - [ ] Weather-themed animations (clouds, sun)

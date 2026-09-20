@@ -12,7 +12,7 @@ import type { PositionsResponse } from '@/types/positions';
  *
  * Fetches all positions and statistics for a given wallet address
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse<PositionsResponse>> {
   try {
     // Get wallet address from query params
     const { searchParams } = new URL(request.url);
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
           },
           error: 'Wallet address is required',
         } satisfies PositionsResponse,
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
           },
           error: 'Invalid wallet address format',
         } satisfies PositionsResponse,
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
         },
         error: error instanceof Error ? error.message : 'Failed to fetch positions',
       } satisfies PositionsResponse,
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

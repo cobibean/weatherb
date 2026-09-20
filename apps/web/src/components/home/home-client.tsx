@@ -6,11 +6,13 @@ import { Header, Footer } from '@/components/layout';
 import { HeroCarousel, MarketGrid, BetModal } from '@/components/markets';
 import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
 import { TemperatureDisplay } from '@/components/ui/temperature-display';
-import { FaucetBanner } from './faucet-banner';
+import './afterglow.css';
 import type { SerializedMarket } from '@/lib/contract-data';
+import { useLiveMarkets } from './use-live-markets';
 
 interface HomeClientProps {
   markets: SerializedMarket[];
+  error?: string;
 }
 
 // Helper function to get cancellation reason
@@ -36,7 +38,16 @@ function getStatusDisplayText(market: Market): string {
   return 'Unknown';
 }
 
-export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
+export function HomeClient({
+  markets: initialMarkets,
+  error: initialError,
+}: HomeClientProps): React.ReactElement {
+  const {
+    markets: serializedMarkets,
+    error,
+    refresh,
+  } = useLiveMarkets(initialMarkets, initialError);
+  const [featuredId, setFeaturedId] = useState<string | undefined>(serializedMarkets[0]?.id);
   const [pastMarkets, setPastMarkets] = useState<Market[] | null>(null);
   const [pastOpen, setPastOpen] = useState(false);
   const [pastLoading, setPastLoading] = useState(false);
@@ -51,15 +62,19 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
       ...market,
       yesPool: BigInt(market.yesPool),
       noPool: BigInt(market.noPool),
+      totalFees: BigInt(market.totalFees ?? '0'),
     }));
   };
 
   const markets: Market[] = useMemo(
     () => deserializeMarkets(serializedMarkets),
-    [serializedMarkets]
+    [serializedMarkets],
   );
   // Markets are already filtered to active (open + closed) by the server
-  const [selectedMarket, setSelectedMarket] = useState<{ market: Market; side: 'yes' | 'no' } | null>(null);
+  const [selectedMarket, setSelectedMarket] = useState<{
+    market: Market;
+    side: 'yes' | 'no';
+  } | null>(null);
 
   const handleBetYes = (market: Market) => {
     setSelectedMarket({ market, side: 'yes' });
@@ -78,7 +93,9 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
     setIsModalOpen(true);
   };
 
-  const fetchPastMarkets = async (cursor?: string): Promise<{ markets: Market[]; nextCursor: string | null }> => {
+  const fetchPastMarkets = async (
+    cursor?: string,
+  ): Promise<{ markets: Market[]; nextCursor: string | null }> => {
     const params = new URLSearchParams({
       status: 'past',
       limit: '50',
@@ -138,31 +155,50 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div data-wb-theme="afterglow" className="wb-home min-h-screen flex flex-col">
+      <Header afterglow />
 
       {/* Main content - header floats over hero */}
       <main className="flex-1">
-        {/* Hero Carousel Section */}
-        <HeroCarousel
-          markets={markets}
-          onBetYes={handleBetYes}
-          onBetNo={handleBetNo}
-        />
-
-        {/* Faucet Banner - Get test tokens */}
-        <FaucetBanner />
-
-        {/* Market Grid Section */}
-        <MarketGrid
-          markets={markets}
-          onBetYes={handleBetYes}
-          onBetNo={handleBetNo}
-          className="bg-cloud-off"
-        />
+        {error && markets.length === 0 ? (
+          <section role="alert" className="wb-error wb-shell">
+            <h1 className="font-display text-3xl font-bold text-neutral-800">
+              Markets unavailable
+            </h1>
+            <p className="mt-4 text-neutral-600">{error}</p>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="mt-6 rounded-full bg-neutral-800 px-6 py-3 text-white"
+            >
+              Try again
+            </button>
+          </section>
+        ) : (
+          <>
+            {error && (
+              <p role="status" className="wb-shell pt-28 text-[#eed39c]">
+                {error}
+              </p>
+            )}
+            <HeroCarousel
+              markets={markets}
+              selectedId={featuredId}
+              onSelect={setFeaturedId}
+              onBetYes={handleBetYes}
+              onBetNo={handleBetNo}
+            />
+            <MarketGrid
+              markets={markets}
+              onBetYes={handleBetYes}
+              onBetNo={handleBetNo}
+              selectedId={markets.find((market) => market.id === featuredId)?.id ?? markets[0]?.id}
+            />
+          </>
+        )}
 
         {/* Past Markets Section */}
-        <section className="py-12 bg-neutral-50">
+        <section className="wb-past">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <button
               type="button"
@@ -172,9 +208,7 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
               aria-controls="past-markets-panel"
             >
               <div>
-                <h3 className="font-display text-lg font-bold text-neutral-800">
-                  Past Markets
-                </h3>
+                <h3 className="font-display text-lg font-bold text-neutral-800">Past Markets</h3>
                 <p className="font-body text-sm text-neutral-500">
                   View resolved and cancelled markets on demand.
                 </p>
@@ -213,6 +247,14 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
                         <div
                           key={market.id}
                           className="rounded-2xl border border-neutral-200 bg-white p-5 cursor-pointer hover:shadow-md transition-all duration-200 hover:border-gray-200"
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              handleMarketClick(market);
+                            }
+                          }}
                           onClick={() => handleMarketClick(market)}
                         >
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -222,8 +264,8 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
                               </p>
                               <p className="font-body text-sm text-neutral-500">
                                 Threshold:{' '}
-                                <TemperatureDisplay fahrenheit={thresholdValue} size="sm" />
-                                {' '} - {getStatusDisplayText(market)}
+                                <TemperatureDisplay fahrenheit={thresholdValue} size="sm" /> -{' '}
+                                {getStatusDisplayText(market)}
                               </p>
                             </div>
                             <div className="text-sm text-neutral-500">
@@ -257,15 +299,21 @@ export function HomeClient({ markets: serializedMarkets }: HomeClientProps) {
         </section>
       </main>
 
-      <Footer />
+      <Footer afterglow />
 
       {/* Bet Modal */}
       {selectedMarket && (
         <BetModal
-          market={selectedMarket.market}
+          market={
+            markets.find((market) => market.id === selectedMarket.market.id) ??
+            selectedMarket.market
+          }
           side={selectedMarket.side}
           isOpen={true}
           onClose={handleCloseModal}
+          onSuccess={() => {
+            void refresh();
+          }}
         />
       )}
 

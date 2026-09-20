@@ -43,9 +43,9 @@ export function SettingsClient({ initialConfig }: SettingsClientProps): React.Re
       setMessage({ type: 'success', text: 'Settings saved successfully!' });
       router.refresh();
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error instanceof Error ? error.message : 'Failed to save settings' 
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to save settings',
       });
     } finally {
       setIsSaving(false);
@@ -65,15 +65,13 @@ export function SettingsClient({ initialConfig }: SettingsClientProps): React.Re
             <Clock className="w-5 h-5 text-sky-deep" />
           </div>
           <div className="flex-1">
-            <h3 className="font-display font-bold text-lg text-neutral-800">
-              Market Cadence
-            </h3>
+            <h3 className="font-display font-bold text-lg text-neutral-800">Market Cadence</h3>
             <p className="font-body text-sm text-neutral-500">
               Time between market resolve times in minutes.
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <input
             type="range"
@@ -102,15 +100,13 @@ export function SettingsClient({ initialConfig }: SettingsClientProps): React.Re
             <TrendingUp className="w-5 h-5 text-sunset-coral" />
           </div>
           <div className="flex-1">
-            <h3 className="font-display font-bold text-lg text-neutral-800">
-              Daily Market Count
-            </h3>
+            <h3 className="font-display font-bold text-lg text-neutral-800">Daily Market Count</h3>
             <p className="font-body text-sm text-neutral-500">
               Number of markets created per day (max 5).
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {[1, 2, 3, 4, 5].map((num) => (
             <button
@@ -140,15 +136,13 @@ export function SettingsClient({ initialConfig }: SettingsClientProps): React.Re
             <Timer className="w-5 h-5 text-sunset-orange" />
           </div>
           <div className="flex-1">
-            <h3 className="font-display font-bold text-lg text-neutral-800">
-              Betting Buffer
-            </h3>
+            <h3 className="font-display font-bold text-lg text-neutral-800">Betting Buffer</h3>
             <p className="font-body text-sm text-neutral-500">
               Time before market resolution when betting closes (in seconds).
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <input
             type="range"
@@ -166,7 +160,7 @@ export function SettingsClient({ initialConfig }: SettingsClientProps): React.Re
             <span className="font-body text-xs text-neutral-500 ml-1">min</span>
           </div>
         </div>
-        
+
         <p className="mt-2 font-body text-xs text-neutral-400">
           Current: {config.bettingBuffer} seconds ({Math.floor(config.bettingBuffer / 60)} minutes)
         </p>
@@ -185,15 +179,13 @@ export function SettingsClient({ initialConfig }: SettingsClientProps): React.Re
               <MapPin className="w-5 h-5 text-success-soft" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-lg text-neutral-800">
-                Test Mode
-              </h3>
+              <h3 className="font-display font-bold text-lg text-neutral-800">Test Mode</h3>
               <p className="font-body text-sm text-neutral-500">
                 When enabled, only creates markets for a single test city.
               </p>
             </div>
           </div>
-          
+
           <button
             onClick={() => setConfig({ ...config, testMode: !config.testMode })}
             className={`relative w-14 h-8 rounded-full transition-colors ${
@@ -216,10 +208,10 @@ export function SettingsClient({ initialConfig }: SettingsClientProps): React.Re
         transition={{ delay: 0.4 }}
         className="p-4 rounded-xl bg-sky-light/20 border border-sky-medium/30 flex items-start gap-3"
       >
-        <Info className="w-5 h-5 text-sky-deep flex-shrink-0 mt-0.5" />
+        <Info className="w-5 h-5 text-sky-deep shrink-0 mt-0.5" />
         <div>
           <p className="font-body text-sm text-neutral-700">
-            <strong>Note:</strong> Changes to betting buffer will also update the smart contract 
+            <strong>Note:</strong> Changes to betting buffer will also update the smart contract
             (requires contract owner privileges). Other settings affect the scheduler service only.
           </p>
         </div>
@@ -238,21 +230,16 @@ export function SettingsClient({ initialConfig }: SettingsClientProps): React.Re
             {message.text}
           </motion.p>
         )}
-        
+
         <button
           onClick={handleSave}
           disabled={!hasChanges || isSaving}
-          className="ml-auto flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-sky-medium to-sky-deep text-white font-body font-semibold transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-auto flex items-center gap-2 px-6 py-3 rounded-xl bg-linear-to-r from-sky-medium to-sky-deep text-white font-body font-semibold transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSaving ? (
-            <InlineLoader variant="minimal" size="sm" />
-          ) : (
-            <Save className="w-5 h-5" />
-          )}
+          {isSaving ? <InlineLoader variant="minimal" size="sm" /> : <Save className="w-5 h-5" />}
           Save Changes
         </button>
       </div>
     </div>
   );
 }
-

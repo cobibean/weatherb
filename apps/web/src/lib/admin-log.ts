@@ -22,7 +22,7 @@ import type { Prisma } from '@prisma/client';
 export async function logAdminAction(
   wallet: string,
   action: string,
-  details?: Prisma.InputJsonValue
+  details?: Prisma.InputJsonValue,
 ): Promise<void> {
   await prisma.adminLog.create({
     data: {

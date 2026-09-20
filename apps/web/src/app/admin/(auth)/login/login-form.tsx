@@ -1,12 +1,13 @@
 'use client';
+import { arcConnectOptions, appChain } from '@/lib/arc-wallet';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { useActiveAccount, ConnectButton } from 'thirdweb/react';
-import { createThirdwebClient } from 'thirdweb';
-import { Shield, LogIn, AlertCircle } from 'lucide-react';
 import { InlineLoader } from '@/components/ui/loading-spinner';
+import { motion } from 'framer-motion';
+import { AlertCircle, LogIn, Shield } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { createThirdwebClient } from 'thirdweb';
+import { ConnectButton, useActiveAccount } from 'thirdweb/react';
 
 // Lazy client creation to avoid build-time errors
 const getClient = () => {
@@ -21,21 +22,25 @@ const getClient = () => {
 type AuthState = 'idle' | 'requesting' | 'signing' | 'verifying' | 'success' | 'error';
 
 export function LoginForm(): React.ReactElement {
+  const account = useActiveAccount();
+  return <AccountLoginForm key={account?.address ?? 'disconnected'} />;
+}
+
+function AccountLoginForm(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const account = useActiveAccount();
   const client = getClient();
-  
+
   const [authState, setAuthState] = useState<AuthState>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const redirectTo = searchParams.get('redirect') || '/admin';
 
   // Handle missing client configuration
   if (!client) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-light via-cloud-off to-sunset-pink/20 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-sky-light via-cloud-off to-sunset-pink/20 p-4">
         <div className="card-hero text-center">
           <Shield className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
           <h1 className="font-display text-xl font-bold text-neutral-800 mb-2">
@@ -48,13 +53,6 @@ export function LoginForm(): React.ReactElement {
       </div>
     );
   }
-
-  // Reset state when account changes
-  useEffect(() => {
-    setAuthState('idle');
-    setError(null);
-    setMessage(null);
-  }, [account?.address]);
 
   const handleLogin = async (): Promise<void> => {
     if (!account) {
@@ -80,8 +78,7 @@ export function LoginForm(): React.ReactElement {
 
       const { nonce, sessionId } = await initRes.json();
       const signMessage = `Sign this message to authenticate as weatherB admin.\n\nNonce: ${nonce}`;
-      
-      setMessage(signMessage);
+
       setAuthState('signing');
 
       // Step 2: Sign the message
@@ -106,7 +103,7 @@ export function LoginForm(): React.ReactElement {
       }
 
       setAuthState('success');
-      
+
       // Redirect after short delay for UX
       setTimeout(() => {
         router.push(redirectTo);
@@ -136,7 +133,7 @@ export function LoginForm(): React.ReactElement {
   const isLoading = ['requesting', 'signing', 'verifying'].includes(authState);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-light via-cloud-off to-sunset-pink/20 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-sky-light via-cloud-off to-sunset-pink/20 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -144,13 +141,11 @@ export function LoginForm(): React.ReactElement {
       >
         <div className="card-hero text-center">
           {/* Logo / Icon */}
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-medium to-sky-deep flex items-center justify-center mb-6">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-linear-to-br from-sky-medium to-sky-deep flex items-center justify-center mb-6">
             <Shield className="w-8 h-8 text-white" />
           </div>
 
-          <h1 className="font-display text-2xl font-bold text-neutral-800 mb-2">
-            Admin Access
-          </h1>
+          <h1 className="font-display text-2xl font-bold text-neutral-800 mb-2">Admin Access</h1>
           <p className="font-body text-neutral-600 mb-8">
             Connect your authorized wallet to access the admin panel.
           </p>
@@ -158,7 +153,7 @@ export function LoginForm(): React.ReactElement {
           {/* Wallet Connection */}
           {!account ? (
             <div className="flex justify-center mb-6">
-              <ConnectButton
+              <ConnectButton {...arcConnectOptions} chain={appChain}
                 client={client}
                 connectButton={{
                   label: 'Connect Wallet',
@@ -171,9 +166,7 @@ export function LoginForm(): React.ReactElement {
               {/* Connected wallet display */}
               <div className="p-4 rounded-xl bg-cloud-soft border border-neutral-200">
                 <p className="font-body text-sm text-neutral-500 mb-1">Connected as</p>
-                <p className="font-mono text-sm text-neutral-800 truncate">
-                  {account.address}
-                </p>
+                <p className="font-mono text-sm text-neutral-800 truncate">{account.address}</p>
               </div>
 
               {/* Login button */}
@@ -212,7 +205,7 @@ export function LoginForm(): React.ReactElement {
               animate={{ opacity: 1, y: 0 }}
               className="mt-4 p-4 rounded-xl bg-error-soft/30 border border-error-soft flex items-start gap-3"
             >
-              <AlertCircle className="w-5 h-5 text-error-soft flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-error-soft shrink-0 mt-0.5" />
               <p className="font-body text-sm text-neutral-800 text-left">{error}</p>
             </motion.div>
           )}
@@ -226,4 +219,3 @@ export function LoginForm(): React.ReactElement {
     </div>
   );
 }
-

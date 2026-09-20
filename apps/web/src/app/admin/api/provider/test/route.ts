@@ -1,22 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession, logAdminAction } from '@/lib/admin-session';
-import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
+import { recordProviderError, recordProviderSuccess } from '@/lib/provider-health';
 import { TEST_CITIES } from '@weatherb/shared/constants';
-import { recordProviderSuccess, recordProviderError } from '@/lib/provider-health';
+import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
 import type { WeatherReading } from '@weatherb/shared/types';
+import { NextResponse } from 'next/server';
+import { adminWritesEnabled, adminReadOnlyResponse } from '@/lib/admin-writes';
 
 /**
  * POST /admin/api/provider/test
- * 
+ *
  * Test the weather provider by fetching temperature for a random city.
  * Updates provider health status based on success/failure.
  */
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export async function POST(): Promise<NextResponse> {
   try {
     const session = await getAdminSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
 
     // Pick a random city from the test cities list
     const randomIndex = Math.floor(Math.random() * TEST_CITIES.length);
@@ -31,18 +33,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Create weather provider and fetch temperature
     const provider = createWeatherProviderFromEnv();
     let reading: WeatherReading;
-    let success = false;
 
     try {
-      reading = await provider.getFirstReadingAtOrAfter(
-        city.latitude,
-        city.longitude,
-        nowSec
-      );
-      
+      reading = await provider.getFirstReadingAtOrAfter(city.latitude, city.longitude, nowSec);
+
       // Record success
       await recordProviderSuccess();
-      success = true;
 
       // Log the successful test
       await logAdminAction(session.wallet, 'TEST_PROVIDER', {
@@ -99,14 +95,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           },
           error: errorMessage,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (error) {
     console.error('Provider test error:', error);
     return NextResponse.json(
-      { error: 'Failed to test provider', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      {
+        error: 'Failed to test provider',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 },
     );
   }
 }

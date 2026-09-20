@@ -14,7 +14,7 @@
  * - Account ID for your Cloudflare account
  * 
  * Usage:
- *   pnpm tsx scripts/setup-cloudflare-email.ts
+ *   npm exec -- tsx scripts/setup-cloudflare-email.ts
  * 
  * Environment variables needed:
  *   CLOUDFLARE_API_TOKEN - Your Cloudflare API token

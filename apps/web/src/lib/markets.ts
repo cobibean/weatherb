@@ -39,7 +39,7 @@ export async function getPublicMarkets(): Promise<Market[]> {
  */
 export async function getMarketById(
   id: string,
-  includeTest: boolean = false
+  includeTest: boolean = false,
 ): Promise<Market | null> {
   const where: { id: string; isTest?: boolean } = { id };
 
@@ -66,7 +66,7 @@ export async function getMarketById(
  */
 export async function getMarketByContractId(
   contractMarketId: number,
-  includeTest: boolean = false
+  includeTest: boolean = false,
 ): Promise<Market | null> {
   const where: { contractMarketId: number; isTest?: boolean } = { contractMarketId };
 
@@ -91,7 +91,7 @@ export async function getMarketByContractId(
  * @returns Array of markets ready to settle
  */
 export async function getMarketsReadyForSettlement(
-  includeTest: boolean = false
+  includeTest: boolean = false,
 ): Promise<Market[]> {
   const where: { resolveTime: { lte: Date }; isTest?: boolean } = {
     resolveTime: {
@@ -122,9 +122,7 @@ export async function getMarketsReadyForSettlement(
  * @param includeTest - If true, includes test markets (admin/internal use only)
  * @returns Array of active markets
  */
-export async function getActiveMarkets(
-  includeTest: boolean = false
-): Promise<Market[]> {
+export async function getActiveMarkets(includeTest: boolean = false): Promise<Market[]> {
   const where: { resolveTime: { gt: Date }; isTest?: boolean } = {
     resolveTime: {
       gt: new Date(),
@@ -157,7 +155,7 @@ export async function getActiveMarkets(
  */
 export async function getMarketsByCity(
   cityId: string,
-  includeTest: boolean = false
+  includeTest: boolean = false,
 ): Promise<Market[]> {
   const where: { cityId: string; isTest?: boolean } = { cityId };
 
@@ -189,7 +187,7 @@ export async function getMarketsByCity(
 export async function getMarketsByDateRange(
   startDate: Date,
   endDate: Date,
-  includeTest: boolean = false
+  includeTest: boolean = false,
 ): Promise<Market[]> {
   const where: {
     resolveTime: { gte: Date; lte: Date };
