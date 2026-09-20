@@ -1,0 +1,83 @@
+{
+  "version": "2.2.0",
+  "storage": [
+    {
+      "label": "owner",
+      "slot": "0",
+      "offset": 0,
+      "type": "t_address"
+    },
+    {
+      "label": "settler",
+      "slot": "1",
+      "offset": 0,
+      "type": "t_address"
+    },
+    {
+      "label": "isPaused",
+      "slot": "1",
+      "offset": 20,
+      "type": "t_bool"
+    },
+    {
+      "label": "bettingBufferSeconds",
+      "slot": "1",
+      "offset": 21,
+      "type": "t_uint64"
+    },
+    {
+      "label": "__gap_slot1",
+      "slot": "2",
+      "offset": 0,
+      "type": "t_uint64"
+    },
+    {
+      "label": "minBetWei",
+      "slot": "3",
+      "offset": 0,
+      "type": "t_uint256"
+    },
+    {
+      "label": "feeBps",
+      "slot": "4",
+      "offset": 0,
+      "type": "t_uint256"
+    },
+    {
+      "label": "_status",
+      "slot": "5",
+      "offset": 0,
+      "type": "t_uint256"
+    },
+    {
+      "label": "markets",
+      "slot": "6",
+      "offset": 0,
+      "type": "t_array(t_struct(Market)46148_storage)dyn_storage"
+    },
+    {
+      "label": "positions",
+      "slot": "7",
+      "offset": 0,
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(Position)46155_storage))"
+    },
+    {
+      "label": "accruedFees",
+      "slot": "8",
+      "offset": 0,
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "label": "scheduledMarketIds",
+      "slot": "9",
+      "offset": 0,
+      "type": "t_mapping(t_uint64,t_uint256)"
+    },
+    {
+      "label": "__gap",
+      "slot": "10",
+      "offset": 0,
+      "type": "t_array(t_uint256)43_storage"
+    }
+  ]
+}
