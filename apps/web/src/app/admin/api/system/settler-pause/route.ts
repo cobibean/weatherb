@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession, logAdminAction } from '@/lib/admin-session';
 import { toggleSettlerPause, getSystemConfig } from '@/lib/admin-data';
+import { adminWritesEnabled, adminReadOnlyResponse } from '@/lib/admin-writes';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -8,6 +9,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
 
     const body = await request.json();
     const { settlerPaused } = body;

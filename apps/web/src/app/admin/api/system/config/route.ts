@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAdminSession, logAdminAction } from '@/lib/admin-session';
 import { getSystemConfig, updateSystemConfig } from '@/lib/admin-data';
+import { adminWritesEnabled, adminReadOnlyResponse } from '@/lib/admin-writes';
 
 const updateConfigSchema = z.object({
   cadence: z.number().int().min(1).max(60).optional(),
@@ -31,6 +32,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
 
     const body = await request.json();
     const parseResult = updateConfigSchema.safeParse(body);

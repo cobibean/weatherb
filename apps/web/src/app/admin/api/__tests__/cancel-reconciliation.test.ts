@@ -19,6 +19,7 @@ const request = () =>
   });
 beforeEach(() => {
   setupLifecycle();
+  vi.stubEnv('ADMIN_WRITES_ENABLED', 'true');
   chain.push(market());
   admin.session.mockResolvedValue({ wallet: 'fixture' });
   admin.cancel.mockImplementation(async () => {

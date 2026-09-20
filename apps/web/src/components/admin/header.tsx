@@ -28,9 +28,10 @@ const mobileNavItems = [
 
 interface AdminHeaderProps {
   wallet: string;
+  readOnly: boolean;
 }
 
-export function AdminHeader({ wallet }: AdminHeaderProps): React.ReactElement {
+export function AdminHeader({ wallet, readOnly }: AdminHeaderProps): React.ReactElement {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -79,6 +80,11 @@ export function AdminHeader({ wallet }: AdminHeaderProps): React.ReactElement {
             <User className="w-4 h-4 text-neutral-500" />
             <span className="font-mono text-sm text-neutral-600">{shortWallet}</span>
           </div>
+          {readOnly && (
+            <span className="px-2 py-1 rounded-lg bg-neutral-100 text-xs font-body text-neutral-600">
+              Read-only
+            </span>
+          )}
 
           <button
             onClick={handleLogout}

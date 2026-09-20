@@ -24,6 +24,7 @@ import type { AdminLog } from '@prisma/client';
 interface DashboardClientProps {
   stats: AdminStats;
   recentLogs: AdminLog[];
+  writesEnabled: boolean;
 }
 
 const providerStatusConfig = {
@@ -32,7 +33,11 @@ const providerStatusConfig = {
   down: { label: 'Down', icon: XCircle, color: 'error' as const },
 };
 
-export function DashboardClient({ stats, recentLogs }: DashboardClientProps): React.ReactElement {
+export function DashboardClient({
+  stats,
+  recentLogs,
+  writesEnabled,
+}: DashboardClientProps): React.ReactElement {
   const router = useRouter();
   const [isPaused, setIsPaused] = useState(stats.isPaused);
   const [isSettlerPaused, setIsSettlerPaused] = useState(stats.isSettlerPaused);
@@ -165,6 +170,7 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
           <EmergencyControls
             isPaused={isPaused}
             isSettlerPaused={isSettlerPaused}
+            writesEnabled={writesEnabled}
             onPauseToggle={handlePauseToggle}
             onSettlerPauseToggle={handleSettlerPauseToggle}
           />

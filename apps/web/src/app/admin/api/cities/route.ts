@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAdminSession, logAdminAction } from '@/lib/admin-session';
 import { getCities, createCity, toggleCityActive } from '@/lib/admin-data';
+import { adminWritesEnabled, adminReadOnlyResponse } from '@/lib/admin-writes';
 
 const createCitySchema = z.object({
   slug: z
@@ -42,6 +43,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
+
     const body = await request.json();
     const parseResult = createCitySchema.safeParse(body);
 
@@ -76,6 +79,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
 
     const body = await request.json();
     const parseResult = toggleCitySchema.safeParse(body);

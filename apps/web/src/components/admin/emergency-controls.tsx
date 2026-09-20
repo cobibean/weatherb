@@ -8,6 +8,7 @@ import { InlineLoader } from '@/components/ui/loading-spinner';
 interface EmergencyControlsProps {
   isPaused: boolean;
   isSettlerPaused: boolean;
+  writesEnabled: boolean;
   onPauseToggle: () => Promise<void>;
   onSettlerPauseToggle: () => Promise<void>;
 }
@@ -15,6 +16,7 @@ interface EmergencyControlsProps {
 export function EmergencyControls({
   isPaused,
   isSettlerPaused,
+  writesEnabled,
   onPauseToggle,
   onSettlerPauseToggle,
 }: EmergencyControlsProps): React.ReactElement {
@@ -53,7 +55,9 @@ export function EmergencyControls({
         {/* Global Pause */}
         <button
           onClick={() => setConfirmingAction('pause')}
-          className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-body font-medium transition-colors ${
+          disabled={!writesEnabled}
+          title={writesEnabled ? undefined : 'Admin panel is read-only'}
+          className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-body font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
             isPaused
               ? 'bg-success-soft text-neutral-800 hover:bg-success-soft/80'
               : 'bg-error-soft text-neutral-800 hover:bg-error-soft/80'
@@ -75,7 +79,9 @@ export function EmergencyControls({
         {/* Settler Pause */}
         <button
           onClick={() => setConfirmingAction('settler')}
-          className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-body font-medium transition-colors ${
+          disabled={!writesEnabled}
+          title={writesEnabled ? undefined : 'Admin panel is read-only'}
+          className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-body font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
             isSettlerPaused
               ? 'bg-success-soft text-neutral-800 hover:bg-success-soft/80'
               : 'bg-sunset-orange text-white hover:bg-sunset-orange/80'

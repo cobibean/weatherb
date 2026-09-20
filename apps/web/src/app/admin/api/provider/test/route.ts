@@ -4,6 +4,7 @@ import { TEST_CITIES } from '@weatherb/shared/constants';
 import { createWeatherProviderFromEnv } from '@weatherb/shared/providers';
 import type { WeatherReading } from '@weatherb/shared/types';
 import { NextResponse } from 'next/server';
+import { adminWritesEnabled, adminReadOnlyResponse } from '@/lib/admin-writes';
 
 /**
  * POST /admin/api/provider/test
@@ -17,6 +18,7 @@ export async function POST(): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
 
     // Pick a random city from the test cities list
     const randomIndex = Math.floor(Math.random() * TEST_CITIES.length);

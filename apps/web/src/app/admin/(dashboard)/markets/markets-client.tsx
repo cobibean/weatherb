@@ -25,6 +25,7 @@ interface MarketsClientProps {
   markets: AdminMarket[];
   isPaused: boolean;
   isSettlerPaused: boolean;
+  writesEnabled: boolean;
 }
 
 // Helper function to convert AdminMarket to Market format for the modal
@@ -59,6 +60,7 @@ export function MarketsClient({
   markets,
   isPaused: initialPaused,
   isSettlerPaused: initialSettlerPaused,
+  writesEnabled,
 }: MarketsClientProps): React.ReactElement {
   const router = useRouter();
   const [isPaused, setIsPaused] = useState(initialPaused);
@@ -263,6 +265,7 @@ export function MarketsClient({
       <EmergencyControls
         isPaused={isPaused}
         isSettlerPaused={isSettlerPaused}
+        writesEnabled={writesEnabled}
         onPauseToggle={handlePauseToggle}
         onSettlerPauseToggle={handleSettlerPauseToggle}
       />
@@ -354,7 +357,8 @@ export function MarketsClient({
 
                     <button
                       onClick={() => setConfirmCancel(market.id)}
-                      disabled={cancellingId === market.id}
+                      disabled={!writesEnabled || cancellingId === market.id}
+                      title={writesEnabled ? undefined : 'Admin panel is read-only'}
                       className="px-3 py-2 rounded-xl bg-error-soft/20 text-error-soft hover:bg-error-soft/30 transition-colors disabled:opacity-50"
                     >
                       {cancellingId === market.id ? (

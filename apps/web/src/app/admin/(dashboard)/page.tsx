@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { DashboardClient } from './dashboard-client';
 import { getAdminStats, getRecentLogs } from '@/lib/admin-data';
+import { adminWritesEnabled } from '@/lib/admin-writes';
 
 // Ensure this page is always fresh
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,13 @@ async function DashboardContent(): Promise<React.ReactElement> {
   }
   if (data) {
     const [stats, recentLogs] = data;
-    return <DashboardClient stats={stats} recentLogs={recentLogs} />;
+    return (
+      <DashboardClient
+        stats={stats}
+        recentLogs={recentLogs}
+        writesEnabled={adminWritesEnabled()}
+      />
+    );
   }
   const errorMessage = 'Dashboard data is unavailable.';
   return (

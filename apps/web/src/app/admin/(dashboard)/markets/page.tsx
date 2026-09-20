@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { getAdminMarkets, getSystemConfig } from '@/lib/admin-data';
+import { adminWritesEnabled } from '@/lib/admin-writes';
 import { MarketsClient } from './markets-client';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,7 @@ async function MarketsContent(): Promise<React.ReactElement> {
       markets={markets}
       isPaused={config.isPaused}
       isSettlerPaused={config.settlerPaused}
+      writesEnabled={adminWritesEnabled()}
     />
   );
 }

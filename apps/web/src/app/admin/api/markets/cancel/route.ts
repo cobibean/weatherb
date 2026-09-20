@@ -3,6 +3,7 @@ import { getAdminSession, logAdminAction } from '@/lib/admin-session';
 import { persistMarket, requireRestartContract } from '@/lib/cron/market-state';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { adminWritesEnabled, adminReadOnlyResponse } from '@/lib/admin-writes';
 
 const cancelMarketSchema = z.object({
   marketId: z.number().int().nonnegative(),
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!adminWritesEnabled()) return adminReadOnlyResponse();
 
     const body = await request.json();
     const parseResult = cancelMarketSchema.safeParse(body);
