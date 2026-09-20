@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const gapLength = (type) => Number(/t_array\(t_uint256\)(\d+)_storage/.exec(type)?.[1] ?? NaN);
+// Struct type strings embed a compiler AST node id (t_struct(Market)46187) that shifts with any source edit; normalize it away.
+const normType = (type) => String(type).replace(/t_struct\(([A-Za-z0-9_]+)\)\d+/g, 't_struct($1)');
 
 /** Every baseline variable must be identical; new variables may only occupy former gap slots. */
 export function compareLayouts(baseline, current) {
@@ -15,7 +17,7 @@ export function compareLayouts(baseline, current) {
     const cur = byLabel.get(entry.label);
     if (!cur) { problems.push(`removed: ${entry.label}`); continue; }
     for (const key of ['slot', 'offset', 'type'])
-      if (String(cur[key]) !== String(entry[key]))
+      if ((key === 'type' ? normType(cur[key]) : String(cur[key])) !== (key === 'type' ? normType(entry[key]) : String(entry[key])))
         problems.push(`${entry.label}.${key} changed ${entry[key]} -> ${cur[key]}`);
   }
   const gapStart = Number(baseGap.slot);

@@ -207,7 +207,7 @@ contract WeatherMarketTest is Test {
 
     function test_onlyOwnerCanCreateMarket() public {
         vm.prank(alice);
-        vm.expectRevert(WeatherMarketV2.NotOwner.selector);
+        vm.expectRevert(WeatherMarketV2.NotOwnerOrScheduler.selector);
         market.createMarket(cityId, uint64(block.timestamp + 2 hours), 850, address(0));
     }
 

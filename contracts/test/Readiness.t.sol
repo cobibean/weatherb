@@ -99,7 +99,7 @@ contract ReadinessTest is Test {
         vm.warp(20 days + 13 hours);
         vm.expectRevert(WeatherMarketV2.InvalidParams.selector);
         market.createScheduledMarket(city, 850, 20 days + 12 hours);
-        vm.prank(alice); vm.expectRevert(WeatherMarketV2.NotOwner.selector);
+        vm.prank(alice); vm.expectRevert(WeatherMarketV2.NotOwnerOrScheduler.selector);
         market.createScheduledMarket(city, 850, 20 days + 13 hours);
     }
     function testFuzz_feeChangesPreservePayout(uint16 feeBefore, uint16 feeAfter, uint96 stake) public {

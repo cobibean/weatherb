@@ -13,6 +13,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     // ============ Errors ============
     error NotOwner();
     error NotSettler();
+    error NotOwnerOrScheduler();
     error Paused();
     error InvalidMarket();
     error InvalidStatus();
@@ -33,6 +34,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     // Config change events
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event SettlerUpdated(address indexed previousSettler, address indexed newSettler);
+    event SchedulerUpdated(address indexed previousScheduler, address indexed newScheduler);
     event MinBetUpdated(uint256 previousMinBet, uint256 newMinBet);
     event BettingBufferUpdated(uint64 previousBuffer, uint64 newBuffer);
     event FeeBpsUpdated(uint256 previousFeeBps, uint256 newFeeBps);
@@ -48,22 +50,24 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     uint256 private constant _ENTERED = 2;
 
     // ============ Storage ============
-    // Slot 0: Packed addresses
+    // Slot 0: Owner
     address public owner;
+
+    // Slot 1: Packed settler + config (address + bool + uint64 = 20 + 1 + 8 = 29 bytes)
     address public settler;
-    
-    // Slot 1: Packed config (bool + uint64 + uint64 = 1 + 8 + 8 = 17 bytes)
     bool public isPaused;
     uint64 public bettingBufferSeconds;
-    uint64 private __gap_slot1; // Reserved for future use
-    
-    // Slot 2: Min bet
+
+    // Slot 2: Reserved for future use
+    uint64 private __gap_slot1;
+
+    // Slot 3: Min bet
     uint256 public minBetWei;
-    
-    // Slot 3: Fee in basis points (mutable!)
+
+    // Slot 4: Fee in basis points (mutable!)
     uint256 public feeBps;
-    
-    // Slot 4: Reentrancy guard
+
+    // Slot 5: Reentrancy guard
     uint256 private _status;
 
     // Dynamic storage
@@ -79,6 +83,11 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
 
     modifier onlySettler() {
         if (msg.sender != settler) revert NotSettler();
+        _;
+    }
+
+    modifier onlyOwnerOrScheduler() {
+        if (msg.sender != owner && msg.sender != scheduler) revert NotOwnerOrScheduler();
         _;
     }
 
@@ -144,6 +153,14 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         emit SettlerUpdated(oldSettler, newSettler);
     }
 
+    /// @notice Set the scheduler address. Zero revokes the role.
+    /// @param newScheduler Address allowed to create markets alongside the owner
+    function setScheduler(address newScheduler) external onlyOwner {
+        address oldScheduler = scheduler;
+        scheduler = newScheduler;
+        emit SchedulerUpdated(oldScheduler, newScheduler);
+    }
+
     /// @notice Set the protocol fee in basis points
     /// @param newFeeBps Fee in basis points (100 = 1%, max 1000 = 10%)
     function setFeeBps(uint256 newFeeBps) external onlyOwner {
@@ -183,7 +200,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         emit ContractUnpaused(msg.sender);
     }
 
-    /// @notice Create a new market
+    /// @notice Create a new market (owner or scheduler)
     /// @param cityId City identifier (bytes32)
     /// @param resolveTime Unix timestamp when market can be resolved
     /// @param thresholdTenths Temperature threshold in 0.1°F units
@@ -194,15 +211,15 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         uint64 resolveTime,
         uint256 thresholdTenths,
         address currency
-    ) external onlyOwner returns (uint256 marketId) {
+    ) external onlyOwnerOrScheduler returns (uint256 marketId) {
         return _createMarket(cityId, resolveTime, thresholdTenths, currency);
     }
 
-    /// @notice Create at most one scheduled market per UTC hour, 12:00–16:59 UTC.
+    /// @notice Create at most one scheduled market per UTC hour, 12:00–16:59 UTC (owner or scheduler).
     /// @dev Retries return the original ID even after the hour expires. A fresh
     /// deployment is required; this path is not used for legacy Coston2 contracts.
     function createScheduledMarket(bytes32 cityId, uint256 thresholdTenths, uint64 slot)
-        external onlyOwner returns (uint256 marketId)
+        external onlyOwnerOrScheduler returns (uint256 marketId)
     {
         uint256 existing = scheduledMarketIds[slot];
         if (existing != 0) return existing - 1;
@@ -516,7 +533,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
 
     /// @notice Get contract version
     function version() external pure returns (string memory) {
-        return "2.2.0";
+        return "2.3.0";
     }
 
     // ============ Internal Functions ============
@@ -560,7 +577,8 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     }
 
     // ============ Gap for Future Storage ============
-    // Consume one reserved slot without moving any existing storage.
+    // Each addition consumes one reserved slot without moving any existing storage.
     mapping(uint64 => uint256) private scheduledMarketIds;
-    uint256[43] private __gap;
+    address public scheduler;
+    uint256[42] private __gap;
 }
