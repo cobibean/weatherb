@@ -19,12 +19,24 @@ describe('readWorkerStatus', () => {
       lastSweepAt: '2026-09-21T12:18:00.000Z',
       lastSuccessfulSweepAt: '2026-09-21T12:16:00.000Z',
       lastSweepStatus: 'failed',
+      lastScheduleAt: null,
+      lastSuccessfulScheduleAt: null,
+      lastScheduleStatus: null,
       overdueMarkets: 1,
       dueMarkets: 2,
     });
     expect(mocks.count).toHaveBeenNthCalledWith(1, {
       where: { isSettled: false, resolveTime: { lt: new Date('2026-09-21T12:10:00Z') } },
     });
+  });
+  it('reports the latest scheduled-creation run separately from sweeps', async () => {
+    mocks.findFirst.mockImplementation(async ({ where }: { where: { kind: string; status?: string } }) =>
+      where.kind === 'schedule-daily'
+        ? { startedAt: new Date('2026-09-21T12:05:00Z'), status: where.status ?? 'succeeded' }
+        : { startedAt: new Date('2026-09-21T12:18:00Z'), status: where.status ?? 'succeeded' },
+    );
+    const status = await readWorkerStatus(new Date('2026-09-21T12:20:00Z'));
+    expect(status).toMatchObject({ lastScheduleAt: '2026-09-21T12:05:00.000Z', lastScheduleStatus: 'succeeded', lastSweepAt: '2026-09-21T12:18:00.000Z' });
   });
   it('returns nulls and zeros with no history', async () => {
     mocks.findFirst.mockResolvedValue(null);

@@ -50,6 +50,7 @@ const LOW_BALANCE_WEI = 2n * 10n ** 17n; // 0.2 USDC covers many testnet settlem
 export function deriveOperationsAlerts(input: {
   now: Date;
   settlerPaused: boolean;
+  schedulerPaused: boolean;
   worker: WorkerStatus;
   outstanding: OutstandingMarket[];
   settlerBalanceWei: bigint | null;
@@ -90,6 +91,18 @@ export function deriveOperationsAlerts(input: {
         code: 'worker-stale',
         message: lastOk === null ? 'No successful worker sweep recorded' : `Last successful sweep ${Math.round((nowMs - lastOk) / 60000)} min ago`,
       });
+  }
+  const hourUtc = input.now.getUTCHours();
+  const inCreationWindow = hourUtc >= 12 && hourUtc <= 16;
+  if (inCreationWindow) {
+    if (input.schedulerPaused)
+      alerts.push({ level: 'warning', code: 'scheduler-paused', message: 'Market creation is paused during the 12:00–16:59 UTC creation window' });
+    else if (input.now.getUTCMinutes() >= 15) {
+      const topOfHour = Date.UTC(input.now.getUTCFullYear(), input.now.getUTCMonth(), input.now.getUTCDate(), hourUtc);
+      const lastOk = input.worker.lastSuccessfulScheduleAt ? Date.parse(input.worker.lastSuccessfulScheduleAt) : null;
+      if (lastOk === null || lastOk < topOfHour)
+        alerts.push({ level: 'warning', code: 'schedule-missed', message: `No successful creation run yet for the ${String(hourUtc).padStart(2, '0')}:00 UTC slot` });
+    }
   }
   if (input.worker.lastSweepStatus === 'failed')
     alerts.push({ level: 'warning', code: 'worker-failed', message: 'The most recent sweep failed' });
@@ -156,6 +169,7 @@ export async function getOperationsSnapshot(now: Date = new Date()): Promise<Ope
     alerts: deriveOperationsAlerts({
       now,
       settlerPaused: config.settlerPaused,
+      schedulerPaused: config.isPaused,
       worker,
       outstanding,
       settlerBalanceWei: settler.balanceWei,

@@ -41,12 +41,14 @@ export function OperationsClient({ snapshot }: { snapshot: OperationsSnapshot })
         )}
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
           ['Settlement', snapshot.settlerPaused ? 'Paused' : 'Enabled'],
           ['Last successful sweep', fmt(snapshot.worker.lastSuccessfulSweepAt)],
           ['Due / overdue', `${snapshot.worker.dueMarkets} / ${snapshot.worker.overdueMarkets}`],
           ['Settler balance', snapshot.settlerBalance ? `${snapshot.settlerBalance} USDC` : '—'],
+          ['Creation', snapshot.schedulerPaused ? 'Paused' : 'Enabled'],
+          ['Last creation run', `${fmt(snapshot.worker.lastScheduleAt)} · ${snapshot.worker.lastScheduleStatus ?? '—'}`],
         ].map(([title, value]) => (
           <div key={title} className="p-5 rounded-2xl border border-neutral-200 bg-white">
             <p className="font-body text-sm text-neutral-500 mb-1">{title}</p>
