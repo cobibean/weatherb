@@ -3,19 +3,10 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import {
-  LayoutDashboard,
-  Settings,
-  MapPin,
-  TrendingUp,
-  ScrollText,
-  CloudSun,
-  FlaskConical,
-} from 'lucide-react';
+import { LayoutDashboard, Settings, MapPin, TrendingUp, ScrollText, CloudSun } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/suggestions', label: 'Testing', icon: FlaskConical },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
   { href: '/admin/cities', label: 'Cities', icon: MapPin },
   { href: '/admin/markets', label: 'Markets', icon: TrendingUp },
@@ -30,7 +21,7 @@ export function AdminSidebar(): React.ReactElement {
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-neutral-200">
         <Link href="/admin" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-medium to-sky-deep flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-linear-to-br from-sky-medium to-sky-deep flex items-center justify-center">
             <CloudSun className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -44,8 +35,8 @@ export function AdminSidebar(): React.ReactElement {
       <nav className="p-4">
         <ul className="space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || 
-              (item.href !== '/admin' && pathname.startsWith(item.href));
+            const isActive =
+              pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
             const Icon = item.icon;
 
             return (
@@ -86,4 +77,3 @@ export function AdminSidebar(): React.ReactElement {
     </aside>
   );
 }
-

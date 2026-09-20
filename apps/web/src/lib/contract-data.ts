@@ -1,5 +1,5 @@
 import { createPublicClient, http, keccak256, toBytes, type Hex } from 'viem';
-import { flareTestnet } from 'viem/chains';
+import { ARC_TESTNET, assertArcChain } from '@weatherb/shared/constants';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { CITIES, type City } from '@weatherb/shared/constants';
 import type { MarketStatus } from '@weatherb/shared/types';
@@ -35,7 +35,7 @@ function getRpcUrl(): string {
  */
 function getClient() {
   return createPublicClient({
-    chain: flareTestnet,
+    chain: ARC_TESTNET,
     transport: http(getRpcUrl(), {
       batch: {
         wait: 50, // Wait up to 50ms to collect requests for batching
@@ -53,10 +53,10 @@ let dbCitiesCache: City[] | null = null;
  */
 async function loadDbCities(): Promise<City[]> {
   if (dbCitiesCache !== null) return dbCitiesCache;
-  
+
   try {
     const cities = await prisma.city.findMany();
-    dbCitiesCache = cities.map(c => ({
+    dbCitiesCache = cities.map((c) => ({
       slug: c.slug,
       name: c.name,
       latitude: c.latitude,
@@ -74,7 +74,9 @@ async function loadDbCities(): Promise<City[]> {
  * Look up a city by its bytes32 hash (keccak256 of slug).
  * Checks both hardcoded CITIES and database cities.
  */
-async function findCityByBytes32(cityIdHex: Hex): Promise<{ slug: string; name: string; latitude: number; longitude: number } | null> {
+async function findCityByBytes32(
+  cityIdHex: Hex,
+): Promise<{ slug: string; name: string; latitude: number; longitude: number } | null> {
   // First check hardcoded cities (fast path)
   for (const city of CITIES) {
     const hash = keccak256(toBytes(city.slug));
@@ -87,7 +89,7 @@ async function findCityByBytes32(cityIdHex: Hex): Promise<{ slug: string; name: 
       };
     }
   }
-  
+
   // Then check database cities
   const dbCities = await loadDbCities();
   for (const city of dbCities) {
@@ -101,10 +103,9 @@ async function findCityByBytes32(cityIdHex: Hex): Promise<{ slug: string; name: 
       };
     }
   }
-  
+
   return null;
 }
-
 
 // Serializable version of Market (bigints as strings)
 export type SerializedMarket = {
@@ -114,11 +115,13 @@ export type SerializedMarket = {
   latitude: number;
   longitude: number;
   resolveTime: number;
+  bettingDeadline?: number; // Milliseconds; fixed when this market was created
   thresholdF_tenths: number;
   currency: string;
   status: MarketStatus;
   yesPool: string;
   noPool: string;
+  totalFees?: string;
   resolvedTempF_tenths?: number;
   observedTimestamp?: number;
   outcome?: boolean;
@@ -137,6 +140,8 @@ export type FetchMarketsResult = {
 export async function fetchMarketsFromContract(): Promise<FetchMarketsResult> {
   try {
     const client = getClient();
+    assertArcChain(Number(process.env.NEXT_PUBLIC_CHAIN_ID));
+    assertArcChain(await client.getChainId());
     const contractAddress = getContractAddress();
 
     const count = await client.readContract({
@@ -156,7 +161,7 @@ export async function fetchMarketsFromContract(): Promise<FetchMarketsResult> {
         abi: WEATHER_MARKET_ABI,
         functionName: 'getMarket',
         args: [BigInt(i)],
-      })
+      }),
     );
 
     const marketResults = await Promise.all(marketPromises);
@@ -188,11 +193,13 @@ export async function fetchMarketsFromContract(): Promise<FetchMarketsResult> {
         latitude: city.latitude,
         longitude: city.longitude,
         resolveTime: Number(marketData.resolveTime) * 1000, // Convert to milliseconds
+        bettingDeadline: Number(marketData.bettingDeadline) * 1000,
         thresholdF_tenths: Number(marketData.thresholdTenths),
-        currency: 'FLR',
+        currency: 'USDC',
         status,
         yesPool: marketData.yesPool.toString(),
         noPool: marketData.noPool.toString(),
+        totalFees: marketData.totalFees.toString(),
       };
 
       // Add resolution data if market is resolved OR noWinners
@@ -216,4 +223,3 @@ export async function fetchMarketsFromContract(): Promise<FetchMarketsResult> {
     };
   }
 }
-

@@ -48,7 +48,7 @@ export function StatCard({
         <div className="flex-1 min-w-0">
           <p className="font-body text-sm text-neutral-500 mb-1 truncate">{title}</p>
           <p className="font-display text-2xl font-bold text-neutral-800 truncate">{value}</p>
-          
+
           {(subtitle || trendValue) && (
             <div className="flex items-center gap-2 mt-1">
               {trendValue && (
@@ -57,8 +57,8 @@ export function StatCard({
                     trend === 'up'
                       ? 'text-success-soft'
                       : trend === 'down'
-                      ? 'text-error-soft'
-                      : 'text-neutral-400'
+                        ? 'text-error-soft'
+                        : 'text-neutral-400'
                   }`}
                 >
                   {trend === 'up' && '↑'}
@@ -66,15 +66,15 @@ export function StatCard({
                   {trendValue}
                 </span>
               )}
-              {subtitle && (
-                <span className="font-body text-xs text-neutral-400">{subtitle}</span>
-              )}
+              {subtitle && <span className="font-body text-xs text-neutral-400">{subtitle}</span>}
             </div>
           )}
         </div>
 
         {Icon && (
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconColorClasses[colorScheme]}`}>
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconColorClasses[colorScheme]}`}
+          >
             <Icon className="w-5 h-5" />
           </div>
         )}
@@ -82,4 +82,3 @@ export function StatCard({
     </motion.div>
   );
 }
-

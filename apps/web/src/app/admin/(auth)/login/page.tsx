@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 function LoginFallback(): React.ReactElement {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-light via-cloud-off to-sunset-pink/20 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-sky-light via-cloud-off to-sunset-pink/20 p-4">
       <div className="w-full max-w-md">
         <div className="card-hero text-center">
           <div className="flex items-center justify-center">

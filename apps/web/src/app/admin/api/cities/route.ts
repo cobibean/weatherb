@@ -4,7 +4,11 @@ import { getAdminSession, logAdminAction } from '@/lib/admin-session';
 import { getCities, createCity, toggleCityActive } from '@/lib/admin-data';
 
 const createCitySchema = z.object({
-  slug: z.string().min(1).max(50).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
+  slug: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
   name: z.string().min(1).max(100),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -44,7 +48,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!parseResult.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,7 +83,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     if (!parseResult.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -88,7 +92,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     await logAdminAction(
       session.wallet,
       parseResult.data.isActive ? 'ACTIVATE_CITY' : 'DEACTIVATE_CITY',
-      { cityId: city.id, name: city.name }
+      { cityId: city.id, name: city.name },
     );
 
     return NextResponse.json({ city });
@@ -97,4 +101,3 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to update city' }, { status: 500 });
   }
 }
-

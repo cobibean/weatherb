@@ -23,7 +23,7 @@ describe('verifyCronRequest', () => {
     (process.env as Record<string, string | undefined>).CRON_SECRET = 'test';
 
     const request = new Request('http://localhost/api/cron/test', {
-      headers: { 'Authorization': 'Bearer test' },
+      headers: { Authorization: 'Bearer test' },
     });
 
     expect(verifyCronRequest(request)).toBe(true);
@@ -34,7 +34,7 @@ describe('verifyCronRequest', () => {
     (process.env as Record<string, string | undefined>).CRON_SECRET = 'correct';
 
     const request = new Request('http://localhost/api/cron/test', {
-      headers: { 'Authorization': 'Bearer wrong-secret' },
+      headers: { Authorization: 'Bearer wrong-secret' },
     });
 
     expect(verifyCronRequest(request)).toBe(false);

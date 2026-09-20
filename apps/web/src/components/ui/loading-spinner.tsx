@@ -42,7 +42,7 @@ export function LoadingSpinner({
   variant = 'default',
   className,
   label,
-}: LoadingSpinnerProps) {
+}: LoadingSpinnerProps): React.ReactElement {
   const config = sizeConfig[size];
 
   // Variant color configurations
@@ -89,11 +89,7 @@ export function LoadingSpinner({
         />
 
         {/* Main spinner */}
-        <svg
-          className={config.container}
-          viewBox="0 0 100 100"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg className={config.container} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
           <defs>
             {/* Gradient definition for stroke */}
             <linearGradient id={`gradient-${variant}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -130,10 +126,7 @@ export function LoadingSpinner({
       {/* Optional label */}
       {label && (
         <motion.p
-          className={cn(
-            'text-neutral-600 font-medium tracking-tight',
-            config.label
-          )}
+          className={cn('text-neutral-600 font-medium tracking-tight', config.label)}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -155,7 +148,7 @@ export function LoadingDots({
 }: {
   className?: string;
   variant?: LoadingSpinnerVariant;
-}) {
+}): React.ReactElement {
   const variantStyles = {
     default: '#5BA5E5',
     sunset: '#FF9AB3',
@@ -198,8 +191,9 @@ export function LoadingSkeleton({
 }: {
   className?: string;
   variant?: 'default' | 'card' | 'text';
-}) {
-  const baseClasses = 'rounded-xl bg-gradient-to-r from-cloud-soft via-neutral-100 to-cloud-soft bg-[length:200%_100%]';
+}): React.ReactElement {
+  const baseClasses =
+    'rounded-xl bg-linear-to-r from-cloud-soft via-neutral-100 to-cloud-soft bg-size-[200%_100%]';
 
   const variants = {
     default: 'h-4 w-full',
@@ -234,7 +228,7 @@ export function LoadingOverlay({
   isLoading: boolean;
   label?: string;
   variant?: LoadingSpinnerVariant;
-}) {
+}): React.ReactElement | null {
   if (!isLoading) return null;
 
   return (
@@ -269,15 +263,15 @@ export function InlineLoader({
 }: {
   variant?: LoadingSpinnerVariant;
   size?: 'sm' | 'md';
-}) {
+}): React.ReactElement {
   const sizeClass = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
 
   // Simplified color mapping for inline use
   const variantStyles = {
-    default: '#5BA5E5',    // Sky blue - for light backgrounds
-    sunset: '#FF9AB3',      // Sunset pink - for light backgrounds
-    sky: '#87CEEB',         // Light blue - for light backgrounds
-    minimal: '#FFFFFF',     // White - for colored button backgrounds (primary, sunset, etc)
+    default: '#5BA5E5', // Sky blue - for light backgrounds
+    sunset: '#FF9AB3', // Sunset pink - for light backgrounds
+    sky: '#87CEEB', // Light blue - for light backgrounds
+    minimal: '#FFFFFF', // White - for colored button backgrounds (primary, sunset, etc)
   };
 
   const color = variantStyles[variant];

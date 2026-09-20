@@ -4,7 +4,11 @@ import { getAdminSession } from '@/lib/admin-session';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
 
-export default async function AdminLayout({ children }: { children: ReactNode }): Promise<React.ReactElement> {
+export default async function AdminLayout({
+  children,
+}: {
+  children: ReactNode;
+}): Promise<React.ReactElement> {
   // Validate session on the server
   const session = await getAdminSession();
 
@@ -23,9 +27,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <AdminHeader wallet={session.wallet} />
 
         {/* Page content */}
-        <main className="flex-1 px-4 pb-4 pt-20 lg:px-6 lg:pb-6 lg:pt-20">
-          {children}
-        </main>
+        <main className="flex-1 px-4 pb-4 pt-20 lg:px-6 lg:pb-6 lg:pt-20">{children}</main>
       </div>
     </div>
   );

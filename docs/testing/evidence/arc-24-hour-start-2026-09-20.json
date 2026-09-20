@@ -1,0 +1,161 @@
+{
+  "checkedAt": "2026-09-20T12:10:03.352Z",
+  "chainId": 5042002,
+  "proxy": "0xd86e2774e4a9bf2e86199791068b9350b718b891",
+  "markets": [
+    {
+      "label": "core",
+      "id": "2",
+      "creation": {
+        "hash": "0x171f26c60a7caf8fa41dc602b84706917062d0a7c3e0e59c66f5405e24beb250",
+        "status": "success",
+        "blockNumber": "63084300",
+        "blockTimestamp": "1789906103",
+        "input": {
+          "functionName": "createScheduledMarket",
+          "args": [
+            "0x357e8ea1fefb357db68588579634b75f57d66ec252b111dc4cfdb8c0a6f3e680",
+            "780",
+            "1789905600"
+          ]
+        }
+      },
+      "durationSeconds": "86400",
+      "resolveAt": "2026-09-21T12:08:23.000Z",
+      "market": {
+        "cityId": "0x357e8ea1fefb357db68588579634b75f57d66ec252b111dc4cfdb8c0a6f3e680",
+        "resolveTime": "1789992503",
+        "bettingDeadline": "1789991903",
+        "thresholdTenths": "780",
+        "currency": "0x0000000000000000000000000000000000000000",
+        "status": 0,
+        "yesPool": "30000000000000000",
+        "noPool": "20000000000000000",
+        "totalFees": "0",
+        "resolvedTempTenths": "0",
+        "observedTimestamp": "0",
+        "outcome": false
+      },
+      "database": {
+        "contractMarketId": 2,
+        "cityName": "Austin",
+        "resolveTime": "2026-09-21T12:08:23.000Z",
+        "thresholdTemp": 780,
+        "status": "OPEN",
+        "yesPool": "30000000000000000",
+        "noPool": "20000000000000000",
+        "totalFees": "0",
+        "actualTemp": null,
+        "outcome": null
+      }
+    },
+    {
+      "label": "no-winners",
+      "id": "3",
+      "creation": {
+        "hash": "0x78f8c6e1ec7c7668efb09e4783b647d2d682b65c8e9d8eae4d6531386153db00",
+        "status": "success",
+        "blockNumber": "63084349",
+        "blockTimestamp": "1789906128",
+        "input": {
+          "functionName": "createMarket",
+          "args": [
+            "0x357e8ea1fefb357db68588579634b75f57d66ec252b111dc4cfdb8c0a6f3e680",
+            "1789992527",
+            "10000",
+            "0x0000000000000000000000000000000000000000"
+          ]
+        }
+      },
+      "durationSeconds": "86399",
+      "resolveAt": "2026-09-21T12:08:47.000Z",
+      "market": {
+        "cityId": "0x357e8ea1fefb357db68588579634b75f57d66ec252b111dc4cfdb8c0a6f3e680",
+        "resolveTime": "1789992527",
+        "bettingDeadline": "1789991927",
+        "thresholdTenths": "10000",
+        "currency": "0x0000000000000000000000000000000000000000",
+        "status": 0,
+        "yesPool": "10000000000000000",
+        "noPool": "0",
+        "totalFees": "0",
+        "resolvedTempTenths": "0",
+        "observedTimestamp": "0",
+        "outcome": false
+      },
+      "database": {
+        "contractMarketId": 3,
+        "cityName": "Austin",
+        "resolveTime": "2026-09-21T12:08:47.000Z",
+        "thresholdTemp": 10000,
+        "status": "OPEN",
+        "yesPool": "10000000000000000",
+        "noPool": "0",
+        "totalFees": "0",
+        "actualTemp": null,
+        "outcome": null
+      }
+    }
+  ],
+  "betReceipts": [
+    {
+      "label": "core-yes-bet",
+      "hash": "0x78319d8f74e5b1d041f0ff7e99731c1ca48b9c48133fd2937378c638933c902d",
+      "status": "success",
+      "from": "0xf58a9647a034537dd097e32f1248ae3a3757de5c",
+      "value": "20000000000000000",
+      "input": {
+        "functionName": "placeBet",
+        "args": [
+          "2",
+          true
+        ]
+      }
+    },
+    {
+      "label": "core-repeat-bet",
+      "hash": "0x34f842b3e1444c83a1f4e4323fcdb356e585a756fbb46967a475367dcdce7b66",
+      "status": "success",
+      "from": "0xf58a9647a034537dd097e32f1248ae3a3757de5c",
+      "value": "10000000000000000",
+      "input": {
+        "functionName": "placeBet",
+        "args": [
+          "2",
+          true
+        ]
+      }
+    },
+    {
+      "label": "core-no-bet",
+      "hash": "0x0c666b6ede8eb388407926cdf4865c4723f08113aec5f0aa95d0ce4a5e89663f",
+      "status": "success",
+      "from": "0x0fe77f7aeb64b7079a2ce3eaa5b151132b58f941",
+      "value": "20000000000000000",
+      "input": {
+        "functionName": "placeBet",
+        "args": [
+          "2",
+          false
+        ]
+      }
+    },
+    {
+      "label": "no-winners-yes-bet",
+      "hash": "0x0269279b3b68b42f11014920be6c03b63509f4a06ca03e40ef4915c87b6c9c76",
+      "status": "success",
+      "from": "0xf58a9647a034537dd097e32f1248ae3a3757de5c",
+      "value": "10000000000000000",
+      "input": {
+        "functionName": "placeBet",
+        "args": [
+          "3",
+          true
+        ]
+      }
+    }
+  ],
+  "databaseReady": true,
+  "schedulerPaused": true,
+  "settlerPaused": true
+}

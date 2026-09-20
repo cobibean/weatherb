@@ -1,45 +1,56 @@
 'use client';
 
-import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
+import { POSITIONS_UPDATED } from '@/lib/position-events';
+import type { PositionsResponse } from '@/types/positions';
+import { motion, useMotionValueEvent, useScroll } from 'framer-motion';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { Menu, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useActiveAccount } from 'thirdweb/react';
 import { formatEther } from 'viem';
-import { cn } from '@/lib/utils';
 import { WalletButton } from './wallet-button';
-import type { PositionsResponse } from '@/types/positions';
 
 const navLinks = [
   { href: '/', label: 'Markets' },
   { href: '/docs', label: 'Docs' },
-  { href: '/voting', label: 'Suggestions' },
   { href: '/positions', label: 'My Positions', hasNotification: true },
 ];
 
-export function Header() {
+export function Header({ afterglow = false }: { afterglow?: boolean } = {}): React.ReactElement {
+  const account = useActiveAccount();
+  return <AccountHeader key={account?.address ?? 'disconnected'} afterglow={afterglow} />;
+}
+
+function AccountHeader({ afterglow }: { afterglow: boolean }): React.ReactElement {
   const [isHidden, setIsHidden] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [claimableCount, setClaimableCount] = useState(0);
-  const [claimableFLR, setClaimableFLR] = useState<string | null>(null);
+  const [claimableUSDC, setClaimableUSDC] = useState<string | null>(null);
   const { scrollY } = useScroll();
   const account = useActiveAccount();
 
   // Fetch claimable positions count for notification badge
   useEffect(() => {
     if (!account?.address) {
-      setClaimableCount(0);
-      setClaimableFLR(null);
       return;
     }
 
+    let disposed = false;
+    let pending: AbortController | undefined;
     const fetchClaimable = async () => {
+      pending?.abort();
+      const request = new AbortController();
+      pending = request;
       try {
-        const response = await fetch(`/api/positions?wallet=${account.address}`);
+        const response = await fetch(`/api/positions?wallet=${account.address}`, {
+          cache: 'no-store',
+          signal: request.signal,
+        });
         const data: PositionsResponse = await response.json();
 
-        if (!data.error) {
+        if (response.ok && !data.error && !disposed && pending === request) {
           const claimable = data.positions.filter(
-            (p) => p.status === 'claimable' || p.status === 'refundable'
+            (p) => p.status === 'claimable' || p.status === 'refundable',
           );
           setClaimableCount(claimable.length);
 
@@ -47,24 +58,39 @@ export function Header() {
             const total = claimable.reduce((sum, p) => {
               return sum + BigInt(p.claimableAmount ?? '0');
             }, 0n);
-            setClaimableFLR(Number(formatEther(total)).toFixed(2));
+            setClaimableUSDC(Number(formatEther(total)).toFixed(2));
           } else {
-            setClaimableFLR(null);
+            setClaimableUSDC(null);
           }
         }
       } catch (err) {
-        console.error('Failed to fetch claimable positions:', err);
+        if (!request.signal.aborted) console.error('Failed to fetch claimable positions:', err);
       }
     };
 
     fetchClaimable();
 
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchClaimable, 60000);
-    return () => clearInterval(interval);
+    const onUpdate = (event: Event): void => {
+      if ((event as CustomEvent<string>).detail.toLowerCase() === account.address.toLowerCase())
+        void fetchClaimable();
+    };
+    const onFocus = (): void => {
+      if (!document.hidden) void fetchClaimable();
+    };
+    window.addEventListener(POSITIONS_UPDATED, onUpdate);
+    window.addEventListener('focus', onFocus);
+    const interval = setInterval(onFocus, 60000);
+    return () => {
+      disposed = true;
+      pending?.abort();
+      clearInterval(interval);
+      window.removeEventListener(POSITIONS_UPDATED, onUpdate);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [account?.address]);
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
+    if (afterglow) return;
     const previous = scrollY.getPrevious() ?? 0;
     // Hide on scroll down (after 100px), show on scroll up
     if (latest > previous && latest > 100) {
@@ -77,7 +103,9 @@ export function Header() {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8 pt-4"
+      className={
+        afterglow ? 'wb-header-wrap' : 'fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8 pt-4'
+      }
       initial={{ y: 0 }}
       animate={{ y: isHidden ? -100 : 0 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
@@ -98,8 +126,8 @@ export function Header() {
                 href={link.href}
                 className="relative font-body text-sm font-semibold text-neutral-600 hover:text-neutral-800 transition-colors focus-ring rounded-lg px-2 py-1"
                 title={
-                  link.hasNotification && claimableFLR
-                    ? `${claimableFLR} FLR to claim`
+                  link.hasNotification && claimableUSDC
+                    ? `${claimableUSDC} USDC to claim`
                     : undefined
                 }
               >
@@ -117,8 +145,18 @@ export function Header() {
           </nav>
 
           {/* Desktop Wallet Button */}
-          <div className="hidden md:block">
-            <WalletButton />
+          <div className="hidden md:flex items-center gap-3">
+            {afterglow && (
+              <a
+                className="wb-faucet"
+                href="https://faucet.circle.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Get test USDC
+              </a>
+            )}
+            <WalletButton afterglow={afterglow} />
           </div>
 
           {/* Mobile Menu Button */}
@@ -126,36 +164,10 @@ export function Header() {
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 rounded-lg focus-ring"
             aria-label="Toggle menu"
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-navigation"
           >
-            <motion.div
-              className="w-5 h-4 flex flex-col justify-between"
-              animate={isMobileMenuOpen ? 'open' : 'closed'}
-            >
-              <motion.span
-                className="w-full h-0.5 bg-neutral-700 rounded-full origin-left"
-                variants={{
-                  closed: { rotate: 0, y: 0 },
-                  open: { rotate: 45, y: -2 },
-                }}
-                transition={{ duration: 0.2 }}
-              />
-              <motion.span
-                className="w-full h-0.5 bg-neutral-700 rounded-full"
-                variants={{
-                  closed: { opacity: 1 },
-                  open: { opacity: 0 },
-                }}
-                transition={{ duration: 0.2 }}
-              />
-              <motion.span
-                className="w-full h-0.5 bg-neutral-700 rounded-full origin-left"
-                variants={{
-                  closed: { rotate: 0, y: 0 },
-                  open: { rotate: -45, y: 2 },
-                }}
-                transition={{ duration: 0.2 }}
-              />
-            </motion.div>
+            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </header>
@@ -171,7 +183,12 @@ export function Header() {
         }}
         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
       >
-        <nav className="menu-floating p-4 sm:p-5 space-y-1">
+        <nav
+          id="mobile-navigation"
+          inert={!isMobileMenuOpen}
+          aria-hidden={!isMobileMenuOpen}
+          className="menu-floating p-4 sm:p-5 space-y-1"
+        >
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -183,7 +200,7 @@ export function Header() {
               {link.hasNotification && claimableCount > 0 && (
                 <span className="inline-flex items-center gap-2">
                   <span className="text-xs text-emerald-600 font-semibold">
-                    {claimableFLR} FLR
+                    {claimableUSDC} USDC
                   </span>
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold">
                     {claimableCount}
@@ -193,7 +210,17 @@ export function Header() {
             </Link>
           ))}
           <div className="pt-2 px-1">
-            <WalletButton />
+            <WalletButton afterglow={afterglow} />
+            {afterglow && (
+              <a
+                className="wb-faucet"
+                href="https://faucet.circle.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Get test USDC
+              </a>
+            )}
           </div>
         </nav>
       </motion.div>

@@ -3,7 +3,7 @@ import {
   calculateMarketSummary,
   formatTemperatureDisplay,
   getMarketQuestion,
-  getOutcomeMessage
+  getOutcomeMessage,
 } from '../market-summary-utils';
 import type { Market } from '@weatherb/shared/types';
 
@@ -21,19 +21,20 @@ describe('market summary utilities', () => {
       status: 'resolved',
       yesPool: BigInt(100e18),
       noPool: BigInt(50e18),
+      totalFees: BigInt(2e18),
       resolvedTempF_tenths: 680,
       observedTimestamp: 1735344100,
-      outcome: true
+      outcome: true,
     };
 
-    const summary = calculateMarketSummary(market, 0.01); // 1% fee
+    const summary = calculateMarketSummary(market); // 1% fee
 
     expect(summary.type).toBe('settled');
     if (summary.type === 'settled') {
       expect(summary.winnerSide).toBe('YES');
       expect(summary.winningPool).toBe(BigInt(100e18));
       expect(summary.losingPool).toBe(BigInt(50e18));
-      expect(summary.feeAmount).toBe(BigInt(0.5e18)); // 1% of losing pool
+      expect(summary.feeAmount).toBe(BigInt(2e18)); // Recorded fee, not a default 1%
       expect(summary.winningPoolPercentage).toBeCloseTo(66.67, 1);
     }
   });
@@ -53,10 +54,10 @@ describe('market summary utilities', () => {
       currency: 'FLR',
       status: 'open',
       yesPool: BigInt(200e18),
-      noPool: BigInt(300e18)
+      noPool: BigInt(300e18),
     };
 
-    const summary = calculateMarketSummary(market, 0.01);
+    const summary = calculateMarketSummary(market);
 
     expect(summary.type).toBe('live');
     if (summary.type === 'live') {

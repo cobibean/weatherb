@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import type { MarketSummaryData, SettledMarketSummary, LiveMarketSummary } from '../market-summary';
 import type { Market } from '@weatherb/shared/types';
+import { describe, expect, it } from 'vitest';
+import type { LiveMarketSummary, SettledMarketSummary } from '../market-summary';
 
 describe('MarketSummaryData types', () => {
   it('should create valid settled market summary', () => {
@@ -19,7 +19,7 @@ describe('MarketSummaryData types', () => {
       resolvedTempF_tenths: 680,
       observedTimestamp: 1735344100,
       outcome: true,
-      resolutionTxHash: '0xabc123'
+      resolutionTxHash: '0xabc123',
     };
 
     const summary: SettledMarketSummary = {
@@ -31,7 +31,7 @@ describe('MarketSummaryData types', () => {
       winnerSide: 'YES',
       feeAmount: BigInt(0.5e18),
       winningPoolPercentage: 66.67,
-      numberOfBettors: { yes: 10, no: 5 }
+      numberOfBettors: { yes: 10, no: 5 },
     };
 
     expect(summary.type).toBe('settled');
@@ -51,7 +51,7 @@ describe('MarketSummaryData types', () => {
       currency: 'FLR',
       status: 'open',
       yesPool: BigInt(200e18),
-      noPool: BigInt(300e18)
+      noPool: BigInt(300e18),
     };
 
     const summary: LiveMarketSummary = {
@@ -62,7 +62,7 @@ describe('MarketSummaryData types', () => {
       timeUntilClose: 86400,
       timeUntilResolve: 87000,
       impliedProbability: { yes: 40, no: 60 },
-      currentMultiplier: { yes: 2.5, no: 1.67 }
+      currentMultiplier: { yes: 2.5, no: 1.67 },
     };
 
     expect(summary.type).toBe('live');

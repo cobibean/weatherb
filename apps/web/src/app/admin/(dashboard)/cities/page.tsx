@@ -15,9 +15,7 @@ export default function CitiesPage(): React.ReactElement {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">
-          City Management
-        </h1>
+        <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">City Management</h1>
         <p className="font-body text-neutral-500">
           Manage the cities available for weather market creation.
         </p>

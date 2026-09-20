@@ -1,0 +1,65 @@
+/* Prepared design assets; not imported by the application. */
+[data-wb-theme="afterglow"] {
+  --wb-page: #071827;
+  --wb-surface: #0c2134;
+  --wb-control: #142333;
+  --wb-text: #f4f7fb;
+  --wb-muted: #b6c4d5;
+  --wb-brand: #ff9ab3;
+  --wb-yes-text: #c7e5f5;
+  --wb-yes-line: #648da6;
+  --wb-yes-hover: #2864ad;
+  --wb-yes-pressed: #20538f;
+  --wb-no-text: #f2d6df;
+  --wb-no-line: #a67f8c;
+  --wb-no-hover: #a44762;
+  --wb-no-pressed: #893b52;
+  --wb-focus: #ffffff;
+  --wb-font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--wb-text);
+  font-family: var(--wb-font);
+  font-variant-numeric: tabular-nums;
+}
+.wb-outcome {
+  --side-text: var(--wb-yes-text);
+  --side-line: var(--wb-yes-line);
+  --side-hover: var(--wb-yes-hover);
+  --side-pressed: var(--wb-yes-pressed);
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 1px solid var(--side-line);
+  border-radius: 10px;
+  background: var(--wb-control);
+  color: var(--side-text);
+  font: 500 16px/1.25 var(--wb-font);
+  cursor: pointer;
+  transition: background-color 160ms ease-out, color 160ms ease-out, border-color 160ms ease-out;
+}
+.wb-outcome[data-side="no"] {
+  --side-text: var(--wb-no-text);
+  --side-line: var(--wb-no-line);
+  --side-hover: var(--wb-no-hover);
+  --side-pressed: var(--wb-no-pressed);
+}
+.wb-outcome--compact { min-height: 44px; padding: 10px 18px; border-radius: 8px; font-size: 14px; }
+@media (hover: hover) and (pointer: fine) {
+  .wb-outcome:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--side-hover); color: #fff; border-color: var(--side-hover);
+  }
+}
+.wb-outcome:focus-visible {
+  background: var(--side-hover); color: #fff; border-color: var(--side-hover);
+  outline: 2px solid var(--wb-focus); outline-offset: 3px;
+}
+.wb-outcome:active:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--side-pressed); color: #fff; border-color: var(--side-pressed);
+}
+.wb-outcome:disabled, .wb-outcome[aria-disabled="true"] {
+  background: #172839; color: #93a4b7; border-color: #455c70; cursor: not-allowed;
+}
+.wb-outcome[aria-busy="true"] { cursor: progress; }
+/* Explicit states for the reference sheet; omit data-preview-state in application UI. */
+.wb-outcome[data-preview-state="hover"] { background: var(--side-hover); color: #fff; border-color: var(--side-hover); }
+.wb-outcome[data-preview-state="pressed"] { background: var(--side-pressed); color: #fff; border-color: var(--side-pressed); }
+.wb-outcome[data-preview-state="focus"] { background: var(--side-hover); color: #fff; border-color: var(--side-hover); outline: 2px solid #fff; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .wb-outcome { transition: none; } }

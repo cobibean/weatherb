@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
 
 type ParticleType = 'cloud' | 'sparkle';
 
@@ -28,30 +27,35 @@ interface ParticleSystemProps {
   animate?: boolean;
 }
 
-// Seeded random for deterministic SSR (particles generate client-side only)
+// Stable seeded decoration renders identically on the server and client.
 function generateParticles(
   count: number,
   width: number,
   height: number,
-  type: ParticleType
+  type: ParticleType,
 ): Particle[] {
+  let seed = 17;
+  const random = (): number => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
   return Array.from({ length: count }, (_, i) => ({
     id: i,
-    x: Math.random() * width,
-    y: Math.random() * height,
-    size: type === 'cloud' ? 48 + Math.random() * 48 : 16 + Math.random() * 16,
-    duration: 3 + Math.random() * 4, // 3-7 seconds
-    delay: Math.random() * 2,
-    opacity: 0.4 + Math.random() * 0.3, // 0.4-0.7
-    cloudIndex: Math.floor(Math.random() * 9), // 9 cloud sprites available
+    x: random() * width,
+    y: random() * height,
+    size: type === 'cloud' ? 48 + random() * 48 : 16 + random() * 16,
+    duration: 3 + random() * 4, // 3-7 seconds
+    delay: random() * 2,
+    opacity: 0.4 + random() * 0.3, // 0.4-0.7
+    cloudIndex: Math.floor(random() * 9), // 9 cloud sprites available
   }));
 }
 
 /**
  * Particle system for ethereal micro-interactions
  * Displays floating clouds or sparkles with smooth animations
- * 
- * SSR-safe: Particles are generated client-side only to avoid hydration mismatch
+ *
+ * Uses stable decorative positions across server and client.
  */
 export function ParticleSystem({
   count = 5,
@@ -60,20 +64,8 @@ export function ParticleSystem({
   width = 100,
   height = 100,
   animate = true,
-}: ParticleSystemProps) {
-  // Generate particles only on client to avoid hydration mismatch
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setParticles(generateParticles(count, width, height, type));
-  }, [count, width, height, type]);
-
-  // Don't render anything on server - particles are decorative
-  if (!mounted) {
-    return null;
-  }
+}: ParticleSystemProps): React.ReactElement | null {
+  const particles = generateParticles(count, width, height, type);
 
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
@@ -130,9 +122,9 @@ function CloudParticle({ size, cloudIndex }: { size: number; cloudIndex: number 
     'rounded-[60%_50%_50%_40%/50%_40%_50%_60%]',
     'rounded-[45%_60%_55%_40%/55%_40%_45%_60%]',
   ];
-  
+
   const cloudStyle = cloudStyles[cloudIndex % cloudStyles.length];
-  
+
   return (
     <div
       className={`relative ${cloudStyle}`}
@@ -165,7 +157,7 @@ function SparkleParticle({ size }: { size: number }) {
       }}
     >
       {/* Simple sparkle using CSS */}
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-light to-sunset-orange rounded-full blur-sm" />
+      <div className="absolute inset-0 bg-linear-to-br from-sky-light to-sunset-orange rounded-full blur-xs" />
       <div
         className="absolute inset-0 bg-white rounded-full"
         style={{

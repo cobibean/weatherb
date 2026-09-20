@@ -2,14 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  User,
-  Clock,
-  Activity,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, User, Clock, Activity } from 'lucide-react';
 import { InlineLoader } from '@/components/ui/loading-spinner';
 import type { AdminLog } from '@prisma/client';
 
@@ -53,7 +46,10 @@ const actionLabels: Record<string, string> = {
   CANCEL_MARKET: 'Cancelled Market',
 };
 
-export function LogsClient({ initialLogs, initialPagination }: LogsClientProps): React.ReactElement {
+export function LogsClient({
+  initialLogs,
+  initialPagination,
+}: LogsClientProps): React.ReactElement {
   const [logs, setLogs] = useState(initialLogs);
   const [pagination, setPagination] = useState(initialPagination);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,8 +93,6 @@ export function LogsClient({ initialLogs, initialPagination }: LogsClientProps):
     return JSON.stringify(details, null, 2);
   };
 
-  const uniqueActions = [...new Set(logs.map((l) => l.action))];
-
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -108,7 +102,7 @@ export function LogsClient({ initialLogs, initialPagination }: LogsClientProps):
           <select
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-neutral-200 bg-white font-body text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-sky-medium"
+            className="px-3 py-2 rounded-xl border border-neutral-200 bg-white font-body text-sm text-neutral-800 focus:outline-hidden focus:ring-2 focus:ring-sky-medium"
           >
             <option value="">All Actions</option>
             {Object.keys(actionLabels).map((action) => (
@@ -119,9 +113,7 @@ export function LogsClient({ initialLogs, initialPagination }: LogsClientProps):
           </select>
         </div>
 
-        {isLoading && (
-          <InlineLoader variant="sky" size="md" />
-        )}
+        {isLoading && <InlineLoader variant="sky" size="md" />}
       </div>
 
       {/* Logs Table */}
@@ -136,9 +128,7 @@ export function LogsClient({ initialLogs, initialPagination }: LogsClientProps):
 
         {/* Rows */}
         {logs.length === 0 ? (
-          <div className="p-8 text-center font-body text-neutral-400">
-            No logs found.
-          </div>
+          <div className="p-8 text-center font-body text-neutral-400">No logs found.</div>
         ) : (
           <div className="divide-y divide-neutral-100">
             {logs.map((log, index) => (
@@ -218,4 +208,3 @@ export function LogsClient({ initialLogs, initialPagination }: LogsClientProps):
     </div>
   );
 }
-

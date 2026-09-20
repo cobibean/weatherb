@@ -1,157 +1,229 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@plugin 'tailwindcss-animate';
 
-:root {
-  color-scheme: light;
-  
-  /* CSS Variables for design system */
-  --sky-light: #87CEEB;
-  --sky-medium: #5BA5E5;
-  --sky-deep: #4A90D9;
-  
-  --cloud-white: #FFFFFF;
-  --cloud-off: #F8FBFF;
-  --cloud-soft: #F0F4F8;
-  
-  --sunset-orange: #FFB347;
-  --sunset-pink: #FF9AB3;
-  --sunset-coral: #FF8C94;
-  
-  --success-soft: #A8E6CF;
-  --error-soft: #FFB3B3;
-  
-  --neutral-100: #FAFBFC;
-  --neutral-200: #E8ECEF;
-  --neutral-400: #B0B8C0;
-  --neutral-600: #6B7280;
-  --neutral-800: #374151;
-  
-  /* Animation timing */
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-sky-light: #87ceeb;
+  --color-sky-medium: #5ba5e5;
+  --color-sky-deep: #4a90d9;
+
+  --color-cloud-white: #ffffff;
+  --color-cloud-off: #f8fbff;
+  --color-cloud-soft: #f0f4f8;
+
+  --color-sunset-orange: #ffb347;
+  --color-sunset-pink: #ff9ab3;
+  --color-sunset-coral: #ff8c94;
+
+  --color-success-soft: #a8e6cf;
+
+  --color-error-soft: #ffb3b3;
+
+  --color-neutral-100: #fafbfc;
+  --color-neutral-200: #e8ecef;
+  --color-neutral-400: #b0b8c0;
+  --color-neutral-600: #6b7280;
+  --color-neutral-800: #374151;
+
+  --font-display: var(--font-sora), system-ui, sans-serif;
+  --font-body: var(--font-jakarta), system-ui, sans-serif;
+  --font-mono: SF Mono, Monaco, Cascadia Code, Roboto Mono, Consolas, monospace;
+
+  --text-4xl: 3.5rem;
+  --text-4xl--line-height: 1.1;
+  --text-4xl--letter-spacing: -0.02em;
+  --text-3xl: 2.5rem;
+  --text-3xl--line-height: 1.2;
+  --text-3xl--letter-spacing: -0.02em;
+  --text-2xl: 2rem;
+  --text-2xl--line-height: 1.2;
+  --text-2xl--letter-spacing: -0.01em;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.3;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.4;
+  --text-xs--letter-spacing: 0.05em;
+
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+
+  --backdrop-blur-xs: 2px;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: float 8s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 3s ease-in-out infinite;
+
   --ease-natural: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-glass-lg: 0 12px 28px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow-sunset: 0 4px 12px rgba(255, 154, 179, 0.3);
+  --shadow-sunset-lg: 0 8px 24px rgba(255, 154, 179, 0.4);
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
 }
 
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
 @layer base {
-  body {
-    @apply bg-cloud-off text-neutral-800 antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight;
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
   }
 }
 
-@layer components {
-  .number-input-no-spin {
-    -moz-appearance: textfield;
-  }
+@utility number-input-no-spin {
+  -moz-appearance: textfield;
 
-  .number-input-no-spin::-webkit-outer-spin-button,
-  .number-input-no-spin::-webkit-inner-spin-button {
+  &::-webkit-outer-spin-button {
     margin: 0;
     -webkit-appearance: none;
   }
 
+  &::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+  }
+}
+
+@utility glass {
   /* Glass morphism effects */
-  .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/30;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  }
-  
-  .liquid-glass {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 251, 255, 0.6));
-    backdrop-filter: blur(16px) saturate(200%);
-    @apply border border-sky-medium/20;
-  }
-  
+  @apply bg-white/70 backdrop-blur-xl border border-white/30;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+@utility liquid-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 251, 255, 0.6));
+  backdrop-filter: blur(16px) saturate(200%);
+  @apply border border-sky-medium/20;
+}
+
+@utility gradient-sky-vertical {
   /* Gradient backgrounds */
-  .gradient-sky-vertical {
-    background: linear-gradient(180deg, #5BA5E5 0%, #87CEEB 40%, #FFB347 80%, #FF9AB3 100%);
-  }
-  
-  .gradient-sky-horizontal {
-    background: linear-gradient(90deg, #87CEEB 0%, #F8FBFF 50%, #FFB347 100%);
-  }
-  
-  .gradient-spotlight {
-    background: radial-gradient(circle at 50% 20%, rgba(255, 179, 71, 0.3), rgba(91, 165, 229, 0.1), transparent 70%);
-  }
-  
+  background: linear-gradient(180deg, #5ba5e5 0%, #87ceeb 40%, #ffb347 80%, #ff9ab3 100%);
+}
+
+@utility gradient-sky-horizontal {
+  background: linear-gradient(90deg, #87ceeb 0%, #f8fbff 50%, #ffb347 100%);
+}
+
+@utility gradient-spotlight {
+  background: radial-gradient(
+    circle at 50% 20%,
+    rgba(255, 179, 71, 0.3),
+    rgba(91, 165, 229, 0.1),
+    transparent 70%
+  );
+}
+
+@utility btn-primary {
   /* Button variants */
-  .btn-primary {
-    @apply relative px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200;
-    background: linear-gradient(135deg, #FFB347, #FF9AB3);
-    box-shadow: 0 4px 12px rgba(255, 154, 179, 0.3);
-  }
-  
-  .btn-primary:hover {
+  @apply relative px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200;
+  background: linear-gradient(135deg, #ffb347, #ff9ab3);
+  box-shadow: 0 4px 12px rgba(255, 154, 179, 0.3);
+
+  &:hover {
     box-shadow: 0 8px 24px rgba(255, 154, 179, 0.4);
     transform: translateY(-1px);
   }
-  
-  .btn-primary:active {
+
+  &:active {
     transform: translateY(0);
   }
-  
-  .btn-secondary {
-    @apply px-6 py-3 rounded-xl font-semibold border-2 border-sky-medium text-sky-medium bg-transparent transition-all duration-200;
-  }
-  
-  .btn-secondary:hover {
+}
+
+@utility btn-secondary {
+  @apply px-6 py-3 rounded-xl font-semibold border-2 border-sky-medium text-sky-medium bg-transparent transition-all duration-200;
+
+  &:hover {
     @apply bg-sky-medium/10;
   }
-  
-  .btn-glass {
-    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-200;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(8px);
-    @apply border border-white/40 text-neutral-800;
-  }
-  
-  .btn-glass:hover {
+}
+
+@utility btn-glass {
+  @apply px-6 py-3 rounded-xl font-semibold transition-all duration-200;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  @apply border border-white/40 text-neutral-800;
+
+  &:hover {
     background: rgba(255, 255, 255, 0.8);
   }
-  
+}
+
+@utility interactive-login-button {
   /* Interactive Login Button - slide animation matching InteractiveHoverButton */
-  .interactive-login-button {
-    position: relative !important;
-    overflow: hidden !important;
-    padding: 8px 24px !important;
-    border-radius: 9999px !important;
-    font-weight: 700 !important;
-    font-size: 14px !important;
-    font-family: var(--font-jakarta), system-ui, sans-serif !important;
-    background: linear-gradient(135deg, #FF9AB3, #FFB347) !important;
-    border: none !important;
-    color: #FFFFFF !important;
-    box-shadow: 0 4px 12px rgba(255, 154, 179, 0.3) !important;
-    cursor: pointer !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-  
-  .interactive-login-button:hover {
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 8px 24px !important;
+  border-radius: 9999px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  font-family: var(--font-jakarta), system-ui, sans-serif !important;
+  background: linear-gradient(135deg, #ff9ab3, #ffb347) !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(255, 154, 179, 0.3) !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+  &:hover {
     transform: scale(1.03) !important;
     box-shadow: 0 8px 24px rgba(255, 154, 179, 0.45) !important;
   }
-  
-  .interactive-login-button:active {
+
+  &:active {
     transform: scale(0.98) !important;
   }
-  
+
   /* Slide animation for login button text */
-  .interactive-login-button span {
+  & span {
     display: inline-block !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
-  
-  .interactive-login-button:hover span {
+
+  &:hover span {
     transform: translateX(-4px) !important;
   }
-  
-  .interactive-login-button::after {
+
+  &::after {
     content: '→' !important;
     position: absolute !important;
     right: 16px !important;
@@ -161,123 +233,176 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     font-weight: 700 !important;
   }
-  
-  .interactive-login-button:hover::after {
+
+  &:hover::after {
     transform: translateY(-50%) translateX(0) !important;
     opacity: 1 !important;
   }
-  
+}
+
+@utility card {
   /* Card variants */
-  .card {
-    @apply bg-cloud-off rounded-2xl p-6 transition-all duration-300;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-  }
-  
-  .card:hover {
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.05);
+  @apply bg-cloud-off rounded-2xl p-6 transition-all duration-300;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.03);
+
+  &:hover {
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, 0.08),
+      0 2px 6px rgba(0, 0, 0, 0.05);
     transform: translateY(-2px);
   }
-  
-  .card-hero {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 251, 255, 0.7));
-    backdrop-filter: blur(8px);
-    @apply border border-white/50 p-5 md:p-6 rounded-2xl md:rounded-3xl;
-  }
-  
+}
+
+@utility card-hero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 251, 255, 0.7));
+  backdrop-filter: blur(8px);
+  @apply border border-white/50 p-5 md:p-6 rounded-2xl md:rounded-3xl;
+}
+
+@utility grain-overlay {
   /* Texture overlays */
-  .grain-overlay {
-    @apply relative;
-  }
-  
-  .grain-overlay::before {
-    content: "";
+  @apply relative;
+
+  &::before {
+    content: '';
     @apply absolute inset-0 pointer-events-none;
     background-image: url('/textures/paper-grain.jpg');
     background-size: 512px 512px;
     opacity: 0.03;
     mix-blend-mode: overlay;
   }
-  
-  /* Floating pill header - inspired by apigen.ca */
-  .header-floating {
-    @apply rounded-full;
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 
-      0 4px 24px rgba(0, 0, 0, 0.06),
-      0 1px 2px rgba(0, 0, 0, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  }
+}
 
-  .menu-floating {
-    @apply rounded-3xl border border-white/60;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 255, 0.78));
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    box-shadow:
-      0 20px 45px rgba(15, 23, 42, 0.12),
-      0 6px 16px rgba(15, 23, 42, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.75);
+@utility header-floating {
+  /* Floating pill header - inspired by apigen.ca */
+  @apply rounded-full;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@utility menu-floating {
+  @apply rounded-3xl border border-white/60;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 255, 0.78));
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  box-shadow:
+    0 20px 45px rgba(15, 23, 42, 0.12),
+    0 6px 16px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+@utility focus-ring {
+  /* Focus styles */
+  @apply focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-medium focus-visible:ring-offset-2;
+}
+
+@utility text-gradient {
+  /* Text gradient - solid pink matching "Temp" */
+  color: #ff9ab3;
+}
+
+@utility text-gradient-warm {
+  /* Alternative gradient for accents */
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, #ff9ab3, #ffb347);
+}
+
+@utility text-shadow {
+  /* Text shadow for better contrast on images */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+@utility text-shadow-lg {
+  text-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@utility hero-title {
+  /* Hero text with strong contrast */
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+@utility hero-subtitle {
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@utility text-gradient-hero {
+  /* Hero gradient - punchy and vibrant */
+  color: #ffd93d;
+  text-shadow:
+    0 0 20px rgba(255, 217, 61, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+@utility scrollbar-hide {
+  /* Hide scrollbar but keep functionality */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
 @layer utilities {
-  /* Focus styles */
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-medium focus-visible:ring-offset-2;
+  :root {
+    color-scheme: light;
+
+    /* CSS Variables for design system */
+    --sky-light: #87ceeb;
+    --sky-medium: #5ba5e5;
+    --sky-deep: #4a90d9;
+
+    --cloud-white: #ffffff;
+    --cloud-off: #f8fbff;
+    --cloud-soft: #f0f4f8;
+
+    --sunset-orange: #ffb347;
+    --sunset-pink: #ff9ab3;
+    --sunset-coral: #ff8c94;
+
+    --success-soft: #a8e6cf;
+    --error-soft: #ffb3b3;
+
+    --neutral-100: #fafbfc;
+    --neutral-200: #e8ecef;
+    --neutral-400: #b0b8c0;
+    --neutral-600: #6b7280;
+    --neutral-800: #374151;
+
+    /* Animation timing */
+    --ease-natural: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
   }
-  
-  /* Text gradient - solid pink matching "Temp" */
-  .text-gradient {
-    color: #FF9AB3;
+}
+
+@layer base {
+  body {
+    @apply bg-cloud-off text-neutral-800 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
-  
-  /* Alternative gradient for accents */
-  .text-gradient-warm {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #FF9AB3, #FFB347);
-  }
-  
-  /* Text shadow for better contrast on images */
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  }
-  
-  .text-shadow-lg {
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Hero text with strong contrast */
-  .hero-title {
-    text-shadow: 
-      0 2px 8px rgba(0, 0, 0, 0.3),
-      0 4px 16px rgba(0, 0, 0, 0.2);
-  }
-  
-  .hero-subtitle {
-    text-shadow: 
-      0 1px 4px rgba(0, 0, 0, 0.3),
-      0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Hero gradient - punchy and vibrant */
-  .text-gradient-hero {
-    color: #FFD93D;
-    text-shadow: 
-      0 0 20px rgba(255, 217, 61, 0.5),
-      0 2px 8px rgba(0, 0, 0, 0.4);
-  }
-  
-  /* Hide scrollbar but keep functionality */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold tracking-tight;
   }
 }
 

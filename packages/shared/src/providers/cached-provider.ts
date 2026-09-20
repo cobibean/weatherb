@@ -1,3 +1,4 @@
+import { validateSettlementReading } from '../utils/weather-timing';
 import { z } from 'zod';
 
 import type { ProviderHealth, WeatherProvider, WeatherReading } from '../types/provider';
@@ -100,10 +101,10 @@ export class CachedProvider implements WeatherProvider {
     longitude: number,
     timestamp: number,
   ): Promise<WeatherReading> {
-    // Round coordinates and timestamp for better cache hit rates
+    // Coordinates can be rounded, but each exact settlement target needs its own reading.
     const roundedLat = roundCoord(latitude);
     const roundedLon = roundCoord(longitude);
-    const roundedTime = roundToHour(timestamp);
+    const exactTarget = timestamp;
 
     const key = stableKey([
       this.cachePrefix,
@@ -111,17 +112,20 @@ export class CachedProvider implements WeatherProvider {
       'reading',
       roundedLat,
       roundedLon,
-      roundedTime,
+      exactTarget,
     ]);
 
     const cached = await this.cache.get(key);
     if (cached) {
       console.log(`[Cache HIT] Reading: ${key}`);
-      return readingSchema.parse(JSON.parse(cached));
+      const reading = readingSchema.parse(JSON.parse(cached));
+      validateSettlementReading(reading, timestamp);
+      return reading;
     }
 
     console.log(`[Cache MISS] Reading: ${key}`);
     const value = await this.inner.getFirstReadingAtOrAfter(latitude, longitude, timestamp);
+    validateSettlementReading(value, timestamp);
     await this.cache.set(key, JSON.stringify(value), this.readingTtlSeconds);
     return value;
   }

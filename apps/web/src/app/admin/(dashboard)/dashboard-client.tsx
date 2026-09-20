@@ -37,7 +37,7 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
   const [isPaused, setIsPaused] = useState(stats.isPaused);
   const [isSettlerPaused, setIsSettlerPaused] = useState(stats.isSettlerPaused);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
-  
+
   // Safety check: ensure recentLogs is always an array
   const safeRecentLogs = recentLogs ?? [];
 
@@ -48,7 +48,7 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isPaused: newState }),
     });
-    
+
     if (res.ok) {
       setIsPaused(newState);
       router.refresh();
@@ -62,7 +62,7 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settlerPaused: newState }),
     });
-    
+
     if (res.ok) {
       setIsSettlerPaused(newState);
       router.refresh();
@@ -111,7 +111,9 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
               </p>
             </div>
             {StatusIcon && (
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconColorClasses[statusConfig.color]}`}>
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconColorClasses[statusConfig.color]}`}
+              >
                 <StatusIcon className="w-5 h-5" />
               </div>
             )}
@@ -139,7 +141,7 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
         />
         <StatCard
           title="Fees (24h)"
-          value={`${stats.fees24h} FLR`}
+          value={`${stats.fees24h} USDC`}
           icon={Coins}
           colorScheme="default"
         />
@@ -149,7 +151,7 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total Volume"
-          value={`${stats.totalVolume} FLR`}
+          value={`${stats.totalVolume} USDC`}
           subtitle="All-time"
           icon={Activity}
         />
@@ -178,28 +180,35 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
           transition={{ delay: 0.2 }}
           className="p-5 rounded-2xl border border-neutral-200 bg-white"
         >
-          <h3 className="font-display font-bold text-lg text-neutral-800 mb-4">
-            System Status
-          </h3>
+          <h3 className="font-display font-bold text-lg text-neutral-800 mb-4">System Status</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2 border-b border-neutral-100">
               <span className="font-body text-neutral-600">Betting</span>
-              <span className={`font-body font-medium ${isPaused ? 'text-error-soft' : 'text-success-soft'}`}>
+              <span
+                className={`font-body font-medium ${isPaused ? 'text-error-soft' : 'text-success-soft'}`}
+              >
                 {isPaused ? '⏸ Paused' : '✓ Active'}
               </span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-neutral-100">
               <span className="font-body text-neutral-600">Settlement</span>
-              <span className={`font-body font-medium ${isSettlerPaused ? 'text-error-soft' : 'text-success-soft'}`}>
+              <span
+                className={`font-body font-medium ${isSettlerPaused ? 'text-error-soft' : 'text-success-soft'}`}
+              >
                 {isSettlerPaused ? '⏸ Paused' : '✓ Active'}
               </span>
             </div>
             <div className="flex items-center justify-between py-2">
               <span className="font-body text-neutral-600">Weather Provider</span>
-              <span className={`font-body font-medium ${
-                stats.providerStatus === 'healthy' ? 'text-success-soft' :
-                stats.providerStatus === 'degraded' ? 'text-sunset-orange' : 'text-error-soft'
-              }`}>
+              <span
+                className={`font-body font-medium ${
+                  stats.providerStatus === 'healthy'
+                    ? 'text-success-soft'
+                    : stats.providerStatus === 'degraded'
+                      ? 'text-sunset-orange'
+                      : 'text-error-soft'
+                }`}
+              >
                 {stats.providerStatus === 'healthy' && '✓ Healthy'}
                 {stats.providerStatus === 'degraded' && '⚠ Degraded'}
                 {stats.providerStatus === 'down' && '✕ Down'}
@@ -215,13 +224,9 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
           transition={{ delay: 0.3 }}
           className="p-5 rounded-2xl border border-neutral-200 bg-white"
         >
-          <h3 className="font-display font-bold text-lg text-neutral-800 mb-4">
-            Recent Activity
-          </h3>
+          <h3 className="font-display font-bold text-lg text-neutral-800 mb-4">Recent Activity</h3>
           {safeRecentLogs.length === 0 ? (
-            <p className="font-body text-neutral-400 text-center py-8">
-              No recent activity
-            </p>
+            <p className="font-body text-neutral-400 text-center py-8">No recent activity</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {safeRecentLogs.map((log) => (
@@ -230,14 +235,12 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
                   className="flex items-center justify-between py-2 border-b border-neutral-100 last:border-0"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-body text-sm text-neutral-800 truncate">
-                      {log.action}
-                    </p>
+                    <p className="font-body text-sm text-neutral-800 truncate">{log.action}</p>
                     <p className="font-mono text-xs text-neutral-400 truncate">
                       {log.wallet.slice(0, 10)}...
                     </p>
                   </div>
-                  <span className="font-body text-xs text-neutral-400 flex-shrink-0 ml-2">
+                  <span className="font-body text-xs text-neutral-400 shrink-0 ml-2">
                     {new Date(log.createdAt).toLocaleTimeString()}
                   </span>
                 </div>
@@ -267,9 +270,7 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
         transition={{ delay: 0.5 }}
         className="p-5 rounded-2xl border border-neutral-200 bg-white"
       >
-        <h3 className="font-display font-bold text-lg text-neutral-800 mb-4">
-          Color Palette
-        </h3>
+        <h3 className="font-display font-bold text-lg text-neutral-800 mb-4">Color Palette</h3>
         <ColorSwatches />
       </motion.div>
 
@@ -282,4 +283,3 @@ export function DashboardClient({ stats, recentLogs }: DashboardClientProps): Re
     </div>
   );
 }
-

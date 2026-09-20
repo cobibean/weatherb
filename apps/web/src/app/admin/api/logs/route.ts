@@ -15,9 +15,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const action = searchParams.get('action');
     const wallet = searchParams.get('wallet');
 
-    const result = await getLogs({ 
-      page, 
-      limit, 
+    const result = await getLogs({
+      page,
+      limit,
       ...(action && { action }),
       ...(wallet && { wallet }),
     });
@@ -28,4 +28,3 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to get logs' }, { status: 500 });
   }
 }
-

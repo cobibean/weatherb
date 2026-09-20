@@ -7,8 +7,7 @@ import { cn } from '@/lib/utils';
 type ButtonVariant = 'default' | 'yes' | 'no' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface InteractiveHoverButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface InteractiveHoverButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** Button text label */
   text?: string;
   /** Color variant */
@@ -30,12 +29,12 @@ const variantStyles: Record<ButtonVariant, { bg: string; text: string; hoverBg: 
     hoverBg: 'bg-neutral-900',
   },
   yes: {
-    bg: 'bg-gradient-to-r from-sky-medium to-sky-light',
+    bg: 'bg-linear-to-r from-sky-medium to-sky-light',
     text: 'text-white',
     hoverBg: 'bg-sky-dark',
   },
   no: {
-    bg: 'bg-gradient-to-r from-sunset-coral to-sunset-peach',
+    bg: 'bg-linear-to-r from-sunset-coral to-sunset-peach',
     text: 'text-white',
     hoverBg: 'bg-sunset-coral',
   },
@@ -51,7 +50,10 @@ const variantStyles: Record<ButtonVariant, { bg: string; text: string; hoverBg: 
   },
 };
 
-const sizeStyles: Record<ButtonSize, { padding: string; text: string; icon: string; minWidth: string }> = {
+const sizeStyles: Record<
+  ButtonSize,
+  { padding: string; text: string; icon: string; minWidth: string }
+> = {
   sm: {
     padding: 'px-4 py-2',
     text: 'text-sm',
@@ -80,10 +82,7 @@ const defaultIcons: Record<ButtonVariant, LucideIcon> = {
   ghost: ArrowRight,
 };
 
-const InteractiveHoverButton = React.forwardRef<
-  HTMLButtonElement,
-  InteractiveHoverButtonProps
->(
+const InteractiveHoverButton = React.forwardRef<HTMLButtonElement, InteractiveHoverButtonProps>(
   (
     {
       text = 'Button',
@@ -96,7 +95,7 @@ const InteractiveHoverButton = React.forwardRef<
       disabled,
       ...props
     },
-    ref
+    ref,
   ) => {
     const styles = variantStyles[variant];
     const sizeStyle = sizeStyles[size];
@@ -117,7 +116,7 @@ const InteractiveHoverButton = React.forwardRef<
           styles.text,
           fullWidth && 'w-full',
           disabled && 'opacity-50 cursor-not-allowed hover:scale-100',
-          className
+          className,
         )}
         {...props}
       >
@@ -125,7 +124,7 @@ const InteractiveHoverButton = React.forwardRef<
         <span
           className={cn(
             'inline-block transition-all duration-300',
-            !hideIcon && 'group-hover:translate-x-12 group-hover:opacity-0'
+            !hideIcon && 'group-hover:translate-x-12 group-hover:opacity-0',
           )}
         >
           {text}
@@ -137,7 +136,7 @@ const InteractiveHoverButton = React.forwardRef<
             className={cn(
               'absolute inset-0 z-10 flex items-center justify-center gap-2 opacity-0 transition-all duration-300',
               'translate-x-12 group-hover:translate-x-0 group-hover:opacity-100',
-              styles.text
+              styles.text,
             )}
           >
             <span>{text}</span>
@@ -146,11 +145,10 @@ const InteractiveHoverButton = React.forwardRef<
         )}
       </button>
     );
-  }
+  },
 );
 
 InteractiveHoverButton.displayName = 'InteractiveHoverButton';
 
 export { InteractiveHoverButton };
 export type { InteractiveHoverButtonProps, ButtonVariant, ButtonSize };
-

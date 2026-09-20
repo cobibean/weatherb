@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useClientClock } from '@/hooks/use-client-clock';
 import { cn } from '@/lib/utils';
 
 interface CountdownProps {
@@ -33,46 +33,22 @@ function calculateTimeLeft(resolveTime: number, now: number): TimeLeft {
   };
 }
 
-// Stable initial state for SSR - shows placeholder until client hydrates
-const INITIAL_TIME_LEFT: TimeLeft = {
-  days: 0,
-  hours: 0,
-  minutes: 0,
-  seconds: 0,
-  isExpired: false,
-};
-
-export function Countdown({ resolveTime, className, size = 'md' }: CountdownProps) {
-  const [mounted, setMounted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(INITIAL_TIME_LEFT);
-
-  useEffect(() => {
-    setMounted(true);
-    // Calculate initial time on mount
-    setTimeLeft(calculateTimeLeft(resolveTime, Date.now()));
-    
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft(resolveTime, Date.now()));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [resolveTime]);
+export function Countdown({
+  resolveTime,
+  className,
+  size = 'md',
+}: CountdownProps): React.ReactElement {
+  const now = useClientClock();
+  const mounted = now !== 0;
+  const timeLeft = calculateTimeLeft(resolveTime, now);
 
   // Show loading placeholder on server
   if (!mounted) {
-    return (
-      <span className={cn('font-mono font-medium text-neutral-400', className)}>
-        --:--
-      </span>
-    );
+    return <span className={cn('font-mono font-medium text-neutral-400', className)}>--:--</span>;
   }
 
   if (timeLeft.isExpired) {
-    return (
-      <span className={cn('font-medium text-sunset-coral', className)}>
-        Resolving...
-      </span>
-    );
+    return <span className={cn('font-medium text-sunset-coral', className)}>Resolving...</span>;
   }
 
   // Format the countdown based on time remaining
@@ -105,20 +81,10 @@ export function Countdown({ resolveTime, className, size = 'md' }: CountdownProp
 /**
  * Detailed countdown with individual units displayed
  */
-export function CountdownDetailed({ resolveTime, className }: CountdownProps) {
-  const [mounted, setMounted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(INITIAL_TIME_LEFT);
-
-  useEffect(() => {
-    setMounted(true);
-    setTimeLeft(calculateTimeLeft(resolveTime, Date.now()));
-    
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft(resolveTime, Date.now()));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [resolveTime]);
+export function CountdownDetailed({ resolveTime, className }: CountdownProps): React.ReactElement {
+  const now = useClientClock();
+  const mounted = now !== 0;
+  const timeLeft = calculateTimeLeft(resolveTime, now);
 
   // Show loading placeholder on server
   if (!mounted) {
@@ -137,9 +103,7 @@ export function CountdownDetailed({ resolveTime, className }: CountdownProps) {
 
   if (timeLeft.isExpired) {
     return (
-      <div className={cn('text-center text-sunset-coral font-medium', className)}>
-        Resolving...
-      </div>
+      <div className={cn('text-center text-sunset-coral font-medium', className)}>Resolving...</div>
     );
   }
 
@@ -162,9 +126,7 @@ export function CountdownDetailed({ resolveTime, className }: CountdownProps) {
             {unit.value.toString().padStart(2, '0')}
           </span>
           <span className="text-xs uppercase text-neutral-500">{unit.label}</span>
-          {index < units.length - 1 && (
-            <span className="text-neutral-400 ml-1">:</span>
-          )}
+          {index < units.length - 1 && <span className="text-neutral-400 ml-1">:</span>}
         </div>
       ))}
     </div>

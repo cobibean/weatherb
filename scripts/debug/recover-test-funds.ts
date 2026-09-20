@@ -1,3 +1,5 @@
+import { requireDatabaseUrl } from '@weatherb/shared/utils/database-url';
+import { PrismaPg } from '@prisma/adapter-pg';
 #!/usr/bin/env npx tsx
 /**
  * Fund Recovery Script for Audition City Test Markets
@@ -36,7 +38,7 @@ if (!RPC_URL || !CONTRACT_ADDRESS) {
   process.exit(1);
 }
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: requireDatabaseUrl(), connectionTimeoutMillis: 5000 }) });
 const STATUS_MAP = ['Open', 'Closed', 'Resolved', 'Cancelled', 'NoWinners'] as const;
 
 const isDryRun = process.argv.includes('--dry-run');

@@ -38,7 +38,7 @@ describe('admin data helpers', () => {
       const now = Date.now();
       const status = deriveProviderStatus(
         { lastSuccessAt: new Date(now - 10 * 60 * 1000).toISOString(), recentErrors: 0 },
-        now
+        now,
       );
       expect(status).toBe('healthy');
     });
@@ -47,7 +47,7 @@ describe('admin data helpers', () => {
       const now = Date.now();
       const status = deriveProviderStatus(
         { lastSuccessAt: new Date(now - 25 * 60 * 60 * 1000).toISOString(), recentErrors: 0 },
-        now
+        now,
       );
       expect(status).toBe('down');
     });
@@ -56,7 +56,7 @@ describe('admin data helpers', () => {
       const now = Date.now();
       const status = deriveProviderStatus(
         { lastSuccessAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(), recentErrors: 0 },
-        now
+        now,
       );
       expect(status).toBe('healthy');
     });
@@ -65,7 +65,7 @@ describe('admin data helpers', () => {
       const now = Date.now();
       const status = deriveProviderStatus(
         { lastSuccessAt: new Date(now - 5 * 60 * 1000).toISOString(), recentErrors: 3 },
-        now
+        now,
       );
       expect(status).toBe('degraded');
     });
@@ -78,7 +78,7 @@ describe('admin data helpers', () => {
           lastErrorAt: new Date(now - 10 * 60 * 1000).toISOString(),
           recentErrors: 1,
         },
-        now
+        now,
       );
       expect(status).toBe('degraded');
     });

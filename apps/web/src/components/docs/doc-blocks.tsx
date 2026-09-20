@@ -13,7 +13,7 @@ type DocBlockRendererProps = {
   block: DocBlock;
 };
 
-export function DocBlockRenderer({ block }: DocBlockRendererProps) {
+export function DocBlockRenderer({ block }: DocBlockRendererProps): React.ReactElement | null {
   switch (block.type) {
     case 'prose':
       return (
@@ -23,7 +23,7 @@ export function DocBlockRenderer({ block }: DocBlockRendererProps) {
       const ListTag = block.ordered ? 'ol' : 'ul';
       return (
         <ListTag
-          className={`space-y-2 pl-6 text-base text-neutral-700 ${
+          className={`space-y-2 pl-6 text-base text-[#f4f7fb] ${
             block.ordered ? 'list-decimal' : 'list-disc'
           }`}
         >
@@ -35,14 +35,14 @@ export function DocBlockRenderer({ block }: DocBlockRendererProps) {
     }
     case 'table':
       return (
-        <div className="overflow-hidden rounded-2xl border border-neutral-200/70 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-[#30475a] bg-[#0c2134] shadow-xs">
           <Table>
             <TableHeader>
-              <TableRow className="bg-cloud-soft/60">
+              <TableRow className="bg-[#0c2134]">
                 {block.headers.map((header) => (
                   <TableHead
                     key={header}
-                    className="text-sm font-semibold text-neutral-700"
+                    className="text-sm font-semibold text-[#f4f7fb]"
                   >
                     {header}
                   </TableHead>
@@ -67,7 +67,7 @@ export function DocBlockRenderer({ block }: DocBlockRendererProps) {
       return (
         <div className="rounded-2xl border border-sky-medium/20 bg-sky-light/10 p-4">
           {block.title && (
-            <div className="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-deep">
+            <div className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#a6d6f2]">
               {block.title}
             </div>
           )}

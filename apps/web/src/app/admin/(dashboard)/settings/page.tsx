@@ -15,9 +15,7 @@ export default function SettingsPage(): React.ReactElement {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">
-          Settings
-        </h1>
+        <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">Settings</h1>
         <p className="font-body text-neutral-500">
           Configure system parameters and operational settings.
         </p>
@@ -37,4 +35,3 @@ export default function SettingsPage(): React.ReactElement {
     </div>
   );
 }
-

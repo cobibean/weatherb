@@ -1,0 +1,48 @@
+{
+  "verifiedAt": "2026-09-19T21:35:52.512Z",
+  "chainId": 5042002,
+  "implementation": "0x00fbe142dc2092e35aa15b2707074252ef8077df",
+  "proxy": "0xd86e2774e4a9bf2e86199791068b9350b718b891",
+  "artifactSha256": "bcce86c99c81dc4b6edc62382fe73fefc80751c5ceea0db1e3314da0f02d9a49",
+  "abiSha256": "867820279aad7153f286bb580f4673c53b4a750e6586d0011336c41d58de9736",
+  "implementationCodeHash": "0x3b1d5ad70efc6d476b2b45e5afac461bb3e93c752cffecbd096d210042d25e22",
+  "settings": {
+    "owner": "0x528CbD73E836723B987c20eB8185678b2477C292",
+    "settler": "0x764EE83afB11C1892826CB17203c2e3c89C0fFA9",
+    "version": "2.2.0",
+    "minBetWei": "10000000000000000",
+    "feeBps": "100",
+    "bettingBufferSeconds": "600",
+    "isPaused": "false",
+    "getMarketCount": "1"
+  },
+  "transactions": {
+    "deploy-implementation": "0xde2ae4deae32a24e57afe2056f3aaea505add484692ddad56f777131bd1432b7",
+    "deploy-proxy": "0x3efb54f8f40cb9f0b3e0ffe780474356545e3e71d039fb00c6b0b5c18df95cec",
+    "fund-settler": "0x33cd55a400943e036b87bea6627ad2f45fe45c41046905896aaab92dc490a5fa",
+    "fund-yesBettor": "0x59ef993a730b151ca0d376eae5b99bbccc720a3c3ae07e2461384bc015c0d50a",
+    "fund-noBettor": "0x2fae0b347ecd54384db761cff7dbd00ea449be8ef52bbc4eb4116a32062abca6",
+    "create-cancellation": "0xa96b6a02bbef4af18159acea1c1d7435950cfc944c6cba194d3a56529c75129c",
+    "cancel-yes-bet": "0xce7d146bd12ece98b86bd543c17dac93bd244b70bdb4f47ea753c52cc2cad82c",
+    "cancel-both-side-bet": "0x018dce2d613d41d43126443e409221613a7c320e4081fa239c1544622e66ce90",
+    "cancel-no-bet": "0x8d0bd0a7727a1a9e603ad9eb3748f8e6d39a69d233dfa9cb1929ddef66ba26eb",
+    "cancel-market": "0xeea04514536bf1210f636f3c3f772752e541ff663c09ae61a05d81018574f6cb",
+    "cancel-yes-refund": "0x6893b0fbc404c53c9b9ca36100f3f934f985909d3d1786679ed253b1c9620af8",
+    "cancel-no-refund": "0xcf1c08aef83f2e194d72e1182b0534ab70d6df0d5b28367d112644c199795a09"
+  },
+  "markets": {
+    "cancellation": "0"
+  },
+  "claimBalanceChecks": {
+    "cancel-yes-refund": {
+      "expected": "30000000000000000",
+      "actual": "30000000000000000",
+      "gas": "1776225000000000"
+    },
+    "cancel-no-refund": {
+      "expected": "20000000000000000",
+      "actual": "20000000000000000",
+      "gas": "1779075000000000"
+    }
+  }
+}

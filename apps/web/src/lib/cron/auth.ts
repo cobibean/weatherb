@@ -31,4 +31,3 @@ export function verifyCronRequest(request: Request): boolean {
 export function unauthorizedResponse(): NextResponse {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
-

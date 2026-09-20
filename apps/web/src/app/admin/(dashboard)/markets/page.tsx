@@ -10,7 +10,7 @@ async function MarketsContent(): Promise<React.ReactElement> {
   const markets = await getAdminMarkets();
 
   return (
-    <MarketsClient 
+    <MarketsClient
       markets={markets}
       isPaused={config.isPaused}
       isSettlerPaused={config.settlerPaused}
@@ -23,9 +23,7 @@ export default function MarketsPage(): React.ReactElement {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">
-          Markets
-        </h1>
+        <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">Markets</h1>
         <p className="font-body text-neutral-500">
           View and manage active and past weather markets.
         </p>

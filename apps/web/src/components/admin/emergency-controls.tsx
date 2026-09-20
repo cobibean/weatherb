@@ -2,13 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  AlertTriangle,
-  Pause,
-  Play,
-  X,
-  Shield,
-} from 'lucide-react';
+import { AlertTriangle, Pause, Play, X, Shield } from 'lucide-react';
 import { InlineLoader } from '@/components/ui/loading-spinner';
 
 interface EmergencyControlsProps {
@@ -29,7 +23,7 @@ export function EmergencyControls({
 
   const handleConfirm = async (): Promise<void> => {
     if (!confirmingAction) return;
-    
+
     setIsLoading(true);
     try {
       if (confirmingAction === 'pause') {
@@ -119,7 +113,7 @@ export function EmergencyControls({
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md p-6 bg-white rounded-2xl shadow-xl"
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-sunset-orange/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-sunset-orange/20 flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-6 h-6 text-sunset-orange" />
                 </div>
                 <div className="flex-1">
@@ -127,16 +121,14 @@ export function EmergencyControls({
                     Confirm Action
                   </h3>
                   <p className="font-body text-neutral-600 mb-4">
-                    {confirmingAction === 'pause' && (
-                      isPaused
+                    {confirmingAction === 'pause' &&
+                      (isPaused
                         ? 'Are you sure you want to resume betting? Users will be able to place bets again.'
-                        : 'Are you sure you want to pause all betting? No new bets can be placed until resumed.'
-                    )}
-                    {confirmingAction === 'settler' && (
-                      isSettlerPaused
+                        : 'Are you sure you want to pause all betting? No new bets can be placed until resumed.')}
+                    {confirmingAction === 'settler' &&
+                      (isSettlerPaused
                         ? 'Are you sure you want to resume settlement? Markets will be resolved automatically.'
-                        : 'Are you sure you want to pause settlement? Markets will not be resolved until resumed.'
-                    )}
+                        : 'Are you sure you want to pause settlement? Markets will not be resolved until resumed.')}
                   </p>
 
                   <div className="flex items-center gap-3">
@@ -145,11 +137,7 @@ export function EmergencyControls({
                       disabled={isLoading}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sunset-orange text-white font-body font-medium hover:bg-sunset-coral transition-colors disabled:opacity-50"
                     >
-                      {isLoading ? (
-                        <InlineLoader variant="minimal" size="sm" />
-                      ) : (
-                        'Confirm'
-                      )}
+                      {isLoading ? <InlineLoader variant="minimal" size="sm" /> : 'Confirm'}
                     </button>
                     <button
                       onClick={() => setConfirmingAction(null)}
@@ -176,4 +164,3 @@ export function EmergencyControls({
     </div>
   );
 }
-

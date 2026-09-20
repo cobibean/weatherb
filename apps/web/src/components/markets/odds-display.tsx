@@ -1,9 +1,10 @@
 'use client';
+import { useArcSettings } from '@/lib/arc-wallet';
 
-import { motion, useSpring, useTransform } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
-import { getImpliedMultipliers, formatMultiplier } from '@weatherb/shared/utils/payout';
 import { cn } from '@/lib/utils';
+import { formatMultiplier, getImpliedMultipliers } from '@weatherb/shared/utils/payout';
+import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 
 type OddsVariant = 'liquid-scale' | 'compact';
 
@@ -19,7 +20,7 @@ interface OddsDisplayProps {
 
 /**
  * Liquid Scale Odds Visualization
- * 
+ *
  * A dynamic balance visualization where:
  * - Center = 50/50 equilibrium
  * - Left side = YES pool (fills with blue gradient)
@@ -34,28 +35,30 @@ export function OddsDisplay({
   showLabels = true,
   showMultipliers = false,
   className,
-}: OddsDisplayProps) {
+}: OddsDisplayProps): React.ReactElement {
+  const settings = useArcSettings();
+  showMultipliers = showMultipliers && settings !== null;
   // Calculate pool ratio (0 = all NO, 1 = all YES)
-  const { yesPercent, noPercent, ratio, yesMultiplier, noMultiplier } = useMemo(() => {
+  const { yesPercent, noPercent, yesMultiplier, noMultiplier } = useMemo(() => {
     const totalPool = yesPool + noPool;
-    const multipliers = getImpliedMultipliers(yesPool, noPool);
-    
+    const multipliers = getImpliedMultipliers(yesPool, noPool, settings?.feeBps ?? 100n);
+
     if (totalPool === 0n) {
-      return { 
-        yesPercent: 50, 
-        noPercent: 50, 
+      return {
+        yesPercent: 50,
+        noPercent: 50,
         ratio: 0.5,
         yesMultiplier: multipliers.yesMultiplier,
         noMultiplier: multipliers.noMultiplier,
       };
     }
-    
+
     // Convert to numbers for percentage calculation
     // Safe for pools up to ~9 quadrillion (Number.MAX_SAFE_INTEGER)
     const yesNum = Number(yesPool);
     const totalNum = Number(totalPool);
     const ratioVal = yesNum / totalNum;
-    
+
     return {
       yesPercent: Math.round(ratioVal * 100),
       noPercent: Math.round((1 - ratioVal) * 100),
@@ -63,17 +66,7 @@ export function OddsDisplay({
       yesMultiplier: multipliers.yesMultiplier,
       noMultiplier: multipliers.noMultiplier,
     };
-  }, [yesPool, noPool]);
-
-  // Animate the ratio with spring physics
-  const animatedRatio = useSpring(ratio, {
-    stiffness: 100,
-    damping: 20,
-    mass: 0.5,
-  });
-
-  // Transform ratio to percentage for positioning (0% = far left, 100% = far right)
-  const fulcrumPosition = useTransform(animatedRatio, [0, 1], [0, 100]);
+  }, [yesPool, noPool, settings]);
 
   if (variant === 'compact') {
     return (
@@ -96,14 +89,14 @@ export function OddsDisplay({
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-sky-medium">YES</span>
             {showMultipliers && (
-              <span className="text-xs font-mono font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded">
+              <span className="text-xs font-mono font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded-sm">
                 {formatMultiplier(yesMultiplier)}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             {showMultipliers && (
-              <span className="text-xs font-mono font-bold text-sunset-coral bg-sunset-pink/20 px-1.5 py-0.5 rounded">
+              <span className="text-xs font-mono font-bold text-sunset-coral bg-sunset-pink/20 px-1.5 py-0.5 rounded-sm">
                 {formatMultiplier(noMultiplier)}
               </span>
             )}
@@ -114,27 +107,24 @@ export function OddsDisplay({
 
       {/* Scale Container */}
       <div
-        className={cn(
-          'relative overflow-hidden rounded-2xl',
-          size === 'wide' ? 'h-16' : 'h-10'
-        )}
+        className={cn('relative overflow-hidden rounded-2xl', size === 'wide' ? 'h-16' : 'h-10')}
       >
         {/* Background gradient bar */}
         <div className="absolute inset-0 flex">
           {/* YES side (left) - blue gradient */}
           <motion.div
-            className="h-full origin-left bg-gradient-to-r from-sky-medium to-sky-light"
+            className="h-full origin-left bg-linear-to-r from-sky-medium to-sky-light"
             initial={{ width: '50%' }}
             animate={{ width: `${yesPercent}%` }}
             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
           />
-          
+
           {/* NO side (right) - pink/orange gradient */}
-          <div className="h-full flex-1 bg-gradient-to-r from-sunset-orange to-sunset-pink" />
+          <div className="h-full flex-1 bg-linear-to-r from-sunset-orange to-sunset-pink" />
         </div>
 
         {/* Glass overlay for depth */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-b from-white/30 to-transparent" />
 
         {/* Fulcrum indicator */}
         <motion.div
@@ -153,7 +143,7 @@ export function OddsDisplay({
           <motion.span
             className={cn(
               'font-mono font-bold text-white drop-shadow-md',
-              size === 'wide' ? 'text-lg' : 'text-sm'
+              size === 'wide' ? 'text-lg' : 'text-sm',
             )}
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
@@ -163,7 +153,7 @@ export function OddsDisplay({
           <motion.span
             className={cn(
               'font-mono font-bold text-white drop-shadow-md',
-              size === 'wide' ? 'text-lg' : 'text-sm'
+              size === 'wide' ? 'text-lg' : 'text-sm',
             )}
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
@@ -202,16 +192,14 @@ function CompactOdds({
       <div className="flex items-center gap-3">
         {/* YES percentage */}
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-gradient-to-br from-sky-medium to-sky-light" />
-          <span className="font-mono text-sm font-semibold text-sky-deep">
-            {yesPercent}%
-          </span>
+          <div className="w-3 h-3 rounded-full bg-linear-to-br from-sky-medium to-sky-light" />
+          <span className="font-mono text-sm font-semibold text-sky-deep">{yesPercent}%</span>
         </div>
 
         {/* Mini bar */}
         <div className="flex-1 h-2 rounded-full overflow-hidden bg-neutral-200">
           <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-sky-medium to-sky-light"
+            className="h-full rounded-full bg-linear-to-r from-sky-medium to-sky-light"
             initial={{ width: '50%' }}
             animate={{ width: `${yesPercent}%` }}
             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
@@ -220,20 +208,18 @@ function CompactOdds({
 
         {/* NO percentage */}
         <div className="flex items-center gap-1.5">
-          <span className="font-mono text-sm font-semibold text-sunset-coral">
-            {noPercent}%
-          </span>
-          <div className="w-3 h-3 rounded-full bg-gradient-to-br from-sunset-orange to-sunset-pink" />
+          <span className="font-mono text-sm font-semibold text-sunset-coral">{noPercent}%</span>
+          <div className="w-3 h-3 rounded-full bg-linear-to-br from-sunset-orange to-sunset-pink" />
         </div>
       </div>
-      
+
       {/* Multiplier badges */}
       {showMultipliers && (
         <div className="flex justify-between text-xs">
-          <span className="font-mono font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded">
+          <span className="font-mono font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded-sm">
             {formatMultiplier(yesMultiplier)}
           </span>
-          <span className="font-mono font-bold text-sunset-coral bg-sunset-pink/20 px-1.5 py-0.5 rounded">
+          <span className="font-mono font-bold text-sunset-coral bg-sunset-pink/20 px-1.5 py-0.5 rounded-sm">
             {formatMultiplier(noMultiplier)}
           </span>
         </div>
@@ -247,32 +233,13 @@ function CompactOdds({
  * SSR-safe: Only renders on client to avoid hydration mismatch
  */
 function FlowingParticles({ direction }: { direction: 'left' | 'right' }) {
-  const [mounted, setMounted] = useState(false);
-  const [particles, setParticles] = useState<Array<{
-    id: number;
-    y: number;
-    delay: number;
-    duration: number;
-    size: number;
-  }>>([]);
-
-  useEffect(() => {
-    setMounted(true);
-    setParticles(
-      Array.from({ length: 5 }, (_, i) => ({
-        id: i,
-        y: 20 + Math.random() * 60,
-        delay: Math.random() * 2,
-        duration: 2 + Math.random() * 2,
-        size: 3 + Math.random() * 4,
-      }))
-    );
-  }, []);
-
-  // Don't render particles on server
-  if (!mounted) {
-    return null;
-  }
+  const particles = Array.from({ length: 5 }, (_, id) => ({
+    id,
+    y: 20 + id * 13,
+    delay: id * 0.37,
+    duration: 2 + id * 0.31,
+    size: 3 + id * 0.8,
+  }));
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">

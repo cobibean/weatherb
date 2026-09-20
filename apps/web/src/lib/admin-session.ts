@@ -32,7 +32,9 @@ export function generateNonce(): string {
 /**
  * Create or update a pending session with a nonce for the wallet.
  */
-export async function createPendingSession(wallet: string): Promise<{ nonce: string; sessionId: string }> {
+export async function createPendingSession(
+  wallet: string,
+): Promise<{ nonce: string; sessionId: string }> {
   const normalizedWallet = wallet.toLowerCase();
   const nonce = generateNonce();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes to sign
@@ -54,7 +56,7 @@ export async function createPendingSession(wallet: string): Promise<{ nonce: str
 export async function verifyAndActivateSession(
   sessionId: string,
   signature: `0x${string}`,
-  expectedWallet: string
+  expectedWallet: string,
 ): Promise<{ success: boolean; error?: string }> {
   const normalizedWallet = expectedWallet.toLowerCase();
 
@@ -83,7 +85,7 @@ export async function verifyAndActivateSession(
 
   // Verify the signature
   const message = `Sign this message to authenticate as weatherB admin.\n\nNonce: ${session.nonce}`;
-  
+
   try {
     const isValid = await verifyMessage({
       address: expectedWallet as `0x${string}`,
@@ -170,7 +172,7 @@ export async function clearAdminSession(): Promise<void> {
 export async function logAdminAction(
   wallet: string,
   action: string,
-  details?: Prisma.InputJsonValue
+  details?: Prisma.InputJsonValue,
 ): Promise<void> {
   await prisma.adminLog.create({
     data: {
@@ -180,4 +182,3 @@ export async function logAdminAction(
     },
   });
 }
-

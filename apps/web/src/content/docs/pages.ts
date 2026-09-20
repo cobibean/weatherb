@@ -29,7 +29,7 @@ export const docPages: DocPage[] = [
           {
             type: 'prose',
             markdown:
-              'weatherB is a simple prediction market on Flare where you bet YES/NO on a temperature outcome:\n"Will the temperature be >= 72F in New York City at 2:00pm?"\n\nThis documentation covers the current testnet release on Coston2. Mainnet documentation will be added when live.',
+              'weatherB is a simple prediction market on Arc where you bet YES/NO on a temperature outcome:\n"Will the temperature be >= 72F in New York City at 2:00pm?"\n\nThis documentation covers the current testnet release on Arc Testnet. Mainnet documentation will be added when live.',
           },
         ],
       },
@@ -56,9 +56,9 @@ export const docPages: DocPage[] = [
             type: 'list',
             ordered: true,
             items: [
-              'Connect your wallet (Coston2 testnet).',
+              'Connect your wallet (Arc Testnet testnet).',
               'Pick an open market.',
-              'Choose YES or NO and enter an amount (min 0.01 FLR).',
+              'Choose YES or NO and enter an amount (min 0.01 USDC).',
               'Confirm the transaction in your wallet.',
               'Track and claim in My Positions after settlement.',
             ],
@@ -80,8 +80,8 @@ export const docPages: DocPage[] = [
               ],
               ['Tie rule', 'Temp == threshold means YES wins'],
               ['Betting closes', '10 minutes before resolve time'],
-              ['Minimum bet', '0.01 FLR'],
-              ['Currency', 'FLR only (V1)'],
+              ['Minimum bet', '0.01 USDC'],
+              ['Currency', 'USDC only (V1)'],
               ['Who can resolve', 'Settler only'],
               ['Fees', '1% default, max 10%, taken from losing pool'],
             ],
@@ -175,7 +175,7 @@ export const docPages: DocPage[] = [
             items: [
               'Use the "Connect Wallet" button in the header.',
               'weatherB uses Thirdweb and WalletConnect for easy onboarding.',
-              'Make sure your wallet is on Coston2 (testnet). If you are on mainnet, you will be prompted to switch.',
+              'Make sure your wallet is on Arc Testnet (testnet). If you are on mainnet, you will be prompted to switch.',
             ],
           },
         ],
@@ -202,7 +202,7 @@ export const docPages: DocPage[] = [
             type: 'list',
             items: [
               'Click YES or NO on the market card.',
-              'Enter your amount (minimum is 0.01 FLR).',
+              'Enter your amount (minimum is 0.01 USDC).',
               'Review the payout preview and confirm the transaction in your wallet.',
               'After confirmation, you will see a transaction link to the explorer.',
             ],
@@ -379,11 +379,11 @@ export const docPages: DocPage[] = [
               ['Temperature storage', 'Tenths of a degree (e.g., 85.3F -> 853)'],
               ['Display precision', 'Whole degrees only'],
               ['Tie rule', 'Temp == threshold means YES wins'],
-              ['Currency', 'FLR only (V1)'],
+              ['Currency', 'USDC only (V1)'],
               ['Settlement', 'Only settler can resolve'],
               ['Fee', '1% default, max 10%, from losing pool'],
               ['Betting close buffer', '10 minutes before resolve time'],
-              ['Minimum bet', '0.01 FLR'],
+              ['Minimum bet', '0.01 USDC'],
             ],
           },
         ],
@@ -450,7 +450,7 @@ export const docPages: DocPage[] = [
           },
           {
             type: 'list',
-            items: ['YES pool: total FLR bet on YES', 'NO pool: total FLR bet on NO'],
+            items: ['YES pool: total USDC bet on YES', 'NO pool: total USDC bet on NO'],
           },
           {
             type: 'prose',
@@ -523,10 +523,10 @@ export const docPages: DocPage[] = [
           {
             type: 'list',
             items: [
-              'YES pool: 40 FLR',
-              'NO pool: 60 FLR',
-              'Fee: 1% of losing pool = 0.6 FLR',
-              'Your YES stake: 10 FLR',
+              'YES pool: 40 USDC',
+              'NO pool: 60 USDC',
+              'Fee: 1% of losing pool = 0.6 USDC',
+              'Your YES stake: 10 USDC',
             ],
           },
           {
@@ -538,7 +538,7 @@ export const docPages: DocPage[] = [
             items: [
               'Net losing pool = 60 - 0.6 = 59.4',
               'Share of losing pool = (10 / 40) * 59.4 = 14.85',
-              'Total payout = 10 + 14.85 = 24.85 FLR',
+              'Total payout = 10 + 14.85 = 24.85 USDC',
             ],
           },
         ],
@@ -1027,7 +1027,7 @@ export const docPages: DocPage[] = [
             items: [
               'Default fee is 1% of the losing pool.',
               'Maximum fee is capped at 10%.',
-              'Minimum bet is 0.01 FLR.',
+              'Minimum bet is 0.01 USDC.',
               'Betting closes 10 minutes before resolve time.',
             ],
           },
@@ -1138,7 +1138,7 @@ export const docPages: DocPage[] = [
         blocks: [
           {
             type: 'prose',
-            markdown: 'Coston2 testnet today. Flare mainnet is planned for a future phase.',
+            markdown: 'Arc Testnet testnet today. mainnet (not scheduled) is planned for a future phase.',
           },
         ],
       },
@@ -1191,7 +1191,7 @@ export const docPages: DocPage[] = [
           {
             type: 'prose',
             markdown:
-              'The bet and claim modals include a link to the Flare explorer after confirmation.',
+              'The bet and claim modals include a link to the Arc explorer after confirmation.',
           },
         ],
       },
@@ -1238,8 +1238,8 @@ export const docPages: DocPage[] = [
               'NoWinners: A resolved market with no bets on the winning side; refunds apply.',
               'Cancelled: A market that was stopped before resolution; refunds apply.',
               'Fee: Percentage taken from the losing pool.',
-              'FLR: The native token of Flare.',
-              'C2FLR: The native token on Flare Coston2 testnet.',
+              'USDC: The native token of Arc.',
+              'USDC: The native token on Arc Testnet.',
             ],
           },
         ],
@@ -1280,7 +1280,7 @@ export const docPages: DocPage[] = [
           {
             type: 'list',
             items: [
-              'Network: Coston2 (Flare testnet)',
+              'Network: Arc Testnet (Arc testnet)',
               'Settlement: Trusted settler role (centralized oracle)',
               'Markets: rotating cities (configurable), temperature-only, 5 markets/day',
               'Features: Core betting, parimutuel pools, automated settlement, suggestion voting',
@@ -1353,7 +1353,7 @@ export const docPages: DocPage[] = [
           {
             type: 'list',
             items: [
-              'Continuous testing on Coston2',
+              'Continuous testing on Arc Testnet',
               'Gather feedback from early users',
               'Refine UX based on real usage patterns',
               'Automated testing of edge cases and settlement reliability',
@@ -1366,7 +1366,7 @@ export const docPages: DocPage[] = [
           {
             type: 'list',
             items: [
-              'Deploy to Flare mainnet with limited exposure',
+              'Deploy to mainnet (not scheduled) with limited exposure',
               'Invite-only or soft launch to community',
               'Monitor real-money markets with low caps',
               'Validate economic assumptions and payout mechanics',
@@ -1379,7 +1379,7 @@ export const docPages: DocPage[] = [
           {
             type: 'list',
             items: [
-              'Full public access on Flare mainnet',
+              'Full public access on mainnet (not scheduled)',
               'Marketing campaigns and community growth',
               'Expand to more cities and weather types',
               'Potential for governance token or community rewards',
@@ -1394,7 +1394,7 @@ export const docPages: DocPage[] = [
           {
             type: 'list',
             items: [
-              'Multi-chain expansion beyond Flare',
+              'Multi-chain expansion beyond Arc',
               'Decentralized oracle network (replace trusted settler)',
               'Custom market creation by users',
               'Sports, events, or other prediction types',

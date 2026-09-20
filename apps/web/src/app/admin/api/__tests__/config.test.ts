@@ -71,12 +71,13 @@ describe('System Config Validation', () => {
     });
 
     it('allows multiple fields', () => {
-      expect(() => configUpdateSchema.parse({
-        cadence: 5,
-        dailyCount: 3,
-        testMode: true,
-      })).not.toThrow();
+      expect(() =>
+        configUpdateSchema.parse({
+          cadence: 5,
+          dailyCount: 3,
+          testMode: true,
+        }),
+      ).not.toThrow();
     });
   });
 });
-

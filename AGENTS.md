@@ -1,5 +1,12 @@
 # AGENTS.md — weatherB Project Rules
 
+> Current restart: Arc Testnet / native USDC, September 2026. Follow
+> `docs/plans/2026-09-18-arc-usdc-readiness-plan.md` and
+> `docs/testing/arc-testnet-lifecycle-acceptance.md` for active configuration and
+> verification. The Flare, hosted cron, voting, audition, and Sheets details below
+> describe the retired/deferred implementation. They do not authorize re-enabling it.
+> Native USDC values use 18 decimals; the fresh restart is version 2.2.0.
+
 ## What Is This?
 **weatherB**: Prediction market on Flare. Users bet YES/NO on temperature.
 > "Will temp be ≥ X°F at time T in City?"

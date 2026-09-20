@@ -1,11 +1,8 @@
+import { cancelMarketOnChain, getAdminContractClients } from '@/lib/admin-contract';
+import { getAdminSession, logAdminAction } from '@/lib/admin-session';
+import { persistMarket, requireRestartContract } from '@/lib/cron/market-state';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getAdminSession, logAdminAction } from '@/lib/admin-session';
-import { cancelMarketOnChain, getAdminContractClients } from '@/lib/admin-contract';
-import { createGoogleSheetsClient, toSheetsStatusLabel } from '@/lib/google-sheets';
-import { claimSheetsLoggingRights } from '@/lib/sheets-logging';
-import prisma from '@/lib/prisma';
-import { formatFlr } from '@weatherb/shared/utils/payout';
 
 const cancelMarketSchema = z.object({
   marketId: z.number().int().nonnegative(),
@@ -24,11 +21,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!parseResult.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { marketId } = parseResult.data;
+
+    const clients = await getAdminContractClients();
+    await requireRestartContract(clients.publicClient, clients.contractAddress);
+    const current = await clients.publicClient.readContract({
+      address: clients.contractAddress,
+      abi: clients.abi,
+      functionName: 'getMarket',
+      args: [BigInt(marketId)],
+    });
+    if (current.status === 3) {
+      await persistMarket(BigInt(marketId), current);
+      return NextResponse.json({ success: true, marketId, reconciled: true });
+    }
 
     // Call contract to cancel market
     let txHash: string;
@@ -36,103 +46,58 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       txHash = await cancelMarketOnChain(marketId);
     } catch (contractError) {
       console.error('Contract call failed:', contractError);
-      const errorMessage = contractError instanceof Error ? contractError.message : 'Unknown contract error';
+      const errorMessage =
+        contractError instanceof Error ? contractError.message : 'Unknown contract error';
 
       // Check for common errors
-      if (errorMessage.includes('NotOwner') || errorMessage.includes('Admin key does not match contract owner')) {
+      if (
+        errorMessage.includes('NotOwner') ||
+        errorMessage.includes('Admin key does not match contract owner')
+      ) {
         return NextResponse.json(
           { error: 'Admin wallet is not the contract owner' },
-          { status: 403 }
+          { status: 403 },
         );
       }
       if (errorMessage.includes('InvalidStatus')) {
         return NextResponse.json(
           { error: 'Market is not cancellable in its current status' },
-          { status: 400 }
+          { status: 400 },
         );
       }
       if (errorMessage.includes('InvalidMarket')) {
-        return NextResponse.json(
-          { error: 'Market does not exist' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Market does not exist' }, { status: 404 });
       }
 
       return NextResponse.json(
         { error: 'Contract call failed', details: errorMessage },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Log the successful action
     await logAdminAction(session.wallet, 'CANCEL_MARKET', { marketId, txHash });
 
-    try {
-      const { publicClient, contractAddress, abi } = await getAdminContractClients();
-      const marketOnChain = await publicClient.readContract({
-        address: contractAddress,
-        abi,
-        functionName: 'getMarket',
-        args: [BigInt(marketId)],
-      });
-      const dbMarket = await prisma.market.findFirst({
-        where: { contractMarketId: marketId, isTest: false },
-      });
-
-      await prisma.market.updateMany({
-        where: { contractMarketId: marketId, isTest: false },
-        data: {
-          status: 'CANCELLED',
-          isSettled: true,
-          settledAt: new Date(),
-          actualTemp: null,
-          outcome: null,
-          yesPool: marketOnChain.yesPool.toString(),
-          noPool: marketOnChain.noPool.toString(),
-        },
-      });
-
-      if (dbMarket) {
-        const shouldLog = await claimSheetsLoggingRights(marketId);
-        if (shouldLog) {
-          const sheetsClient = createGoogleSheetsClient();
-          if (sheetsClient) {
-            try {
-              await sheetsClient.appendRow({
-                marketId: marketId.toString(),
-                city: dbMarket.cityName,
-                status: toSheetsStatusLabel('CANCELLED'),
-                outcome: null,
-                timezone: dbMarket.timezone,
-                threshold: dbMarket.thresholdTemp,
-                resolvedTemp: null,
-                primaryTemp: null,
-                primaryProvider: null,
-                altTemp1: null,
-                altTemp2: null,
-                altTemp3: null,
-                observedTimestamp: null,
-                txHash,
-                volume: formatFlr(marketOnChain.yesPool + marketOnChain.noPool),
-              });
-            } catch (error) {
-              console.error(`[GoogleSheets] Failed to log cancellation for market ${marketId}:`, error);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`[AdminCancel] Failed to persist cancellation for market ${marketId}:`, error);
-    }
+    const confirmed = await clients.publicClient.readContract({
+      address: clients.contractAddress,
+      abi: clients.abi,
+      functionName: 'getMarket',
+      args: [BigInt(marketId)],
+    });
+    if (confirmed.status !== 3) throw new Error('Cancellation not confirmed');
+    await persistMarket(BigInt(marketId), confirmed);
 
     return NextResponse.json({
       success: true,
       marketId,
       txHash,
-      message: 'Market cancelled successfully'
+      message: 'Market cancelled successfully',
     });
   } catch (error) {
     console.error('Cancel market error:', error);
-    return NextResponse.json({ error: 'Failed to cancel market' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Cancellation or reconciliation failed; retry to recover chain state' },
+      { status: 500 },
+    );
   }
 }

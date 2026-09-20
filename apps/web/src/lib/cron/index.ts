@@ -21,19 +21,17 @@ export function getUpstashRedis(): Redis | null {
     const missing: string[] = [];
     if (!url) missing.push('UPSTASH_REDIS_REST_URL');
     if (!token) missing.push('UPSTASH_REDIS_REST_TOKEN');
-    
+
     console.error(
       `${LOG_PREFIX} Not configured - missing: ${missing.join(', ')}. ` +
-      'Provider health tracking and city rotation will not persist.'
+        'Provider health tracking and city rotation will not persist.',
     );
     return null;
   }
 
   // Validate URL format without exposing it
   if (!url.startsWith('https://')) {
-    console.error(
-      `${LOG_PREFIX} Invalid UPSTASH_REDIS_REST_URL format (must start with https://)`
-    );
+    console.error(`${LOG_PREFIX} Invalid UPSTASH_REDIS_REST_URL format (must start with https://)`);
     return null;
   }
 

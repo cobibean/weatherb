@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import type { Suggestion, Vote, SuggestionStatus, TimeWindow } from '@prisma/client';
+import type { Suggestion, SuggestionStatus, TimeWindow } from '@prisma/client';
+import { describe, expect, it } from 'vitest';
 
 describe('Schema Types', () => {
   it('should have correct Suggestion type', () => {

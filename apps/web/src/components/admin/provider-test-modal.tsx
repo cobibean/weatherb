@@ -32,7 +32,11 @@ interface ProviderTestModalProps {
   onTestComplete?: () => void;
 }
 
-export function ProviderTestModal({ isOpen, onClose, onTestComplete }: ProviderTestModalProps): React.ReactElement {
+export function ProviderTestModal({
+  isOpen,
+  onClose,
+  onTestComplete,
+}: ProviderTestModalProps): React.ReactElement {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
 
@@ -149,9 +153,9 @@ export function ProviderTestModal({ isOpen, onClose, onTestComplete }: ProviderT
                   }`}
                 >
                   {result.success ? (
-                    <CheckCircle className="w-6 h-6 text-success-soft flex-shrink-0" />
+                    <CheckCircle className="w-6 h-6 text-success-soft shrink-0" />
                   ) : (
-                    <XCircle className="w-6 h-6 text-error-soft flex-shrink-0" />
+                    <XCircle className="w-6 h-6 text-error-soft shrink-0" />
                   )}
                   <div>
                     <p className="font-semibold text-neutral-800">
@@ -168,7 +172,7 @@ export function ProviderTestModal({ isOpen, onClose, onTestComplete }: ProviderT
                   <div className="space-y-3">
                     {/* City */}
                     <div className="flex items-start gap-3">
-                      <MapPin className="w-5 h-5 text-neutral-400 mt-0.5 flex-shrink-0" />
+                      <MapPin className="w-5 h-5 text-neutral-400 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-sm text-neutral-500">City</p>
                         <p className="font-medium text-neutral-800">
@@ -182,7 +186,7 @@ export function ProviderTestModal({ isOpen, onClose, onTestComplete }: ProviderT
 
                     {/* Temperature */}
                     <div className="flex items-start gap-3">
-                      <Thermometer className="w-5 h-5 text-neutral-400 mt-0.5 flex-shrink-0" />
+                      <Thermometer className="w-5 h-5 text-neutral-400 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-sm text-neutral-500">Temperature</p>
                         <p className="font-medium text-neutral-800 text-lg">
@@ -198,7 +202,7 @@ export function ProviderTestModal({ isOpen, onClose, onTestComplete }: ProviderT
 
                     {/* Timestamp */}
                     <div className="flex items-start gap-3">
-                      <Clock className="w-5 h-5 text-neutral-400 mt-0.5 flex-shrink-0" />
+                      <Clock className="w-5 h-5 text-neutral-400 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-sm text-neutral-500">Observed At</p>
                         <p className="font-medium text-neutral-800">
@@ -210,7 +214,7 @@ export function ProviderTestModal({ isOpen, onClose, onTestComplete }: ProviderT
                     {/* Provider Source */}
                     {result.source && (
                       <div className="flex items-start gap-3">
-                        <Cloud className="w-5 h-5 text-neutral-400 mt-0.5 flex-shrink-0" />
+                        <Cloud className="w-5 h-5 text-neutral-400 mt-0.5 shrink-0" />
                         <div>
                           <p className="text-sm text-neutral-500">Provider</p>
                           <p className="font-medium text-neutral-800">{result.source}</p>

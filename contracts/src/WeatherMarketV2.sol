@@ -195,6 +195,32 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         uint256 thresholdTenths,
         address currency
     ) external onlyOwner returns (uint256 marketId) {
+        return _createMarket(cityId, resolveTime, thresholdTenths, currency);
+    }
+
+    /// @notice Create at most one scheduled market per UTC hour, 12:00–16:59 UTC.
+    /// @dev Retries return the original ID even after the hour expires. A fresh
+    /// deployment is required; this path is not used for legacy Coston2 contracts.
+    function createScheduledMarket(bytes32 cityId, uint256 thresholdTenths, uint64 slot)
+        external onlyOwner returns (uint256 marketId)
+    {
+        uint256 existing = scheduledMarketIds[slot];
+        if (existing != 0) return existing - 1;
+        uint256 hour = (slot % 1 days) / 1 hours;
+        if (slot % 1 hours != 0 || hour < 12 || hour > 16) revert InvalidParams();
+        if (block.timestamp < slot || block.timestamp >= uint256(slot) + 1 hours) revert InvalidParams();
+        marketId = _createMarket(cityId, uint64(block.timestamp + 1 days), thresholdTenths, address(0));
+        scheduledMarketIds[slot] = marketId + 1;
+    }
+
+    /// @notice Zero means no scheduled market; otherwise returns market ID plus one.
+    function getScheduledMarket(uint64 slot) external view returns (uint256) {
+        return scheduledMarketIds[slot];
+    }
+
+    function _createMarket(bytes32 cityId, uint64 resolveTime, uint256 thresholdTenths, address currency)
+        internal returns (uint256 marketId)
+    {
         if (currency != address(0)) revert OnlyNativeCurrency();
         if (resolveTime <= block.timestamp) revert InvalidParams();
         
@@ -300,6 +326,9 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         }
         if (block.timestamp < market.resolveTime) revert TooEarly();
         if (observedTimestamp < market.resolveTime) revert TooEarly();
+        if (observedTimestamp > block.timestamp || observedTimestamp > uint256(market.resolveTime) + 600) {
+            revert InvalidParams();
+        }
 
         bool outcome = tempTenths >= market.thresholdTenths;
         uint256 winningPool = outcome ? market.yesPool : market.noPool;
@@ -399,7 +428,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         uint256 winningPool = market.outcome ? market.yesPool : market.noPool;
         uint256 losingPool = market.outcome ? market.noPool : market.yesPool;
 
-        uint256 payout = _calculatePayout(winningPool, losingPool, stake);
+        uint256 payout = _calculatePayout(winningPool, losingPool, stake, market.totalFees);
         if (payout == 0) revert NothingToClaim();
 
         // Verify contract has sufficient balance before transfer
@@ -457,10 +486,12 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     function calculatePayout(uint256 marketId, address bettor) external view returns (uint256) {
         if (marketId >= markets.length) revert InvalidMarket();
         Market memory market = markets[marketId];
-        if (market.status != MarketStatus.Resolved) return 0;
-
         Position memory pos = positions[marketId][bettor];
         if (pos.claimed) return 0;
+        if (market.status == MarketStatus.Cancelled || market.status == MarketStatus.NoWinners) {
+            return pos.yesAmount + pos.noAmount;
+        }
+        if (market.status != MarketStatus.Resolved) return 0;
         
         uint256 stake = market.outcome ? pos.yesAmount : pos.noAmount;
         if (stake == 0) return 0;
@@ -468,7 +499,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
         uint256 winningPool = market.outcome ? market.yesPool : market.noPool;
         uint256 losingPool = market.outcome ? market.noPool : market.yesPool;
 
-        return _calculatePayout(winningPool, losingPool, stake);
+        return _calculatePayout(winningPool, losingPool, stake, market.totalFees);
     }
 
     /// @notice Get implied YES/NO prices in basis points
@@ -485,7 +516,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
 
     /// @notice Get contract version
     function version() external pure returns (string memory) {
-        return "2.1.0";
+        return "2.2.0";
     }
 
     // ============ Internal Functions ============
@@ -510,11 +541,11 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     function _calculatePayout(
         uint256 winningPool,
         uint256 losingPool,
-        uint256 stake
-    ) internal view returns (uint256 payout) {
+        uint256 stake,
+        uint256 fee
+    ) internal pure returns (uint256 payout) {
         if (winningPool == 0 || stake == 0) return 0;
         
-        uint256 fee = _calculateFee(losingPool);
         uint256 netLosingPool;
         
         unchecked {
@@ -529,5 +560,7 @@ contract WeatherMarketV2 is Initializable, UUPSUpgradeable, IWeatherMarket {
     }
 
     // ============ Gap for Future Storage ============
-    uint256[44] private __gap;
+    // Consume one reserved slot without moving any existing storage.
+    mapping(uint64 => uint256) private scheduledMarketIds;
+    uint256[43] private __gap;
 }

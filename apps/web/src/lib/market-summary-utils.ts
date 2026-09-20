@@ -1,17 +1,22 @@
 import type { Market } from '@weatherb/shared/types';
-import type { MarketSummary, SettledMarketSummary, LiveMarketSummary } from '@/types/market-summary';
+import type {
+  MarketSummary,
+  SettledMarketSummary,
+  LiveMarketSummary,
+} from '@/types/market-summary';
 
 // 10 minutes before resolve time in seconds
 const BETTING_CLOSE_BUFFER = 600;
 
-export function calculateMarketSummary(
-  market: Market,
-  feePercentage: number = 0.01
-): MarketSummary {
+export function calculateMarketSummary(market: Market): MarketSummary {
   const totalPool = market.yesPool + market.noPool;
 
   // Check if market is settled (resolved, cancelled, or noWinners)
-  if (market.status === 'resolved' || market.status === 'cancelled' || market.status === 'noWinners') {
+  if (
+    market.status === 'resolved' ||
+    market.status === 'cancelled' ||
+    market.status === 'noWinners'
+  ) {
     let winnerSide: 'YES' | 'NO' | 'NONE' = 'NONE';
     let winningPool = BigInt(0);
     let losingPool = BigInt(0);
@@ -22,16 +27,15 @@ export function calculateMarketSummary(
       winningPool = market.outcome ? market.yesPool : market.noPool;
       losingPool = market.outcome ? market.noPool : market.yesPool;
 
-      // Calculate fee from losing pool
-      feeAmount = (losingPool * BigInt(Math.floor(feePercentage * 10000))) / BigInt(10000);
+      // Use the immutable settlement amount, never a current/default fee rate.
+      feeAmount = market.totalFees ?? 0n;
     } else if (market.status === 'cancelled' || market.status === 'noWinners') {
       // No winner, all funds refundable
       winnerSide = 'NONE';
     }
 
-    const winningPoolPercentage = totalPool > 0
-      ? Number((winningPool * BigInt(10000)) / totalPool) / 100
-      : 0;
+    const winningPoolPercentage =
+      totalPool > 0 ? Number((winningPool * BigInt(10000)) / totalPool) / 100 : 0;
 
     const settled: SettledMarketSummary = {
       type: 'settled',
@@ -41,7 +45,7 @@ export function calculateMarketSummary(
       losingPool,
       winnerSide,
       feeAmount,
-      winningPoolPercentage
+      winningPoolPercentage,
     };
 
     return settled;
@@ -60,12 +64,12 @@ export function calculateMarketSummary(
 
   const impliedProbability = {
     yes: total > 0 ? Math.round((yesAmount / total) * 100) : 50,
-    no: total > 0 ? Math.round((noAmount / total) * 100) : 50
+    no: total > 0 ? Math.round((noAmount / total) * 100) : 50,
   };
 
   const currentMultiplier = {
     yes: yesAmount > 0 ? total / yesAmount : 1,
-    no: noAmount > 0 ? total / noAmount : 1
+    no: noAmount > 0 ? total / noAmount : 1,
   };
 
   const live: LiveMarketSummary = {
@@ -76,7 +80,7 @@ export function calculateMarketSummary(
     timeUntilClose,
     timeUntilResolve,
     impliedProbability,
-    currentMultiplier
+    currentMultiplier,
   };
 
   return live;
@@ -87,7 +91,11 @@ export function formatTemperatureDisplay(tenths: number): string {
   return `${fahrenheit}°F`;
 }
 
-export function getMarketQuestion(cityName: string, thresholdTenths: number, resolveDate: Date): string {
+export function getMarketQuestion(
+  cityName: string,
+  thresholdTenths: number,
+  resolveDate: Date,
+): string {
   const threshold = Math.round(thresholdTenths / 10);
   const month = resolveDate.toLocaleDateString('en-US', { month: 'short' });
   const day = resolveDate.getDate();

@@ -2,24 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm --workspace=@weatherb/shared run build && npm --workspace=@weatherb/web run build",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "npm ci",
+  "installCommand": "npm install --global npm@12.0.2 && npm ci",
   "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/schedule-daily",
-      "schedule": "0 12-16 * * *"
-    },
-    {
-      "path": "/api/cron/settle-markets",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/update-trending",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/weekly-report",
-      "schedule": "0 14 * * 6"
-    }
-  ]
+  "crons": []
 }

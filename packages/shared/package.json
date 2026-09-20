@@ -12,20 +12,22 @@
     "./utils/payout": "./src/utils/payout.ts",
     "./utils/temperature": "./src/utils/temperature.ts",
     "./utils/market-status": "./src/utils/market-status.ts",
-    "./utils/settlement": "./src/utils/settlement.ts"
+    "./utils/settlement": "./src/utils/settlement.ts",
+    "./utils/database-url": "./src/utils/database-url.ts",
+    "./utils/weather-timing": "./src/utils/weather-timing.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "node ../../scripts/verification/run.mjs shared",
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "ioredis": "^5.5.0",
-    "zod": "^3.24.1"
+    "ioredis": "6.0.0",
+    "zod": "4.6.5"
   },
   "devDependencies": {
-    "@types/node": "^20.11.30",
-    "vitest": "^2.1.8"
+    "@types/node": "24.13.5",
+    "vitest": "5.0.1"
   }
 }

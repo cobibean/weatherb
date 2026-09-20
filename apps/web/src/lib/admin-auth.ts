@@ -5,12 +5,10 @@ import prisma from './prisma';
  * Result of admin authentication check
  */
 export type AdminAuthResult =
-  | { authenticated: true; wallet: string }
-  | { authenticated: false; error: string };
+  { authenticated: true; wallet: string } | { authenticated: false; error: string };
 
 export type AdminTokenVerification =
-  | { isValid: true; wallet: string }
-  | { isValid: false; error: string };
+  { isValid: true; wallet: string } | { isValid: false; error: string };
 
 /**
  * Verify admin authentication from session cookie

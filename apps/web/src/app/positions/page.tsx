@@ -10,14 +10,20 @@ import { ClaimModal } from '@/components/positions/claim-modal';
 import { BulkClaimModal } from '@/components/positions/bulk-claim-modal';
 import { EmptyState } from '@/components/positions/empty-state';
 import { MarketSummaryModal } from '@/components/markets/market-summary-modal';
-import { deserializePosition, deserializeStats } from '@/lib/positions';
+import { deserializePosition, deserializeStats } from '@/lib/position-serialization';
 import type { UserPosition, UserStats, PositionsResponse } from '@/types/positions';
 import type { Market } from '@weatherb/shared/types';
-import { cn } from '@/lib/utils';
+import { Wallet } from 'lucide-react';
+import { WalletButton } from '@/components/layout/wallet-button';
 
 type TabType = 'all' | 'active' | 'claimable' | 'claimed' | 'past';
 
-export default function PositionsPage() {
+export default function PositionsPage(): React.ReactElement {
+  const account = useActiveAccount();
+  return <AccountPositions key={account?.address ?? 'disconnected'} />;
+}
+
+function AccountPositions(): React.ReactElement {
   const account = useActiveAccount();
 
   const [positions, setPositions] = useState<UserPosition[]>([]);
@@ -35,9 +41,6 @@ export default function PositionsPage() {
   // Fetch positions when wallet is connected
   useEffect(() => {
     if (!account?.address) {
-      setPositions([]);
-      setStats(null);
-      setError(null);
       return;
     }
 
@@ -81,9 +84,7 @@ export default function PositionsPage() {
       case 'claimed':
         return positions.filter((p) => p.status === 'claimed' || p.status === 'refunded');
       case 'past':
-        return positions.filter((p) =>
-          ['claimed', 'refunded', 'lost'].includes(p.status)
-        );
+        return positions.filter((p) => ['claimed', 'refunded', 'lost'].includes(p.status));
       case 'all':
       default:
         return positions;
@@ -92,7 +93,7 @@ export default function PositionsPage() {
 
   // Get claimable positions for bulk claim
   const claimablePositions = useMemo(() => {
-    return positions.filter((p) => p.status === 'claimable');
+    return positions.filter((p) => p.status === 'claimable' || p.status === 'refundable');
   }, [positions]);
 
   const handleClaimClick = (marketId: string) => {
@@ -116,9 +117,7 @@ export default function PositionsPage() {
     setShowBulkClaimModal(false);
     setSelectedPosition(null);
     // Refresh positions after successful claim
-    setTimeout(() => {
-      setRefreshKey((prev) => prev + 1);
-    }, 2000);
+    setRefreshKey((prev) => prev + 1);
   };
 
   const handleViewDetails = async (position: UserPosition) => {
@@ -131,7 +130,9 @@ export default function PositionsPage() {
 
       if (data.markets) {
         // Deserialize the market data
-        const market = data.markets.find((m: any) => m.id === position.marketId);
+        const market = data.markets.find(
+          (m: import('@/lib/contract-data').SerializedMarket) => m.id === position.marketId,
+        );
 
         if (market) {
           // Convert string bigints back to bigint for the modal
@@ -139,6 +140,7 @@ export default function PositionsPage() {
             ...market,
             yesPool: BigInt(market.yesPool),
             noPool: BigInt(market.noPool),
+            totalFees: BigInt(market.totalFees ?? '0'),
           };
           setSelectedMarket(deserializedMarket);
           setShowSummaryModal(true);
@@ -174,32 +176,28 @@ export default function PositionsPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div data-wb-theme="afterglow" className="wb-home wb-positions min-h-screen flex flex-col">
+      <Header afterglow />
 
-      <main className="flex-1 pt-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <main className="wb-interior-main flex-1">
+        <div className="wb-shell">
           {/* Page Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gradient mb-4">My Positions</h1>
-            <p className="text-neutral-600 text-lg">
-              Track your active bets and view historical positions
+          <div className="wb-page-heading">
+            <h1 className="wb-page-title">My Positions</h1>
+            <p className="text-[#b6c4d5] text-lg">
+              Your markets, returns, and everything in between.
             </p>
           </div>
 
           {/* Wallet Not Connected */}
           {!account && (
-            <div className="card-hero text-center py-16 max-w-2xl mx-auto">
-              <div className="text-6xl mb-6">🔗</div>
-              <h2 className="text-2xl font-bold text-neutral-800 mb-3">
-                Connect Your Wallet
-              </h2>
-              <p className="text-neutral-600 mb-8">
+            <div className="wb-panel text-center py-16 max-w-2xl mx-auto">
+              <Wallet className="wb-empty-icon" strokeWidth={1.25} />
+              <h2 className="text-2xl font-bold text-[#f4f7fb] mb-3">Connect Your Wallet</h2>
+              <p className="text-[#b6c4d5] mb-8">
                 Connect your wallet to view your positions and claim your winnings.
               </p>
-              <p className="text-sm text-neutral-500">
-                Use the "Connect Wallet" button in the header to get started.
-              </p>
+              <WalletButton afterglow />
             </div>
           )}
 
@@ -212,12 +210,9 @@ export default function PositionsPage() {
 
           {/* Error State */}
           {account && error && !isLoading && (
-            <div className="card bg-rose-50 border-2 border-rose-200 text-center py-8 max-w-2xl mx-auto">
-              <p className="text-rose-800 mb-4">{error}</p>
-              <button
-                onClick={() => setRefreshKey((prev) => prev + 1)}
-                className="btn-primary"
-              >
+            <div className="wb-panel bg-[#352637] border-2 border-[#456078] text-center py-8 max-w-2xl mx-auto">
+              <p className="text-[#f2b3c3] mb-4">{error}</p>
+              <button onClick={() => setRefreshKey((prev) => prev + 1)} className="wb-outcome">
                 Retry
               </button>
             </div>
@@ -231,64 +226,33 @@ export default function PositionsPage() {
                 <StatsCards
                   stats={stats}
                   onClaimAll={
-                    claimablePositions.length > 0
-                      ? () => setShowBulkClaimModal(true)
-                      : undefined
+                    claimablePositions.length > 0 ? () => setShowBulkClaimModal(true) : undefined
                   }
                 />
               </div>
 
-              {/* Tabs */}
-              <div className="mb-8">
-                <div className="border-b border-neutral-200">
-                  <nav className="-mb-px flex space-x-8 overflow-x-auto">
-                    {tabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={cn(
-                          'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors',
-                          activeTab === tab.id
-                            ? 'border-sky-500 text-sky-600'
-                            : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
-                        )}
-                      >
-                        {tab.label}
-                        {tab.count !== undefined && tab.count > 0 && (
-                          <span
-                            className={cn(
-                              'ml-2 py-0.5 px-2 rounded-full text-xs font-semibold',
-                              activeTab === tab.id
-                                ? 'bg-sky-100 text-sky-600'
-                                : 'bg-neutral-100 text-neutral-600'
-                            )}
-                          >
-                            {tab.count}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </nav>
-                </div>
-              </div>
+              <nav className="wb-position-filters" aria-label="Filter positions">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    aria-pressed={activeTab === tab.id}
+                  >
+                    {tab.label}
+                    <span>{tab.count ?? 0}</span>
+                  </button>
+                ))}
+              </nav>
 
               {/* Positions Grid */}
               {filteredPositions.length > 0 ? (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                   {filteredPositions.map((position) => (
                     <PositionCard
                       key={position.marketId}
                       position={position}
-                      onClaim={
-                        position.status === 'claimable'
-                          ? handleClaimClick
-                          : undefined
-                      }
-                      onRefund={
-                        position.status === 'refundable'
-                          ? handleRefundClick
-                          : undefined
-                      }
+                      onClaim={position.status === 'claimable' ? handleClaimClick : undefined}
+                      onRefund={position.status === 'refundable' ? handleRefundClick : undefined}
                       onViewDetails={handleViewDetails}
                     />
                   ))}
@@ -301,7 +265,7 @@ export default function PositionsPage() {
         </div>
       </main>
 
-      <Footer />
+      <Footer afterglow />
 
       {/* Claim Modal */}
       {selectedPosition && (
@@ -338,4 +302,3 @@ export default function PositionsPage() {
     </div>
   );
 }
-

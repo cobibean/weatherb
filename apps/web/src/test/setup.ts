@@ -1,6 +1,11 @@
-import '@testing-library/jest-dom';
-import { config } from 'dotenv';
-import { resolve } from 'path';
+import { afterEach, expect } from 'vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+import { takeBlockedAttempts } from '../../../../scripts/verification/network-guard.mjs';
 
-// Load environment variables from root .env file
-config({ path: resolve(__dirname, '../../../../.env') });
+expect.extend(matchers);
+
+afterEach(() => {
+  expect(takeBlockedAttempts(), 'Unexpected real network access: mock the service boundary').toBe(
+    0,
+  );
+});

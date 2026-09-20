@@ -1,10 +1,20 @@
-import { createPublicClient, decodeEventLog, http, keccak256, parseAbiItem, toBytes, type AbiEvent, type Hex } from 'viem';
+import { ARC_TESTNET, assertArcChain } from '@weatherb/shared/constants';
+import type { AdminLog, City } from '@prisma/client';
 import { WEATHER_MARKET_ABI } from '@weatherb/shared/abi';
 import { CITIES } from '@weatherb/shared/constants';
-import { formatFlr } from '@weatherb/shared/utils/payout';
-import { readProviderHealth, type ProviderHealth } from './provider-health';
+import { formatUsdc } from '@weatherb/shared/utils/payout';
+import {
+  createPublicClient,
+  decodeEventLog,
+  http,
+  keccak256,
+  parseAbiItem,
+  toBytes,
+  type AbiEvent,
+  type Hex,
+} from 'viem';
 import prisma from './prisma';
-import type { TestStatus } from '@prisma/client';
+import { readProviderHealth, type ProviderHealth } from './provider-health';
 
 export interface AdminStats {
   providerStatus: 'healthy' | 'degraded' | 'down';
@@ -28,6 +38,7 @@ export type AdminMarket = {
   status: AdminMarketStatus;
   yesPool: string;
   noPool: string;
+  totalFees?: string;
   outcome?: boolean;
   resolvedTemp?: number;
 };
@@ -41,30 +52,15 @@ export interface SystemConfigData {
   settlerPaused: boolean;
 }
 
-export type TestingCity = {
-  id: string;
-  suggestionId: string;
-  name: string;
-  latitude: number | null;
-  longitude: number | null;
-  timezone: string | null;
-  status: TestStatus;
-  startedAt: string;
-};
-
 /**
- * Get or create the default system config.
+ * Read the explicitly seeded system config.
  */
 export async function getSystemConfig(): Promise<SystemConfigData> {
-  let config = await prisma.systemConfig.findUnique({
+  const config = await prisma.systemConfig.findUnique({
     where: { id: 'default' },
   });
 
-  if (!config) {
-    config = await prisma.systemConfig.create({
-      data: { id: 'default' },
-    });
-  }
+  if (!config) throw new Error('System configuration is missing. Run the development seed.');
 
   return {
     cadence: config.cadence,
@@ -80,7 +76,7 @@ export async function getSystemConfig(): Promise<SystemConfigData> {
  * Update system config.
  */
 export async function updateSystemConfig(
-  data: Partial<Omit<SystemConfigData, 'isPaused' | 'settlerPaused'>>
+  data: Partial<Omit<SystemConfigData, 'isPaused' | 'settlerPaused'>>,
 ): Promise<SystemConfigData> {
   const config = await prisma.systemConfig.upsert({
     where: { id: 'default' },
@@ -117,7 +113,13 @@ type AdminMarketRaw = {
   outcome?: boolean;
 };
 
-const STATUS_MAP: readonly AdminMarketStatus[] = ['Open', 'Closed', 'Resolved', 'Cancelled', 'NoWinners'] as const;
+const STATUS_MAP: readonly AdminMarketStatus[] = [
+  'Open',
+  'Closed',
+  'Resolved',
+  'Cancelled',
+  'NoWinners',
+] as const;
 
 function getContractAddress(): Hex {
   const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as Hex | undefined;
@@ -137,6 +139,7 @@ function getRpcUrl(): string {
 
 function getClient() {
   return createPublicClient({
+    chain: ARC_TESTNET,
     transport: http(getRpcUrl(), {
       batch: {
         wait: 50, // Wait up to 50ms to collect requests for batching
@@ -159,7 +162,11 @@ function findCityByBytes32(cityIdHex: Hex): { slug: string; name: string } | nul
   return null;
 }
 
-export function mapMarketStatus(statusNum: number, bettingDeadlineSec: number, nowSec: number): AdminMarketStatus {
+export function mapMarketStatus(
+  statusNum: number,
+  bettingDeadlineSec: number,
+  nowSec: number,
+): AdminMarketStatus {
   if (statusNum === 0 && nowSec >= bettingDeadlineSec) {
     return 'Closed';
   }
@@ -174,6 +181,8 @@ function toResolvedTemp(resolvedTempTenths?: number): number | undefined {
 async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
   try {
     const client = getClient();
+    assertArcChain(Number(process.env.NEXT_PUBLIC_CHAIN_ID));
+    assertArcChain(await client.getChainId());
     const contractAddress = getContractAddress();
     const count = await client.readContract({
       address: contractAddress,
@@ -192,7 +201,7 @@ async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
         abi: WEATHER_MARKET_ABI,
         functionName: 'getMarket',
         args: [BigInt(i)],
-      })
+      }),
     );
 
     const marketResults = await Promise.all(marketPromises);
@@ -212,7 +221,7 @@ async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
       const status = mapMarketStatus(
         Number(marketData.status),
         Number(marketData.bettingDeadline),
-        nowSec
+        nowSec,
       );
 
       const market: AdminMarketRaw = {
@@ -243,7 +252,11 @@ async function fetchAdminMarketsRaw(): Promise<AdminMarketRaw[]> {
   } catch (error) {
     // Handle rate limiting and other RPC errors gracefully
     const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit')) {
+    if (
+      errorMessage.includes('429') ||
+      errorMessage.includes('Too Many Requests') ||
+      errorMessage.includes('rate limit')
+    ) {
       console.warn('Rate limited while fetching markets, returning empty array');
       return [];
     }
@@ -264,8 +277,9 @@ export async function getAdminMarkets(): Promise<AdminMarket[]> {
       resolveTime: market.resolveTime,
       thresholdTenths: market.thresholdTenths,
       status: market.status,
-      yesPool: formatFlr(market.yesPool),
-      noPool: formatFlr(market.noPool),
+      yesPool: market.yesPool.toString(),
+      noPool: market.noPool.toString(),
+      totalFees: market.totalFees.toString(),
       ...(market.outcome !== undefined ? { outcome: market.outcome } : {}),
       ...(resolvedTemp !== undefined ? { resolvedTemp } : {}),
     };
@@ -289,9 +303,11 @@ async function fetchUniqueBettorCount(): Promise<number> {
 
   try {
     const client = getClient();
+    assertArcChain(Number(process.env.NEXT_PUBLIC_CHAIN_ID));
+    assertArcChain(await client.getChainId());
     const contractAddress = getContractAddress();
     const betPlacedEvent = parseAbiItem(
-      'event BetPlaced(uint256 indexed marketId, address indexed bettor, bool isYes, uint256 amount)'
+      'event BetPlaced(uint256 indexed marketId, address indexed bettor, bool isYes, uint256 amount)',
     ) as AbiEvent;
 
     const latestBlock = await client.getBlockNumber();
@@ -302,7 +318,7 @@ async function fetchUniqueBettorCount(): Promise<number> {
       fromBlock,
       toBlock: latestBlock,
       // Use larger block ranges (2000 blocks) to reduce number of requests
-      // Flare Coston2 ~1.8s block time = ~1 hour of blocks
+      // Bound RPC log ranges; Arc block times differ from the retired deployment.
       maxRange: 2000n,
       // Process max 10 ranges in parallel to avoid overwhelming RPC
       maxConcurrent: 10,
@@ -327,8 +343,8 @@ async function fetchUniqueBettorCount(): Promise<number> {
     // Handle rate limiting, timeouts, and other RPC errors gracefully
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (
-      errorMessage.includes('429') || 
-      errorMessage.includes('Too Many Requests') || 
+      errorMessage.includes('429') ||
+      errorMessage.includes('Too Many Requests') ||
       errorMessage.includes('rate limit') ||
       errorMessage.includes('timeout') ||
       errorMessage.includes('TimeoutError')
@@ -356,57 +372,67 @@ async function fetchLogsInBatches(params: {
   maxConcurrent?: number;
 }) {
   const { maxConcurrent = 10 } = params;
-  
+
   // Calculate all batch ranges
   const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
   let start = params.fromBlock;
 
   while (start <= params.toBlock) {
-    const end = start + params.maxRange - 1n <= params.toBlock
-      ? start + params.maxRange - 1n
-      : params.toBlock;
-    
+    const end =
+      start + params.maxRange - 1n <= params.toBlock
+        ? start + params.maxRange - 1n
+        : params.toBlock;
+
     ranges.push({ fromBlock: start, toBlock: end });
     start = end + 1n;
   }
 
   // Process in chunks to avoid RPC timeout from too many parallel requests
   const allLogs: Awaited<ReturnType<typeof params.client.getLogs>>[] = [];
-  
+
   for (let i = 0; i < ranges.length; i += maxConcurrent) {
     const chunk = ranges.slice(i, i + maxConcurrent);
-    
+
     const chunkPromises = chunk.map((range) =>
-      params.client.getLogs({
-        address: params.address,
-        event: params.event,
-        fromBlock: range.fromBlock,
-        toBlock: range.toBlock,
-      }).catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (
-          errorMessage.includes('429') || 
-          errorMessage.includes('Too Many Requests') || 
-          errorMessage.includes('rate limit')
-        ) {
-          throw new Error('Rate limited while fetching logs');
-        }
-        throw error;
-      })
+      params.client
+        .getLogs({
+          address: params.address,
+          event: params.event,
+          fromBlock: range.fromBlock,
+          toBlock: range.toBlock,
+        })
+        .catch((error) => {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (
+            errorMessage.includes('429') ||
+            errorMessage.includes('Too Many Requests') ||
+            errorMessage.includes('rate limit')
+          ) {
+            throw new Error('Rate limited while fetching logs');
+          }
+          throw error;
+        }),
     );
 
     const chunkResults = await Promise.all(chunkPromises);
     allLogs.push(...chunkResults);
   }
-  
+
   return allLogs.flat();
 }
 
-export function deriveProviderStatus(health: ProviderHealth | null, nowMs: number = Date.now()): AdminStats['providerStatus'] {
+export function deriveProviderStatus(
+  health: ProviderHealth | null,
+  nowMs: number = Date.now(),
+): AdminStats['providerStatus'] {
   if (!health) return 'degraded';
 
-  const lastSuccessMs = health.lastSuccessAt ? Date.parse(health.lastSuccessAt) : Number.NEGATIVE_INFINITY;
-  const lastErrorMs = health.lastErrorAt ? Date.parse(health.lastErrorAt) : Number.NEGATIVE_INFINITY;
+  const lastSuccessMs = health.lastSuccessAt
+    ? Date.parse(health.lastSuccessAt)
+    : Number.NEGATIVE_INFINITY;
+  const lastErrorMs = health.lastErrorAt
+    ? Date.parse(health.lastErrorAt)
+    : Number.NEGATIVE_INFINITY;
   const successAgeMs = nowMs - lastSuccessMs;
   const errorAgeMs = nowMs - lastErrorMs;
 
@@ -467,18 +493,17 @@ export async function getAdminStats(): Promise<AdminStats> {
   const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000;
 
   const marketsToday = markets.filter(
-    (market) => market.resolveTime >= dayStartMs && market.resolveTime < dayEndMs
+    (market) => market.resolveTime >= dayStartMs && market.resolveTime < dayEndMs,
   ).length;
 
   const pendingSettlements = markets.filter(
     (market) =>
-      (market.status === 'Open' || market.status === 'Closed') &&
-      market.resolveTime <= nowMs
+      (market.status === 'Open' || market.status === 'Closed') && market.resolveTime <= nowMs,
   ).length;
 
   const totalVolumeWei = markets.reduce(
     (total, market) => total + market.yesPool + market.noPool,
-    0n
+    0n,
   );
 
   const recentCutoffMs = nowMs - 24 * 60 * 60 * 1000;
@@ -495,8 +520,8 @@ export async function getAdminStats(): Promise<AdminStats> {
     providerStatus,
     marketsToday,
     pendingSettlements,
-    fees24h: formatFlr(fees24hWei),
-    totalVolume: formatFlr(totalVolumeWei),
+    fees24h: formatUsdc(fees24hWei),
+    totalVolume: formatUsdc(totalVolumeWei),
     totalUsers,
     isPaused: config.isPaused,
     isSettlerPaused: config.settlerPaused,
@@ -506,49 +531,16 @@ export async function getAdminStats(): Promise<AdminStats> {
 /**
  * Get all cities.
  */
-export async function getCities() {
+export async function getCities(): Promise<City[]> {
   return prisma.city.findMany({
     orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
   });
 }
 
 /**
- * Get cities currently in active testing runs.
- */
-export async function getTestingCities(): Promise<TestingCity[]> {
-  const testRuns = await prisma.testRun.findMany({
-    where: { status: 'RUNNING' },
-    include: {
-      suggestion: {
-        include: { city: true },
-      },
-    },
-    orderBy: { startedAt: 'desc' },
-  });
-
-  return testRuns.map((run) => {
-    const city = run.suggestion.city;
-    const name = city?.name ?? run.suggestion.customCityName ?? 'Unknown City';
-    const latitude = city?.latitude ?? run.suggestion.latitude ?? null;
-    const longitude = city?.longitude ?? run.suggestion.longitude ?? null;
-
-    return {
-      id: run.id,
-      suggestionId: run.suggestionId,
-      name,
-      latitude,
-      longitude,
-      timezone: city?.timezone ?? null,
-      status: run.status,
-      startedAt: run.startedAt.toISOString(),
-    };
-  });
-}
-
-/**
  * Get active cities only.
  */
-export async function getActiveCities() {
+export async function getActiveCities(): Promise<City[]> {
   return prisma.city.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
@@ -564,14 +556,14 @@ export async function createCity(data: {
   latitude: number;
   longitude: number;
   timezone: string;
-}) {
+}): Promise<City> {
   return prisma.city.create({ data });
 }
 
 /**
  * Toggle city active status.
  */
-export async function toggleCityActive(id: string, isActive: boolean) {
+export async function toggleCityActive(id: string, isActive: boolean): Promise<City> {
   return prisma.city.update({
     where: { id },
     data: { isActive },
@@ -581,7 +573,7 @@ export async function toggleCityActive(id: string, isActive: boolean) {
 /**
  * Get recent admin logs.
  */
-export async function getRecentLogs(limit = 50) {
+export async function getRecentLogs(limit = 50): Promise<AdminLog[]> {
   return prisma.adminLog.findMany({
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -596,7 +588,10 @@ export async function getLogs(options: {
   limit?: number;
   action?: string;
   wallet?: string;
-}) {
+}): Promise<{
+  logs: AdminLog[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}> {
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
   const skip = (page - 1) * limit;

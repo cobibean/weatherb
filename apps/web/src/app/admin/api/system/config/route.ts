@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     if (!parseResult.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,12 +49,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       dailyCount?: number;
       bettingBuffer?: number;
     } = {};
-    
+
     if (parseResult.data.cadence !== undefined) updateData.cadence = parseResult.data.cadence;
     if (parseResult.data.testMode !== undefined) updateData.testMode = parseResult.data.testMode;
-    if (parseResult.data.dailyCount !== undefined) updateData.dailyCount = parseResult.data.dailyCount;
-    if (parseResult.data.bettingBuffer !== undefined) updateData.bettingBuffer = parseResult.data.bettingBuffer;
-    
+    if (parseResult.data.dailyCount !== undefined)
+      updateData.dailyCount = parseResult.data.dailyCount;
+    if (parseResult.data.bettingBuffer !== undefined)
+      updateData.bettingBuffer = parseResult.data.bettingBuffer;
+
     const newConfig = await updateSystemConfig(updateData);
 
     // Log changes
@@ -78,4 +80,3 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to update config' }, { status: 500 });
   }
 }
-

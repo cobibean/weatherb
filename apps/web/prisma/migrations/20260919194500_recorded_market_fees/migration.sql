@@ -1,0 +1,1 @@
+ALTER TABLE "Market" ADD COLUMN "totalFees" TEXT NOT NULL DEFAULT '0';

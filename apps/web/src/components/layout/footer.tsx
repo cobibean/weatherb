@@ -8,7 +8,24 @@ const footerLinks = [
   { href: '/positions', label: 'Positions' },
 ];
 
-export function Footer() {
+export function Footer({ afterglow = false }: { afterglow?: boolean } = {}): React.ReactElement {
+  if (afterglow)
+    return (
+      <footer className="wb-shell wb-footer">
+        <div className="wb-footer-brand">
+          <Link href="/">weatherB</Link>
+          <p>Temperature prediction markets on Arc.</p>
+        </div>
+        <nav aria-label="Footer">
+          <Link href="/docs">Docs</Link>
+          <Link href="/positions">My Positions</Link>
+        </nav>
+        <p>
+          Arc Testnet
+          <br />© {new Date().getFullYear()} weatherB. Built on Arc.
+        </p>
+      </footer>
+    );
   return (
     <footer className="border-t border-neutral-200/50 bg-cloud-soft/50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
@@ -16,9 +33,7 @@ export function Footer() {
           {/* Logo & Tagline */}
           <div className="flex flex-col items-center md:items-start gap-2">
             <span className="text-xl font-bold text-gradient">weatherB</span>
-            <p className="text-sm text-neutral-600">
-              Temperature prediction markets on Flare
-            </p>
+            <p className="text-sm text-neutral-600">Temperature prediction markets on Arc</p>
           </div>
 
           {/* Links */}
@@ -41,18 +56,12 @@ export function Footer() {
               @weatherbapp
             </a>
           </nav>
-
-          {/* Status */}
-          <div className="flex items-center gap-2 text-sm text-neutral-600">
-            <span className="w-2 h-2 rounded-full bg-success-soft animate-pulse-soft" />
-            <span>All systems operational</span>
-          </div>
         </div>
 
         {/* Copyright */}
         <div className="mt-8 pt-6 border-t border-neutral-200/50 text-center">
           <p className="text-xs text-neutral-400">
-            © {new Date().getFullYear()} weatherB. Built on Flare.
+            © {new Date().getFullYear()} weatherB. Built on Arc.
           </p>
         </div>
       </div>

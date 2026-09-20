@@ -46,4 +46,3 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to get settler pause state' }, { status: 500 });
   }
 }
-

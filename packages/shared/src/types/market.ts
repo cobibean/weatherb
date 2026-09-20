@@ -8,11 +8,13 @@ export type Market = {
   latitude: number;
   longitude: number;
   resolveTime: number;
+  bettingDeadline?: number; // Frozen on-chain betting deadline, in milliseconds
   thresholdF_tenths: number;
   currency: string;
   status: MarketStatus;
   yesPool: bigint;
   noPool: bigint;
+  totalFees?: bigint; // Immutable fee recorded at settlement
   resolvedTempF_tenths?: number;
   observedTimestamp?: number;
   outcome?: boolean;

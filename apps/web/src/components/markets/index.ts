@@ -5,4 +5,3 @@ export { HeroCarousel } from './hero-carousel';
 export { MarketCard } from './market-card';
 export { MarketGrid } from './market-grid';
 export { BetModal } from './bet-modal';
-

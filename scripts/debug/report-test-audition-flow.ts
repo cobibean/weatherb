@@ -1,3 +1,5 @@
+import { requireDatabaseUrl } from '@weatherb/shared/utils/database-url';
+import { PrismaPg } from '@prisma/adapter-pg';
 #!/usr/bin/env npx tsx
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,7 +35,7 @@ async function main() {
     process.exit(1);
   }
 
-  const prisma = new PrismaClient();
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: requireDatabaseUrl(), connectionTimeoutMillis: 5000 }) });
 
   const testRun = await prisma.testRun.findUnique({
     where: { id: testRunId },

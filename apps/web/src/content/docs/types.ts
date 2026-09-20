@@ -25,8 +25,8 @@ export const contractBlock: DocSection = {
       type: 'list',
       items: [
         'App: https://weatherb.app',
-        'Contract (Coston2): 0x716186B29043840a165e1Faf49b85bc2101fAaC7',
-        'Explorer: https://coston2-explorer.flare.network/address/0x716186B29043840a165e1Faf49b85bc2101fAaC7',
+        'Network: Arc Testnet (5042002). Use the configured deployment address.',
+        `Explorer: https://explorer.testnet.arc.io${process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ? `/address/${process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}` : ''}`,
       ],
     },
   ],

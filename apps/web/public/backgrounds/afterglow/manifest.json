@@ -1,0 +1,29 @@
+{
+  "generatedWith": "Built-in image_gen",
+  "exports": [
+    {
+      "file": "hero-desktop-1024.webp",
+      "width": 1024,
+      "height": 576,
+      "bytes": 46824
+    },
+    {
+      "file": "hero-desktop-1672.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 95508
+    },
+    {
+      "file": "hero-mobile-640.webp",
+      "width": 640,
+      "height": 1137,
+      "bytes": 45438
+    },
+    {
+      "file": "hero-mobile-941.webp",
+      "width": 941,
+      "height": 1672,
+      "bytes": 78792
+    }
+  ]
+}

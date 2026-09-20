@@ -7,19 +7,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { sessionId, signature, wallet } = body;
 
     if (!sessionId || !signature || !wallet) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const result = await verifyAndActivateSession(sessionId, signature, wallet);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Verification failed' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: result.error || 'Verification failed' }, { status: 401 });
     }
 
     // Log the login action
@@ -28,10 +22,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Auth verify error:', error);
-    return NextResponse.json(
-      { error: 'Failed to verify signature' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to verify signature' }, { status: 500 });
   }
 }
-

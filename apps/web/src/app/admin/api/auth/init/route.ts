@@ -7,10 +7,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { wallet } = body;
 
     if (!wallet || typeof wallet !== 'string') {
-      return NextResponse.json(
-        { error: 'Wallet address required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Wallet address required' }, { status: 400 });
     }
 
     // Debug logging for admin auth
@@ -18,7 +15,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log('[Admin Auth Debug]', {
       inputWallet: wallet,
       inputNormalized: wallet.toLowerCase(),
-      adminWalletsEnv: process.env.ADMIN_WALLETS ? `set (${process.env.ADMIN_WALLETS.length} chars)` : 'NOT SET',
+      adminWalletsEnv: process.env.ADMIN_WALLETS
+        ? `set (${process.env.ADMIN_WALLETS.length} chars)`
+        : 'NOT SET',
       adminWalletsParsed: adminWallets,
       isMatch: adminWallets.includes(wallet.toLowerCase()),
     });
@@ -26,10 +25,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Check if wallet is in allowlist
     if (!isAdminWallet(wallet)) {
       console.log('[Admin Auth] Wallet not authorized:', wallet);
-      return NextResponse.json(
-        { error: 'Wallet not authorized' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Wallet not authorized' }, { status: 403 });
     }
 
     // Create pending session with nonce
@@ -38,10 +34,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ nonce, sessionId });
   } catch (error) {
     console.error('Auth init error:', error);
-    return NextResponse.json(
-      { error: 'Failed to initialize authentication' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to initialize authentication' }, { status: 500 });
   }
 }
-

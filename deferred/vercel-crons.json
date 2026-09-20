@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/schedule-daily",
+      "schedule": "0 12-16 * * *"
+    },
+    {
+      "path": "/api/cron/settle-markets",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/update-trending",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 14 * * 6"
+    }
+  ]
+}

@@ -4,8 +4,6 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // Epic 7: Voting/Suggestions Enums
@@ -39,6 +37,7 @@ enum MarketStatus {
 }
 
 model SystemConfig {
+  deploymentKey String? // Chain ID and contract address; one restart deployment per database
   id            String   @id @default("default")
   cadence       Int      @default(5)
   testMode      Boolean  @default(true)
@@ -69,7 +68,7 @@ model City {
 // Epic 8: Market tracking for test markets and public markets
 model Market {
   id               String   @id @default(cuid())
-  contractMarketId Int // The on-chain market ID
+  contractMarketId Int @unique // The on-chain market ID
   cityId           String
   city             City     @relation(fields: [cityId], references: [id])
 
@@ -84,6 +83,8 @@ model Market {
   status           MarketStatus @default(OPEN)
   yesPool          String  @default("0") // Wei as string to avoid precision loss
   noPool           String  @default("0") // Wei as string to avoid precision loss
+
+  totalFees        String @default("0") // Recorded fee in native base units
 
   // Settlement tracking (NEW)
   isSettled        Boolean  @default(false)
