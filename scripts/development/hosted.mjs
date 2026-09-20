@@ -10,9 +10,11 @@ const commands = {
   seed: ['node_modules/tsx/dist/cli.mjs', 'src/scripts/development-database.ts', 'seed'],
   check: ['node_modules/tsx/dist/cli.mjs', 'src/scripts/development-database.ts', 'check'],
   reconcile: ['node_modules/tsx/dist/cli.mjs', 'src/scripts/arc-hosted-reconcile.ts'],
+  settler: ['node_modules/tsx/dist/cli.mjs', 'src/scripts/development-database.ts', 'settler', ...process.argv.slice(3)],
+  'mark-test': ['node_modules/tsx/dist/cli.mjs', 'src/scripts/development-database.ts', 'mark-test', ...process.argv.slice(3)],
 };
 const command = process.argv[2];
-if (!Object.hasOwn(commands, command)) throw new Error('Use migrate, seed, check, or reconcile');
+if (!Object.hasOwn(commands, command)) throw new Error('Use migrate, seed, check, reconcile, settler, or mark-test');
 const profile = `${root}.env.arc-hosted`;
 if (statSync(profile).mode & 0o077) throw new Error('Hosted profile must have mode 0600');
 const settings = hostedEnvironment(parse(readFileSync(profile)));

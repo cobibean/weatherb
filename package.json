@@ -35,7 +35,9 @@
     "arc:lifecycle": "node scripts/development/run.mjs lifecycle",
     "arc:configure": "node scripts/development/configure-arc.mjs",
     "arc:wallets": "node scripts/development/setup-wallets.mjs",
-    "arc:hosted": "node scripts/development/hosted.mjs"
+    "arc:hosted": "node scripts/development/hosted.mjs",
+    "arc:worker": "node scripts/development/worker.mjs",
+    "arc:hosted-settler": "node scripts/development/setup-hosted-settler.mjs"
   },
   "devDependencies": {
     "@types/node": "24.13.5",

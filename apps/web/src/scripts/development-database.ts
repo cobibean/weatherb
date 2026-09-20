@@ -31,11 +31,21 @@ try {
     } finally {
       await client.end();
     }
+  } else if (command === 'settler') {
+    const mode = process.argv[3];
+    if (mode !== 'enable' && mode !== 'disable') throw new Error('Use settler enable|disable');
+    await db.systemConfig.update({ where: { id: 'default' }, data: { settlerPaused: mode === 'disable' } });
+    console.log(JSON.stringify({ settlerPaused: mode === 'disable' }));
+  } else if (command === 'mark-test') {
+    const contractMarketId = Number(process.argv[3]);
+    if (!Number.isSafeInteger(contractMarketId) || contractMarketId < 0) throw new Error('Use mark-test <contractMarketId>');
+    await db.market.update({ where: { contractMarketId }, data: { isTest: true } });
+    console.log(JSON.stringify({ contractMarketId, isTest: true }));
   } else if (command === 'seed') await seedDevelopmentDatabase(db);
-  else if (command !== 'check') throw new Error('Use seed or check');
+  else if (command !== 'check') throw new Error('Use seed, check, settler, or mark-test');
   if (command === 'access') {
     console.log('Server-only access profile applied.');
-  } else {
+  } else if (command === 'seed' || command === 'check') {
     const [cities, config, markets, marketRecords] = await Promise.all([
       db.city.findMany({ orderBy: { slug: 'asc' }, select: { slug: true, isActive: true } }),
       db.systemConfig.findUnique({ where: { id: 'default' } }),

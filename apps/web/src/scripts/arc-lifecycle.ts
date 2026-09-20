@@ -65,6 +65,7 @@ const journalFile = `${dir}/journal.json`;
 type Journal = {
   pendingSubmission?: string;
   chainId: number;
+  hostedSettler?: Hex;
   implementation?: Hex;
   proxy?: Hex;
   build?: string;
@@ -122,7 +123,7 @@ async function requireDeployment() {
   );
   if (
     owner?.toLowerCase() !== saved.wallets.owner!.address.toLowerCase() ||
-    settler?.toLowerCase() !== saved.wallets.settler!.address.toLowerCase()
+    settler?.toLowerCase() !== (journal.hostedSettler ?? saved.wallets.settler!.address).toLowerCase()
   )
     throw new Error('Deployment roles do not match the fresh test wallets.');
   return target;
@@ -130,7 +131,7 @@ async function requireDeployment() {
 async function send(
   label: string,
   role: string,
-  functionName: 'placeBet' | 'claim' | 'cancelMarket' | 'createMarket' | 'createScheduledMarket',
+  functionName: 'placeBet' | 'claim' | 'cancelMarket' | 'createMarket' | 'createScheduledMarket' | 'setSettler',
   args: readonly unknown[],
   value = 0n,
 ) {
@@ -158,7 +159,7 @@ async function create(label: string, scheduled: boolean) {
     throw new Error('Start the 24-hour market between 12:00 and 16:59 UTC.');
   // A short, explicitly manual fixture lets browser acceptance run independently
   // of the scheduled 24-hour market. The deployed production rules are unchanged.
-  const resolveTime = Number(block.timestamp) + (label === 'browser-test' ? 1800 : 86400);
+  const resolveTime = Number(block.timestamp) + (label === 'browser-test' || label.startsWith('hosted-test-') ? 1800 : 86400);
   const forecast = await createWeatherProviderFromEnv().getForecast(
     city.latitude,
     city.longitude,
@@ -350,6 +351,7 @@ async function main() {
     await send('no-winners-yes-bet', 'yesBettor', 'placeBet', [id, true], parseNativeUsdc('0.01'));
     await persistMarket(id, await readMarket(publicClient, address(), id));
   } else if (command === 'settle') {
+    if (journal.hostedSettler) throw new Error('Settlement is owned by the hosted worker; use the Operations page.');
     const target = await requireDeployment();
     const ids = await reconcileMarkets(publicClient, target);
     const before = await prisma.systemConfig.findUniqueOrThrow({ where: { id: 'default' } });
@@ -384,9 +386,36 @@ async function main() {
         if (payout > 0n) await claim(`${label}-${role}-claim`, role, id);
       }
     }
+  } else if (command === 'rotate-settler') {
+    const file = `${root}.tools/arc-hosted/settler.json`;
+    if (statSync(file).mode & 0o077) throw new Error('Hosted settler file must have mode 0600.');
+    const hosted = JSON.parse(readFileSync(file, 'utf8')) as { chainId: number; address: Hex };
+    assertArcChain(hosted.chainId);
+    if (journal.hostedSettler && journal.hostedSettler.toLowerCase() !== hosted.address.toLowerCase())
+      throw new Error('Journal already records a different hosted settler.');
+    const target = await requireDeployment(); // Passes while the local settler is still active.
+    await send('rotate-settler', 'owner', 'setSettler', [hosted.address]);
+    journal.hostedSettler = hosted.address;
+    save();
+    const current = await publicClient.readContract({ address: target, abi, functionName: 'settler' });
+    if (current.toLowerCase() !== hosted.address.toLowerCase()) throw new Error('Settler rotation not confirmed.');
+    console.log(`settler is now hosted ${hosted.address}; local settlement is disabled.`);
+  } else if (command === 'fund-hosted-settler') {
+    if (!journal.hostedSettler) throw new Error('Run rotate-settler first.');
+    const signer = wallet('owner');
+    const to = journal.hostedSettler;
+    await receipt('fund-hosted-settler', () => signer.sendTransaction({ to, value: parseNativeUsdc('2') }));
+    console.log(`hosted settler balance: ${formatEther(await publicClient.getBalance({ address: to }))} USDC`);
+  } else if (command === 'hosted-test') {
+    const suffix = process.argv[3];
+    if (!/^[a-z0-9-]{1,20}$/.test(suffix ?? '')) throw new Error('Use hosted-test <label>');
+    const id = await create(`hosted-test-${suffix}`, false);
+    await send(`hosted-test-${suffix}-yes`, 'yesBettor', 'placeBet', [id, true], parseNativeUsdc('0.01'));
+    await send(`hosted-test-${suffix}-no`, 'noBettor', 'placeBet', [id, false], parseNativeUsdc('0.01'));
+    await persistMarket(id, await readMarket(publicClient, address(), id));
   } else
     throw new Error(
-      'Use status, weather, deploy, fund, reconcile, cancel-test, browser-test, start, no-winners, settle, or claims.',
+      'Use status, weather, deploy, fund, reconcile, cancel-test, browser-test, hosted-test, start, no-winners, settle, claims, rotate-settler, or fund-hosted-settler.',
     );
 }
 const readOnly = ['status', 'weather'].includes(process.argv[2] ?? 'status');
