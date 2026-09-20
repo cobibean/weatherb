@@ -129,8 +129,8 @@
 <main>
   <header class="reveal">
     <div class="kicker">weatherB · Arc Testnet · 20 September 2026</div>
-    <h1>What runs <em>without you</em> now — and what still doesn't.</h1>
-    <p class="lede">The short version: markets now <strong>settle themselves</strong> from hosted infrastructure — no Codex, no heartbeat, Mac closed. Market <strong>creation</strong> is still a command you run. That second part is intentional and next on the list.</p>
+    <h1>What runs <em>without you</em> now.</h1>
+    <p class="lede">The short version: markets now <strong>create themselves and settle themselves</strong> from hosted infrastructure — no Codex, no heartbeat, Mac closed. The owner key never left your Mac; two narrow hosted keys do the work. Updated 21:40 UTC after the 2.4.0 upgrade.</p>
   </header>
 
   <div class="verdict">
@@ -139,18 +139,17 @@
       <div class="big">Settlement &amp; cancellation</div>
       <p>Every two minutes a hosted worker checks the chain, fetches the Austin reading, and resolves any market whose time has come. If no valid reading arrives inside the 10-minute window, it cancels and unlocks refunds. Proven three times today on real 30-minute markets.</p>
     </div>
-    <div class="card manual reveal" style="animation-delay:.2s">
-      <span class="pill manual"><span class="dot"></span>Still manual · by design</span>
+    <div class="card auto reveal" style="animation-delay:.2s">
+      <span class="pill auto"><span class="dot"></span>Automated · live since 21:02 UTC</span>
       <div class="big">Creating the daily markets</div>
-      <p>Creating a market requires the contract <em>owner</em> key — the same key that can upgrade the contract. We chose not to put that key on a server. Until a restricted "scheduler" role is added to the contract (separate plan), you create markets with one local command and the worker takes it from there.</p>
-      <ul><li><code class="mono">npm run arc:lifecycle -- start</code> between 12:00–16:59 UTC</li></ul>
+      <p>The contract gained a <em>scheduler</em> role (2.3.0) so creation no longer needs the owner key. At 12:05, 13:05, 14:05, 15:05 and 16:05 UTC the worker creates one public 24-hour market for the next city in rotation. Every night at 02:30 UTC a hidden 30-minute canary market runs the whole create→settle loop so problems surface in half an hour, not a day. Duration is now declared per market on chain (2.4.0), bounded 15 min – 7 days.</p>
     </div>
   </div>
 
   <section class="reveal" style="animation-delay:.3s">
-    <div class="sec-head"><span class="num">01</span><div><h2>How a market gets settled now</h2><p class="sub">Left to right. Red dashed = you. Green = machines. Gold = the blockchain.</p></div></div>
+    <div class="sec-head"><span class="num">01</span><div><h2>How a market gets settled now</h2><p class="sub">Left to right. Green = machines. Gold = the blockchain. You are not in this diagram.</p></div></div>
     <div class="flow">
-      <div class="node manual"><div class="who">You · owner key · local</div><div class="t">Create a market</div><div class="d">Owner-only on chain. Exactly 24 h for scheduled markets; 30 min for test fixtures.</div></div>
+      <div class="node auto"><div class="who">Vercel worker · scheduler key</div><div class="t">Create a market</div><div class="d">QStash fires 12–16 UTC at :05. One market per UTC hour slot; duration declared per call (daily = 24 h, canary = 30 min).</div></div>
       <div class="node chain"><div class="who">Arc Testnet</div><div class="t">Market sits open</div><div class="d">Bets close 10 min before resolve. Single <code>settler</code> address may resolve/cancel.</div></div>
       <div class="node auto"><div class="who">QStash · Upstash</div><div class="t">Pokes the worker</div><div class="d">Sweep <code>*/2 * * * *</code> plus one nudge per market at its <code>resolveTime</code>.</div></div>
       <div class="node auto"><div class="who">Vercel · weatherb-arc-worker</div><div class="t">Decides &amp; signs</div><div class="d">Only place the settler key exists. Reads Tomorrow.io, calls <code>resolveMarket</code> or <code>cancelMarket</code>, waits for the receipt.</div></div>
@@ -168,7 +167,8 @@
     <table>
       <thead><tr><th>Key</th><th>Where it lives</th><th>Create markets</th><th>Settle / cancel</th><th>Upgrade / rotate roles</th></tr></thead>
       <tbody>
-        <tr><td><b>Owner</b> <span class="mono">0x528C…C292</span></td><td>Your Mac only (<span class="mono">.tools/</span>)</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes</td></tr>
+        <tr><td><b>Owner</b> <span class="mono">0x528C…C292</span></td><td>Your Mac only (<span class="mono">.tools/</span>)</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes — the only one</td></tr>
+        <tr><td><b>Hosted scheduler</b> <span class="mono">0xe7B3…7cd7</span></td><td>Worker project env only · 2 USDC gas</td><td class="yes">Yes (bounded 15 min – 7 d)</td><td class="no">No</td><td class="no">No</td></tr>
         <tr><td><b>Hosted settler</b> <span class="mono">0xa764…C219</span></td><td>Worker project env only · 1.99 USDC gas</td><td class="no">No</td><td class="yes">Yes — the only one</td><td class="no">No</td></tr>
         <tr><td><b>Old local settler</b> <span class="mono">0x764E…FfA9</span></td><td>Your Mac</td><td class="no">No</td><td class="dead">Was yes — now inert</td><td class="no">No</td></tr>
         <tr><td><b>Public website</b> weatherb-arc-testnet</td><td>Vercel · no keys at all</td><td class="no">No</td><td class="no">No (routes refuse without worker role)</td><td class="no">No</td></tr>
@@ -186,6 +186,9 @@
       <div class="ev ok"><div class="time">17:53:40 → settled at +22 s</div><div class="t">Test 2 · Market 5 · hammered with duplicates</div><div class="d">Five separate triggers hit this one market (3 QStash, 2 concurrent manual). Exactly <b>one</b> transaction on chain. 93.9°F → NO. <a href="https://explorer.testnet.arc.io/tx/0x7eaaeada8981a1f057ec57acf5c6ce4f8f411587c0772a4a865791c8fca89f04" target="_blank" rel="noreferrer">receipt ↗</a></div></div>
       <div class="ev cancel"><div class="time">18:25:16 → cancelled at +12 min 45 s</div><div class="t">Test 3 · Market 6 · deliberately missed window</div><div class="d">Settlement was paused through the whole 10-minute window. Health showed <span class="mono">dueMarkets: 1</span>, then <span class="mono">overdueMarkets: 1</span>. On unpause the sweep cancelled it and both stakes became refundable — the “nothing valid happened, give everyone their money back” path. <a href="https://explorer.testnet.arc.io/tx/0xfa5f67d6447fa7962f0cbf412923f387e443684a8e9b8344cdc5c95bb3b5d09c" target="_blank" rel="noreferrer">cancelMarket receipt ↗</a></div></div>
       <div class="ev"><div class="time">19:27 · checklist</div><div class="t">Everything verified</div><div class="d">Full test suite green · public site env has no secrets · worker env has no owner/admin keys · secret scan 0 findings · schedule active · 47 successful runs, 31 paused, 3 expected early failures.</div></div>
+      <div class="ev"><div class="time">20:3x · owner tx</div><div class="t">Contract upgraded to 2.3.0 — scheduler role</div><div class="d">Storage layout frozen and checked against the 2.2.0 baseline; state snapshot identical before and after. Scheduler key assigned and funded. <a href="https://explorer.testnet.arc.io/tx/0x5f89d29a81375edbe22b67173a21942bc2818c58a8229aea7ed210f31c1018c4" target="_blank" rel="noreferrer">upgrade receipt ↗</a></div></div>
+      <div class="ev"><div class="time">21:00 · owner tx</div><div class="t">Contract upgraded to 2.4.0 — duration declared per market</div><div class="d">First attempt was refused by the bytecode guard (journal replayed the 2.3.0 receipt) — fixed, no gas wasted. Bounds set to 15 min – 7 days. <a href="https://explorer.testnet.arc.io/tx/0x7811710e3816c06fe9c068eefa799a04d78a79020211fa7b86df159953c8fd67" target="_blank" rel="noreferrer">upgrade receipt ↗</a></div></div>
+      <div class="ev ok"><div class="time">21:02 → settled 21:32</div><div class="t">First canary · Market 7 · created and settled by the worker alone</div><div class="d">Scheduler key created a hidden 30-minute market; second trigger returned the same market (no duplicate); settler key resolved it 30 minutes later. Concurrent sweep correctly reported <span class="mono">busy</span>. <a href="https://explorer.testnet.arc.io/tx/0xf8fc28a377cc0ad553f7d3a97cbb63bd0326d696fed2fda38e8f7ef2bde0878a" target="_blank" rel="noreferrer">create ↗</a> · <a href="https://explorer.testnet.arc.io/tx/0xc08c208d617934a8648d036a35a384708422375aec1a8c6aae968846617f5303" target="_blank" rel="noreferrer">settle ↗</a></div></div>
     </div>
   </section>
 
@@ -207,19 +210,19 @@
       <div class="n-card you"><span class="pill manual"><span class="dot"></span>You</span>
         <ol>
           <li><b>Cancel the Codex heartbeat</b> <span class="mono">start-arc-testnet-lifecycle</span>. It's redundant and its settlement step would revert anyway.</li>
-          <li><b>Tomorrow, do nothing.</b> Markets 2 (Austin ≥78°F) and 3 (NoWinners fixture) resolve at 12:08 UTC. Mac closed. Check <span class="mono">/admin/operations</span> after 12:20 if you're curious.</li>
+          <li><b>Tomorrow, do nothing.</b> 12:05 UTC: first automated public market. 12:08: Markets 2 and 3 settle. 13:05–16:05: four more. Mac closed. Check <span class="mono">/admin/operations</span> if you're curious.</li>
         </ol>
       </div>
       <div class="n-card"><span class="pill auto"><span class="dot"></span>Next engineering scope</span>
         <ol>
-          <li><b>Scheduler role on the contract</b> so daily creation can run from the worker without the owner key. Contract change → tests → upgrade → QStash <span class="mono">0 12-16 * * *</span>. Then creation is automated too.</li>
+          <li><b>Contract freeze, then audit.</b> 2.4.0 is the version to audit; no further contract changes until the audit scope is set.</li>
           <li><b>Fine-grained admin permissions</b> (backlog) before enabling any writes on the hosted panel.</li>
         </ol>
       </div>
     </div>
   </section>
 
-  <footer>branch codex/arc-phase-1-baseline · commits b8747f8…96c1939 · plan docs/plans/2026-09-20-hosted-settlement-worker.md · runbook docs/testing/arc-hosted-testnet.md</footer>
+  <footer>branch codex/arc-phase-1-baseline · commits b8747f8…4fb8794 · plans docs/plans/2026-09-20-*.md · runbook docs/testing/arc-hosted-testnet.md · contract 2.4.0</footer>
 </main>
 </body>
 </html>
