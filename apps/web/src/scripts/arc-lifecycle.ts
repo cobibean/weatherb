@@ -269,12 +269,12 @@ async function main() {
       if (version !== '2.2.0')
         scheduler = await publicClient.readContract({ address: journal.proxy, abi, functionName: 'scheduler' });
       if (version !== '2.2.0' && version !== '2.3.0') {
-        const [min, max] = await Promise.all(
+        const bounds = await Promise.all(
           (['minMarketDurationSeconds', 'maxMarketDurationSeconds'] as const).map(
             (functionName) => publicClient.readContract({ address: journal.proxy!, abi, functionName }),
           ),
         );
-        durationBounds = { min: min.toString(), max: max.toString() };
+        durationBounds = { min: String(bounds[0]), max: String(bounds[1]) };
       }
     }
     console.log(
