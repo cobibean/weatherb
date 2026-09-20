@@ -311,3 +311,38 @@ as reported above; `WorkerRun` 47 succeeded, 31 skipped (paused window), 3 faile
 
 Pending for 2026-09-21: Markets 2/3 outcomes under the hosted worker with no local
 process, generated-wallet `claims`, and `arc:hosted -- check`.
+
+## September 20 — scheduler role (2.3.0) and declared duration (2.4.0)
+
+Plans: `docs/plans/2026-09-20-scheduler-role-upgrade.md`,
+`docs/plans/2026-09-20-declared-market-duration.md`. Commits `e069ee7..fa82810`.
+`npm run verify` green at each stage (Foundry 123 → 132 tests; new
+`check:storage-layout` guard against the frozen 2.2.0 layout baseline).
+
+Sequence, all UTC, owner transactions from the Mac via `arc-lifecycle`, worker
+credentials only in `weatherb-arc-worker`:
+
+| Time | Action | Evidence |
+|---|---|---|
+| 20:2x | Version-tolerant app code deployed to worker and public site before any upgrade | sweep `succeeded` 20:28 on 2.2.0 chain |
+| 20:3x | Upgrade 2.2.0 → 2.3.0 (scheduler role) | impl `0x367142a371caff46d28cb8b9fcd6367bc9678bf0`; `0x7331787e…24e9` (impl), `0x5f89d29a…18c4` (proxy); pre/post state snapshot equal; sweep `succeeded` 20:36 |
+| 20:3x | `setScheduler(0xe7B3B18BC2E34cCa2c4D40D88Ddfe2060D6f7cd7)`; funded 2 USDC | `0x1321f15f…c93e`, `0x442e904a…36f8` |
+| 20:40 | QStash `weatherb-arc-schedule-daily` `5 12-16 * * *` registered; creation paused | `schedules.list()` = 2 |
+| 20:5x | 2.4.0 app code deployed to both projects | sweep `succeeded` 20:56 on 2.3.0 chain |
+| 21:00 | Upgrade 2.3.0 → 2.4.0 (declared duration + owner bounds). First attempt correctly refused: the journal replayed the 2.3.0 implementation receipt and the bytecode guard rejected it; fixed by versioning journal labels (`fa82810`), no transaction wasted | impl `0xf9d095bc66ab7d9ad6b5979e40d429caf799f863`; `0x35430beb…5857` (impl), `0x7811710e…8fd67` (proxy); snapshot equal; sweep `succeeded` 21:00 |
+| 21:0x | `setMarketDurationBounds(900, 604800)` | `0x74a37ea1…8894`; read-back 900/604800 |
+| 21:0x | QStash `weatherb-arc-canary` `30 2 * * *` (`?duration=1800&test=1`) registered | `schedules.list()` = 3 |
+| 21:02 | Creation enabled; first canary `create-now 1800` → market 7, slot 21:00, 1,800 s, `isTest`, hidden from `/api/markets`; second call `created: 0`, `getMarketCount` 8 | `0xf8fc28a3…878a` |
+| 21:32 | Canary settled by the per-market QStash delivery; the concurrent sweep logged `busy` (lease) | `0xc08c208d…5303`, `NO_WINNERS` (no stakes), 1 attempt |
+
+Independent reads at 21:35: `version() 2.4.0`, `scheduler()` hosted address, bounds
+900/604800, `getMarketCount 8`; both `/api/health` `scheduler: enabled`,
+`settler: enabled`, `overdueMarkets: 0`. Markets 2/3 untouched. Owner 9.74 USDC.
+
+Creation→settlement has now been proven end to end with no owner key and no local
+process (scheduler key creates, settler key settles, both hosted). Product rules
+changed by user decision: duration is declared per market (daily rotation declares
+24 h; on-chain bounds 15 min – 7 days); the contract enforces one market per UTC
+hour slot and the worker schedule decides the five daily hours. Expected next
+events: nightly canary 02:30 UTC; daily rotation 12:05–16:05 UTC from 2026-09-21;
+Markets 2/3 resolve 12:08 UTC 2026-09-21.

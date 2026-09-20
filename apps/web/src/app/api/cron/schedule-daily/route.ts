@@ -28,7 +28,7 @@ type ScheduleSummary = {
   durationSeconds?: number;
 };
 
-/** One idempotent slot per UTC hour from 12 through 16; the contract enforces the limit. */
+/** One idempotent market per UTC hour slot (contract-enforced); the daily path limits itself to 12–16 UTC and 24 h unless `test=1`. */
 export async function GET(request: Request): Promise<NextResponse> {
   if (!verifyWorkerRequest(request)) return unauthorizedResponse();
   const readiness = await automationReadinessResponse('scheduler');
