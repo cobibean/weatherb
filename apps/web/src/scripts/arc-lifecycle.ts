@@ -445,16 +445,18 @@ async function main() {
     const source = readFileSync(`${root}contracts/out/WeatherMarketV2.sol/WeatherMarketV2.json`, 'utf8');
     const artifact = JSON.parse(source);
     const expectedVersion = /return "(\d+\.\d+\.\d+)";/.exec(readFileSync(`${root}contracts/src/WeatherMarketV2.sol`, 'utf8'))![1]!;
+    if (journal.implementations?.some((i) => i.version === expectedVersion))
+      throw new Error(`Implementation for ${expectedVersion} already journaled.`);
     const before = await snapshotState(target);
     const currentVersion = await publicClient.readContract({ address: target, abi, functionName: 'version' });
     if (currentVersion === expectedVersion) throw new Error(`Proxy already reports ${expectedVersion}.`);
     const signer = wallet('owner');
-    const implementationReceipt = await receipt('upgrade-implementation', () =>
+    const implementationReceipt = await receipt(`upgrade-implementation-${expectedVersion}`, () =>
       signer.deployContract({ abi: artifact.abi, bytecode: artifact.bytecode.object }),
     );
     const implementation = implementationReceipt.contractAddress!;
     await verifyImplementationBytecode(implementation, artifact);
-    const upgradeReceipt = await send('upgrade-proxy', 'owner', 'upgradeToAndCall', [implementation, '0x']);
+    const upgradeReceipt = await send(`upgrade-proxy-${expectedVersion}`, 'owner', 'upgradeToAndCall', [implementation, '0x']);
     const after = await snapshotState(target);
     if (after !== before) throw new Error('State snapshot changed across the upgrade; investigate before continuing.');
     const version = await publicClient.readContract({ address: target, abi, functionName: 'version' });
