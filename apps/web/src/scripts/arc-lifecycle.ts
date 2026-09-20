@@ -66,7 +66,9 @@ type Journal = {
   pendingSubmission?: string;
   chainId: number;
   hostedSettler?: Hex;
+  hostedScheduler?: Hex;
   implementation?: Hex;
+  implementations?: { version: string; address: Hex; transaction: Hex }[];
   proxy?: Hex;
   build?: string;
   transactions: Record<string, Hex>;
@@ -131,7 +133,7 @@ async function requireDeployment() {
 async function send(
   label: string,
   role: string,
-  functionName: 'placeBet' | 'claim' | 'cancelMarket' | 'createMarket' | 'createScheduledMarket' | 'setSettler',
+  functionName: 'placeBet' | 'claim' | 'cancelMarket' | 'createMarket' | 'createScheduledMarket' | 'setSettler' | 'setScheduler' | 'upgradeToAndCall',
   args: readonly unknown[],
   value = 0n,
 ) {
@@ -148,6 +150,30 @@ async function send(
     });
     return signer.writeContract(request);
   });
+}
+async function verifyImplementationBytecode(implementation: Hex, artifact: { deployedBytecode: { object: string; immutableReferences: Record<string, { start: number; length: number }[]> } }) {
+  const code = await publicClient.getCode({ address: implementation });
+  let expectedCode: string = artifact.deployedBytecode.object;
+  // UUPS embeds its implementation address in three immutable __self slots.
+  for (const refs of Object.values(artifact.deployedBytecode.immutableReferences)) {
+    for (const ref of refs) {
+      const start = 2 + ref.start * 2;
+      expectedCode = expectedCode.slice(0, start) + implementation.slice(2).toLowerCase().padStart(ref.length * 2, '0') + expectedCode.slice(start + ref.length * 2);
+    }
+  }
+  if (code?.toLowerCase() !== expectedCode.toLowerCase()) throw new Error('Implementation bytecode does not match the local build.');
+}
+async function snapshotState(target: Hex) {
+  const read = <N extends 'owner' | 'settler' | 'feeBps' | 'minBetWei' | 'bettingBufferSeconds' | 'isPaused' | 'getMarketCount'>(functionName: N) =>
+    publicClient.readContract({ address: target, abi, functionName });
+  const [owner, settler, feeBps, minBetWei, buffer, paused, count] = await Promise.all([
+    read('owner'), read('settler'), read('feeBps'), read('minBetWei'), read('bettingBufferSeconds'), read('isPaused'), read('getMarketCount'),
+  ]);
+  const markets = [];
+  for (let id = 0n; id < count; id++) markets.push(await readMarket(publicClient, target, id));
+  const slots = markets.map((m) => BigInt(Math.floor((Number(m.resolveTime) - 86400) / 3600) * 3600));
+  const scheduled = await Promise.all(slots.map((slot) => publicClient.readContract({ address: target, abi, functionName: 'getScheduledMarket', args: [slot] })));
+  return JSON.stringify({ owner, settler, feeBps, minBetWei, buffer, paused, count, markets, scheduled }, (_, v) => (typeof v === 'bigint' ? v.toString() : v));
 }
 async function create(label: string, scheduled: boolean) {
   if (journal.markets[label]) return BigInt(journal.markets[label]);
@@ -235,10 +261,20 @@ async function main() {
       console.log(
         `${role} ${entry.address}: ${formatEther(await publicClient.getBalance({ address: entry.address }))} test USDC`,
       );
+    let version: string | null = null;
+    let scheduler: string | null = null;
+    if (journal.proxy) {
+      version = await publicClient.readContract({ address: journal.proxy, abi, functionName: 'version' });
+      if (version !== '2.2.0')
+        scheduler = await publicClient.readContract({ address: journal.proxy, abi, functionName: 'scheduler' });
+    }
     console.log(
       JSON.stringify({
         chainId: ARC_TESTNET.id,
         proxy: journal.proxy ?? null,
+        version,
+        scheduler,
+        hostedScheduler: journal.hostedScheduler ?? null,
         markets: journal.markets,
       }),
     );
@@ -287,26 +323,7 @@ async function main() {
     );
     journal.proxy = proxyReceipt.contractAddress!;
     save();
-    const code = await publicClient.getCode({ address: journal.implementation! });
-    let expectedCode: string = artifact.deployedBytecode.object;
-    // UUPS embeds its implementation address in three immutable __self slots.
-    for (const refs of Object.values(artifact.deployedBytecode.immutableReferences) as {
-      start: number;
-      length: number;
-    }[][]) {
-      for (const ref of refs) {
-        const start = 2 + ref.start * 2;
-        expectedCode =
-          expectedCode.slice(0, start) +
-          journal
-            .implementation!.slice(2)
-            .toLowerCase()
-            .padStart(ref.length * 2, '0') +
-          expectedCode.slice(start + ref.length * 2);
-      }
-    }
-    if (code?.toLowerCase() !== expectedCode.toLowerCase())
-      throw new Error('Implementation bytecode does not match the local build.');
+    await verifyImplementationBytecode(journal.implementation!, artifact);
     console.log(
       `Fresh Arc proxy: ${journal.proxy}. Run npm run arc:configure to bind this address into the dev profile.`,
     );
@@ -413,9 +430,53 @@ async function main() {
     await send(`hosted-test-${suffix}-yes`, 'yesBettor', 'placeBet', [id, true], parseNativeUsdc('0.01'));
     await send(`hosted-test-${suffix}-no`, 'noBettor', 'placeBet', [id, false], parseNativeUsdc('0.01'));
     await persistMarket(id, await readMarket(publicClient, address(), id));
+  } else if (command === 'upgrade') {
+    const target = await requireDeployment();
+    const source = readFileSync(`${root}contracts/out/WeatherMarketV2.sol/WeatherMarketV2.json`, 'utf8');
+    const artifact = JSON.parse(source);
+    const expectedVersion = /return "(\d+\.\d+\.\d+)";/.exec(readFileSync(`${root}contracts/src/WeatherMarketV2.sol`, 'utf8'))![1]!;
+    const before = await snapshotState(target);
+    const currentVersion = await publicClient.readContract({ address: target, abi, functionName: 'version' });
+    if (currentVersion === expectedVersion) throw new Error(`Proxy already reports ${expectedVersion}.`);
+    const signer = wallet('owner');
+    const implementationReceipt = await receipt('upgrade-implementation', () =>
+      signer.deployContract({ abi: artifact.abi, bytecode: artifact.bytecode.object }),
+    );
+    const implementation = implementationReceipt.contractAddress!;
+    await verifyImplementationBytecode(implementation, artifact);
+    const upgradeReceipt = await send('upgrade-proxy', 'owner', 'upgradeToAndCall', [implementation, '0x']);
+    const after = await snapshotState(target);
+    if (after !== before) throw new Error('State snapshot changed across the upgrade; investigate before continuing.');
+    const version = await publicClient.readContract({ address: target, abi, functionName: 'version' });
+    if (version !== expectedVersion) throw new Error(`Upgrade did not produce ${expectedVersion} (got ${version}).`);
+    journal.implementation = implementation;
+    journal.build = createHash('sha256').update(source).digest('hex');
+    (journal.implementations ??= []).push({ version, address: implementation, transaction: upgradeReceipt.transactionHash });
+    save();
+    console.log(`proxy ${target} now runs ${version} at implementation ${implementation}`);
+  } else if (command === 'set-scheduler') {
+    const file = `${root}.tools/arc-hosted/scheduler.json`;
+    if (statSync(file).mode & 0o077) throw new Error('Hosted scheduler file must have mode 0600.');
+    const hosted = JSON.parse(readFileSync(file, 'utf8')) as { chainId: number; address: Hex };
+    assertArcChain(hosted.chainId);
+    const target = await requireDeployment();
+    const version = await publicClient.readContract({ address: target, abi, functionName: 'version' });
+    if (version === '2.2.0') throw new Error('Run upgrade first; 2.2.0 has no scheduler role.');
+    await send('set-scheduler', 'owner', 'setScheduler', [hosted.address]);
+    const current = await publicClient.readContract({ address: target, abi, functionName: 'scheduler' });
+    if (current.toLowerCase() !== hosted.address.toLowerCase()) throw new Error('Scheduler assignment not confirmed.');
+    journal.hostedScheduler = hosted.address;
+    save();
+    console.log(`scheduler is now hosted ${hosted.address}`);
+  } else if (command === 'fund-hosted-scheduler') {
+    if (!journal.hostedScheduler) throw new Error('Run set-scheduler first.');
+    const signer = wallet('owner');
+    const to = journal.hostedScheduler;
+    await receipt('fund-hosted-scheduler', () => signer.sendTransaction({ to, value: parseNativeUsdc('2') }));
+    console.log(`hosted scheduler balance: ${formatEther(await publicClient.getBalance({ address: to }))} USDC`);
   } else
     throw new Error(
-      'Use status, weather, deploy, fund, reconcile, cancel-test, browser-test, hosted-test, start, no-winners, settle, claims, rotate-settler, or fund-hosted-settler.',
+      'Use status, weather, deploy, fund, reconcile, cancel-test, browser-test, hosted-test, start, no-winners, settle, claims, rotate-settler, fund-hosted-settler, upgrade, set-scheduler, or fund-hosted-scheduler.',
     );
 }
 const readOnly = ['status', 'weather'].includes(process.argv[2] ?? 'status');

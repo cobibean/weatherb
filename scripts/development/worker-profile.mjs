@@ -40,6 +40,8 @@ export function workerEnvironment(settings) {
   )
     throw new Error('Expected restricted weatherb_worker credentials on the selected Neon endpoint');
   if (!/^0x[0-9a-fA-F]{64}$/.test(settings.SETTLER_PRIVATE_KEY ?? '')) throw new Error('SETTLER_PRIVATE_KEY missing or malformed');
+  if (!/^0x[0-9a-fA-F]{64}$/.test(settings.SCHEDULER_PRIVATE_KEY ?? '')) throw new Error('SCHEDULER_PRIVATE_KEY missing or malformed');
+  if (settings.SCHEDULER_PRIVATE_KEY.toLowerCase() === settings.SETTLER_PRIVATE_KEY.toLowerCase()) throw new Error('SCHEDULER_PRIVATE_KEY must differ from SETTLER_PRIVATE_KEY');
   if ((settings.CRON_SECRET ?? '').length < 32) throw new Error('CRON_SECRET must be at least 32 characters');
   if (!settings.TOMORROW_IO_API_KEY) throw new Error('TOMORROW_IO_API_KEY required');
   if (!settings.QSTASH_TOKEN) throw new Error('QSTASH_TOKEN required');
@@ -53,6 +55,7 @@ export function workerEnvironment(settings) {
     NEXT_PUBLIC_CHAIN_ID: settings.NEXT_PUBLIC_CHAIN_ID,
     NEXT_PUBLIC_CONTRACT_ADDRESS: settings.NEXT_PUBLIC_CONTRACT_ADDRESS,
     SETTLER_PRIVATE_KEY: settings.SETTLER_PRIVATE_KEY,
+    SCHEDULER_PRIVATE_KEY: settings.SCHEDULER_PRIVATE_KEY,
     CRON_SECRET: settings.CRON_SECRET,
     TOMORROW_IO_API_KEY: settings.TOMORROW_IO_API_KEY,
     QSTASH_TOKEN: settings.QSTASH_TOKEN,

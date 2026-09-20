@@ -36,13 +36,18 @@ try {
     if (mode !== 'enable' && mode !== 'disable') throw new Error('Use settler enable|disable');
     await db.systemConfig.update({ where: { id: 'default' }, data: { settlerPaused: mode === 'disable' } });
     console.log(JSON.stringify({ settlerPaused: mode === 'disable' }));
+  } else if (command === 'scheduler') {
+    const mode = process.argv[3];
+    if (mode !== 'enable' && mode !== 'disable') throw new Error('Use scheduler enable|disable');
+    await db.systemConfig.update({ where: { id: 'default' }, data: { isPaused: mode === 'disable' } });
+    console.log(JSON.stringify({ schedulerPaused: mode === 'disable' }));
   } else if (command === 'mark-test') {
     const contractMarketId = Number(process.argv[3]);
     if (!Number.isSafeInteger(contractMarketId) || contractMarketId < 0) throw new Error('Use mark-test <contractMarketId>');
     await db.market.update({ where: { contractMarketId }, data: { isTest: true } });
     console.log(JSON.stringify({ contractMarketId, isTest: true }));
   } else if (command === 'seed') await seedDevelopmentDatabase(db);
-  else if (command !== 'check') throw new Error('Use seed, check, settler, or mark-test');
+  else if (command !== 'check') throw new Error('Use seed, check, settler, scheduler, or mark-test');
   if (command === 'access') {
     console.log('Server-only access profile applied.');
   } else if (command === 'seed' || command === 'check') {

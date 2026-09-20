@@ -39,7 +39,9 @@
     "arc:wallets": "node scripts/development/setup-wallets.mjs",
     "arc:hosted": "node scripts/development/hosted.mjs",
     "arc:worker": "node scripts/development/worker.mjs",
-    "arc:hosted-settler": "node scripts/development/setup-hosted-settler.mjs"
+    "arc:hosted-key": "node scripts/development/setup-hosted-key.mjs",
+    "arc:hosted-settler": "node scripts/development/setup-hosted-key.mjs settler",
+    "arc:hosted-scheduler": "node scripts/development/setup-hosted-key.mjs scheduler"
   },
   "devDependencies": {
     "@types/node": "24.13.5",

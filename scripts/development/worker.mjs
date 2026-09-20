@@ -6,8 +6,8 @@ import { workerEnvironment } from './worker-profile.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const command = process.argv[2];
-if (!['env-push', 'deploy', 'schedules', 'check'].includes(command))
-  throw new Error('Use env-push, deploy, schedules, or check');
+if (!['env-push', 'deploy', 'schedules', 'check', 'create-now'].includes(command))
+  throw new Error('Use env-push, deploy, schedules, check, or create-now');
 const profile = `${root}.env.arc-worker`;
 if (statSync(profile).mode & 0o077) throw new Error('Worker profile must have mode 0600');
 const worker = workerEnvironment(parse(readFileSync(profile)));
@@ -31,20 +31,28 @@ if (command === 'env-push') {
 } else if (command === 'schedules') {
   const { Client } = await import('@upstash/qstash');
   const client = new Client({ token: worker.qstashToken });
-  const schedule = await client.schedules.create({
-    scheduleId: 'weatherb-arc-settle-sweep',
-    destination: `${worker.workerUrl}/api/cron/settle-markets`,
-    cron: '*/2 * * * *',
-    method: 'GET',
-    retries: 0,
-    headers: { Authorization: `Bearer ${worker.cronSecret}` },
-  });
-  console.log(JSON.stringify({ scheduleId: schedule.scheduleId, cron: '*/2 * * * *', destination: `${worker.workerUrl}/api/cron/settle-markets` }));
+  const headers = { Authorization: `Bearer ${worker.cronSecret}` };
+  const defs = [
+    { scheduleId: 'weatherb-arc-settle-sweep', cron: '*/2 * * * *', path: '/api/cron/settle-markets', retries: 0 },
+    { scheduleId: 'weatherb-arc-schedule-daily', cron: '5 12-16 * * *', path: '/api/cron/schedule-daily', retries: 3 },
+  ];
+  for (const def of defs) {
+    const destination = `${worker.workerUrl}${def.path}`;
+    const schedule = await client.schedules.create({ scheduleId: def.scheduleId, destination, cron: def.cron, method: 'GET', retries: def.retries, headers });
+    console.log(JSON.stringify({ scheduleId: schedule.scheduleId, cron: def.cron, destination }));
+  }
+} else if (command === 'create-now') {
+  const response = await fetch(`${worker.workerUrl}/api/cron/schedule-daily`, { headers: { Authorization: `Bearer ${worker.cronSecret}` } });
+  console.log(JSON.stringify({ status: response.status, body: await response.json() }, null, 2));
 } else {
   const health = await fetch(`${worker.workerUrl}/api/health`);
   const anonymous = await fetch(`${worker.workerUrl}/api/cron/settle-markets`);
   const authorized = await fetch(`${worker.workerUrl}/api/cron/settle-markets`, {
     headers: { Authorization: `Bearer ${worker.cronSecret}` },
   });
-  console.log(JSON.stringify({ health: { status: health.status, body: await health.json() }, anonymous: anonymous.status, authorized: { status: authorized.status, body: await authorized.json() } }, null, 2));
+  const scheduleAnonymous = await fetch(`${worker.workerUrl}/api/cron/schedule-daily`);
+  const scheduleAuthorized = await fetch(`${worker.workerUrl}/api/cron/schedule-daily`, {
+    headers: { Authorization: `Bearer ${worker.cronSecret}` },
+  });
+  console.log(JSON.stringify({ health: { status: health.status, body: await health.json() }, anonymous: anonymous.status, authorized: { status: authorized.status, body: await authorized.json() }, scheduleAnonymous: scheduleAnonymous.status, scheduleAuthorized: { status: scheduleAuthorized.status, body: await scheduleAuthorized.json() } }, null, 2));
 }
