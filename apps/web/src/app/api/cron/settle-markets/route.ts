@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { Hex } from 'viem';
 import { automationReadinessResponse } from '@/lib/cron/readiness';
 import { verifyCronRequest, unauthorizedResponse, createContractClients } from '@/lib/cron';
-import { reconcileMarkets, requireRestartContract } from '@/lib/cron/market-state';
+import { reconcileOutstandingMarkets, requireRestartContract } from '@/lib/cron/market-state';
 import { settleMarket } from '@/lib/cron/settlement';
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -20,7 +20,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   try {
     const clients = createContractClients({ rpcUrl, privateKey });
     await requireRestartContract(clients.publicClient, address);
-    const pending = await reconcileMarkets(clients.publicClient, address);
+    const pending = await reconcileOutstandingMarkets(clients.publicClient, address);
     const results = [];
     const errors = [];
     for (const id of pending) {

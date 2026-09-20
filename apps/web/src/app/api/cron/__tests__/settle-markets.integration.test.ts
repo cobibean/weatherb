@@ -212,4 +212,17 @@ describe('Settlement and reconciliation routes', () => {
     expect(String(rows.get(0)?.lastSettlementError)).not.toContain('zzz');
     expect(mocks.write).not.toHaveBeenCalled();
   });
+  it('sweep reconciles only outstanding and newly created markets', async () => {
+    chain[0]!.status = 2;
+    await single(); // Binds the deployment and persists market 0 as settled.
+    mocks.read.mockClear();
+    rows.set(0, { isSettled: true, status: 'RESOLVED' });
+    chain.push(market()); // id 1: known? no — above max known id (0), must be read
+    expect((await GET(request())).status).toBe(200);
+    const readIds = mocks.read.mock.calls
+      .filter(([{ functionName }]) => functionName === 'getMarket')
+      .map(([{ args }]) => Number(args[0]));
+    expect(readIds).not.toContain(0);
+    expect(readIds).toContain(1);
+  });
 });

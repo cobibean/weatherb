@@ -117,3 +117,28 @@ export async function reconcileMarkets(client: PublicClient, address: Hex): Prom
   }
   return ids;
 }
+
+/** Terminal chain state is immutable, so settled rows are skipped; IDs above the DB high-water mark are new. */
+export async function reconcileOutstandingMarkets(
+  client: PublicClient,
+  address: Hex,
+): Promise<bigint[]> {
+  const count = await client.readContract({
+    address,
+    abi: WEATHER_MARKET_ABI,
+    functionName: 'getMarketCount',
+  });
+  const [open, known] = await Promise.all([
+    prisma.market.findMany({ where: { isSettled: false }, select: { contractMarketId: true } }),
+    prisma.market.aggregate({ _max: { contractMarketId: true } }),
+  ]);
+  const ids = new Set<bigint>(open.map((row) => BigInt(row.contractMarketId)));
+  for (let id = BigInt((known._max.contractMarketId ?? -1) + 1); id < count; id++) ids.add(id);
+  const pending: bigint[] = [];
+  for (const id of [...ids].sort((a, b) => (a < b ? -1 : 1))) {
+    const market = await readMarket(client, address, id);
+    await persistMarket(id, market);
+    if (!isTerminal(market)) pending.push(id);
+  }
+  return pending;
+}
