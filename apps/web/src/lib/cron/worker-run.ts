@@ -2,7 +2,11 @@ import prisma from '@/lib/prisma';
 
 export type WorkerRunKind = 'settle-sweep' | 'settle-market';
 export type WorkerRunStatus = 'succeeded' | 'failed' | 'skipped' | 'busy';
-export type WorkerRunOutcome<T> = { status: WorkerRunStatus; summary: T; error?: string };
+export type WorkerRunOutcome<T> = {
+  status: WorkerRunStatus;
+  summary: T;
+  error?: string | undefined;
+};
 
 /** Strip anything that looks like a secret before persisting an error message. */
 export function redactError(error: unknown): string {

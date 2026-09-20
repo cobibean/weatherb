@@ -1,7 +1,11 @@
 import { Client as QStashClient } from '@upstash/qstash';
 import prisma from '@/lib/prisma';
 
-export type SettlementScheduleResult = { scheduled: boolean; messageId?: string; message?: string };
+export type SettlementScheduleResult = {
+  scheduled: boolean;
+  messageId?: string | undefined;
+  message?: string | undefined;
+};
 
 /** Publish at most one delayed delivery per market; the periodic sweep remains the safety net. */
 export async function ensureSettlementScheduled(

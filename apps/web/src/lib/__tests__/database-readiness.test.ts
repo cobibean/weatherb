@@ -25,6 +25,7 @@ afterEach(() => vi.unstubAllEnvs());
 describe('Live database readiness', () => {
   it('blocks the individual settlement endpoint while paused or offline', async () => {
     vi.stubEnv('CRON_SECRET', 'local-readiness-fixture');
+    vi.stubEnv('WEATHERB_WORKER_ROLE', 'settler');
     const request = () =>
       new NextRequest('http://localhost/api/markets/7/settle', {
         method: 'POST',
