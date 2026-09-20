@@ -36,7 +36,7 @@ docs/             # Epics, testing, reference
 | Property | Value |
 |----------|-------|
 | Markets/day | 5 max (1 per hourly cron) |
-| Market duration | 24 hours exactly |
+| Market duration | Declared at creation (daily rotation: 24 h) |
 | Creation cron | Hourly, 12:00-16:00 UTC |
 | Settlement | QStash per-market scheduling + cron fallback |
 | City rotation | Round-robin (NYC → LA → Chicago → ...) |
@@ -50,8 +50,8 @@ docs/             # Epics, testing, reference
 ## Key Constraints (Never Violate)
 | Rule | Value |
 |------|-------|
-| Markets/day | 5 max (1 per hourly cron run) |
-| Market duration | 24 hours exactly |
+| Markets/day | 5 max via worker schedule (12–16 UTC); contract enforces one market per UTC hour slot |
+| Market duration | Declared per market, bounded on chain (owner-set min/max); daily declares 24 h |
 | Bets per wallet | Multiple allowed |
 | Storage precision | 0.1°F (tenths: 853 = 85.3°F) |
 | Display precision | Whole degrees |

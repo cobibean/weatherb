@@ -5,7 +5,9 @@
 > `docs/testing/arc-testnet-lifecycle-acceptance.md` for active configuration and
 > verification. The Flare, hosted cron, voting, audition, and Sheets details below
 > describe the retired/deferred implementation. They do not authorize re-enabling it.
-> Native USDC values use 18 decimals; the fresh restart is version 2.2.0.
+> Native USDC values use 18 decimals; the fresh restart is version 2.4.0 and
+> market duration is declared per market (daily rotation declares 24 h;
+> owner-set bounds 15 min – 7 days).
 > Settlement runs from the dedicated Vercel worker `weatherb-arc-worker` triggered by
 > QStash; the public site holds no signer (see `docs/testing/arc-hosted-testnet.md`,
 > "Settlement worker"). Automatic market creation remains manual pending the
@@ -43,7 +45,7 @@ Markets are created and settled on a rolling 24-hour schedule:
 | Property | Value |
 |----------|-------|
 | Markets per day | 5 (max) |
-| Market duration | 24 hours exactly |
+| Market duration | Declared at creation (daily rotation: 24 h) |
 | Creation schedule | Hourly, 12:00-16:00 UTC |
 | Settlement schedule | Every 5 minutes (checks mature markets) |
 | City rotation | Round-robin via Upstash Redis |
@@ -65,8 +67,8 @@ Markets are created and settled on a rolling 24-hour schedule:
 
 | # | Rule |
 |---|------|
-| 1 | 5 markets/day max (1 per hourly cron run) |
-| 2 | Each market lasts exactly 24 hours |
+| 1 | Daily rotation creates 5 markets/day via the worker schedule (12–16 UTC); the contract enforces one market per UTC hour slot |
+| 2 | Duration is declared per market and bounded on chain (owner-set min/max); daily markets declare 24 h |
 | 3 | Multiple bets allowed per wallet |
 | 4 | Store temps as tenths: 85.3°F → 853 |
 | 5 | Display as whole degrees |

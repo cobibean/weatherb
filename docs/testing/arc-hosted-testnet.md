@@ -55,7 +55,7 @@ terminal records. No command loads the local test-wallet keys.
 Vercel cron remains absent (`vercel.json` has `crons: []`). Since September 20,
 settlement runs from the dedicated worker described below, not from the local
 heartbeat; the scheduler flag remains paused and scheduled creation is still a
-manual owner command. Browser claims remain the user's or teammate's responsibility.
+manual step (`arc:worker -- create-now`). Browser claims remain the user's or teammate's responsibility.
 
 ## Settlement worker
 
@@ -90,6 +90,16 @@ never receives them; its signing routes are additionally disabled because they r
   per-market deliveries.
 - Per-market QStash message: published once per market (`Market.settlementMessageId`) for
   `POST /api/markets/<id>/settle` at `resolveTime`, `retries: 3`. It is an accelerator only.
+- QStash schedule `weatherb-arc-schedule-daily`: `5 12-16 * * *` → `GET /api/cron/schedule-daily`,
+  `retries: 3`. Each run creates one market for the current UTC hour slot declaring a 24 h
+  duration; calls outside 12–16 UTC return `skipped`. While `schedulerPaused` is set the
+  route logs a `skipped` run and creates nothing.
+- QStash schedule `weatherb-arc-canary`: `30 2 * * *` → `GET /api/cron/schedule-daily?duration=1800&test=1`,
+  `retries: 2`. A daily creation→settlement canary: a 30-minute market in any hour slot,
+  persisted with `isTest = true` so it never appears in public listings.
+- `test=1` on `schedule-daily` allows any UTC hour and marks the row `isTest`; `duration`
+  must be 900–604800 s. Without `test`, the route still refuses hours outside 12–16 UTC
+  and rejects any duration other than 86400.
 - Vercel cron is not used for either project.
 
 ### Operator commands
@@ -100,8 +110,11 @@ Worker profile `.env.arc-worker` (0600, gitignored, from `.env.arc-worker.exampl
 npm run arc:worker -- check        # health, anonymous 401, authorized run (no signing while paused)
 npm run arc:worker -- env-push     # replace production env from the profile (values never printed)
 npm run arc:worker -- deploy       # vercel deploy --prod against the worker project only
-npm run arc:worker -- schedules    # (re)create the two-minute QStash sweep
+npm run arc:worker -- schedules    # (re)create the QStash sweep, daily rotation, and canary schedules
+npm run arc:worker -- create-now [seconds]     # manual creation; with seconds → ?duration=<s>&test=1
 npm run arc:hosted -- settler enable|disable   # hosted settlerPaused flag
+npm run arc:hosted -- scheduler enable|disable # hosted schedulerPaused flag
+npm run arc:lifecycle -- set-duration-bounds <min> <max>  # owner tx; 0 disables a bound
 npm run arc:hosted -- mark-test <contractMarketId>   # hide a fixture from public listings
 npm run arc:lifecycle -- hosted-test <label>   # owner-created 30-minute market with two 0.01 USDC stakes
 ```
