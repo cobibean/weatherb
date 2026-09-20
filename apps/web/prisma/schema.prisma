@@ -48,6 +48,26 @@ model SystemConfig {
   updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
+model WorkerLease {
+  id        String   @id
+  holder    String
+  expiresAt DateTime @db.Timestamptz(6)
+}
+
+model WorkerRun {
+  id         String    @id @default(cuid())
+  kind       String
+  trigger    String
+  status     String    @default("running")
+  startedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  finishedAt DateTime? @db.Timestamptz(6)
+  summary    Json?     @db.JsonB
+  error      String?
+
+  @@index([kind, startedAt(sort: Desc)])
+  @@index([status])
+}
+
 model City {
   id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   slug      String   @unique // Stable identifier for on-chain hashing (e.g., "nyc", "austin")
@@ -92,6 +112,14 @@ model Market {
   actualTemp       Int?     // Actual temp in tenths (same format as thresholdTemp)
   outcome          String?  // "YES" or "NO"
   sheetsLoggedAt   DateTime? @db.Timestamptz(6)
+
+  // Hosted worker settlement tracking; chain state remains authoritative.
+  settlementAttempts      Int       @default(0)
+  lastSettlementAttemptAt DateTime? @db.Timestamptz(6)
+  lastSettlementError     String?
+  settlementTxHash        String?
+  settlementSubmittedAt   DateTime? @db.Timestamptz(6)
+  settlementMessageId     String?
 
   isTest           Boolean  @default(false) // Filter test markets from public view
   testRunId        String?
