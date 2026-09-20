@@ -1,7 +1,7 @@
 /** Worker-only Vercel profile: the ONLY deployment that may hold settlement credentials. */
 export const PUBLIC_PROJECT_ID = 'prj_Xf7r8PYDcxuvtLKApRK4YvfunSfi';
 export const TEAM_ID = 'team_2l4gGocPPIEpAB4OWmKXM5LJ';
-export const PUBLIC_HOST = 'weatherb-arc-testnet.vercel.app';
+export const PUBLIC_HOST = 'weatherb.vercel.app';
 
 export function workerEnvironment(settings) {
   if (

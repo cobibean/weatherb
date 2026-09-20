@@ -4,8 +4,11 @@ September 20, 2026. This deployment shares the existing Arc Testnet contract and
 wallet positions with the local app. It does not create another contract or reset
 the acceptance journal.
 
-- Site: https://weatherb-arc-testnet.vercel.app
-- Vercel project: `weatherb-arc-testnet`, scope `cobi-beans-projects`.
+- Site: https://weatherb.vercel.app (formerly `weatherb-arc-testnet.vercel.app`; project renamed
+  2026-09-20 so the same project carries the eventual mainnet flip).
+- Vercel project: `weatherb` (`prj_Xf7r8PYDcxuvtLKApRK4YvfunSfi`), scope `cobi-beans-projects`,
+  connected to GitHub `cobibean/weatherb`, production branch `master`. The old Flare-era
+  `weatherb` project was deleted the same day. The worker project stays CLI-deployed.
 - Neon free project: `silent-dream-20560813`, branch `br-fragrant-glade-b5x8jk6y`
   (`production`), AWS Ohio, PostgreSQL 18, database `neondb`.
 - Arc chain: `5042002`; proxy: `0xd86e2774e4a9bf2e86199791068b9350b718b891`.
@@ -136,7 +139,7 @@ npm run arc:lifecycle -- hosted-test <label>   # owner-created 30-minute market 
 
 ### Reading the Operations page
 
-`/admin/operations` (public site, wallet in `ADMIN_WALLETS`, read-only) shows alerts,
+`/admin/operations` (public site https://weatherb.vercel.app, wallet in `ADMIN_WALLETS`, read-only) shows alerts,
 settler address and balance, outstanding markets (deadlines, attempts, last error,
 submission hash) and the last 25 runs. `/api/health` on either origin exposes the same
 `worker` summary. Alerts:
@@ -163,4 +166,4 @@ No mainnet funds are involved.
 
 Public HTTP and browser checks do not substitute for a teammate's successful
 wallet connection and signed bet on this hosted origin. Thirdweb origin restrictions,
-if enabled in that account, must allow `weatherb-arc-testnet.vercel.app`.
+if enabled in that account, must allow `weatherb.vercel.app`.

@@ -42,7 +42,7 @@ test('worker profile refuses the public project, missing signer, wrong DB role, 
     { DATABASE_URL: settings.DATABASE_URL.replace('weatherb_worker', 'weatherb_app') },
     { DATABASE_URL: settings.DATABASE_URL.replace('verify-full', 'require') },
     { WORKER_URL: 'http://weatherb-arc-worker.vercel.app' },
-    { WORKER_URL: 'https://weatherb-arc-testnet.vercel.app' },
+    { WORKER_URL: 'https://weatherb.vercel.app' },
     { RPC_URL: 'https://other.example' },
   ])
     assert.throws(() => workerEnvironment({ ...settings, ...replacement }), undefined, JSON.stringify(replacement));
