@@ -133,7 +133,7 @@ async function requireDeployment() {
 async function send(
   label: string,
   role: string,
-  functionName: 'placeBet' | 'claim' | 'cancelMarket' | 'createMarket' | 'createScheduledMarket' | 'setSettler' | 'setScheduler' | 'upgradeToAndCall',
+  functionName: 'placeBet' | 'claim' | 'cancelMarket' | 'createMarket' | 'createScheduledMarket' | 'setSettler' | 'setScheduler' | 'setMarketDurationBounds' | 'upgradeToAndCall',
   args: readonly unknown[],
   value = 0n,
 ) {
@@ -195,7 +195,7 @@ async function create(label: string, scheduled: boolean) {
   if (!Number.isSafeInteger(threshold) || threshold <= 0)
     throw new Error('Weather forecast is not supported.');
   const args = scheduled
-    ? [keccak256(toBytes(city.slug)), BigInt(threshold), (block.timestamp / 3600n) * 3600n]
+    ? [keccak256(toBytes(city.slug)), BigInt(threshold), (block.timestamp / 3600n) * 3600n, 86400n]
     : [keccak256(toBytes(city.slug)), BigInt(resolveTime), BigInt(threshold), zeroAddress];
   const result = await send(
     `create-${label}`,
@@ -263,10 +263,19 @@ async function main() {
       );
     let version: string | null = null;
     let scheduler: string | null = null;
+    let durationBounds: { min: string; max: string } | null = null;
     if (journal.proxy) {
       version = await publicClient.readContract({ address: journal.proxy, abi, functionName: 'version' });
       if (version !== '2.2.0')
         scheduler = await publicClient.readContract({ address: journal.proxy, abi, functionName: 'scheduler' });
+      if (version !== '2.2.0' && version !== '2.3.0') {
+        const [min, max] = await Promise.all(
+          (['minMarketDurationSeconds', 'maxMarketDurationSeconds'] as const).map(
+            (functionName) => publicClient.readContract({ address: journal.proxy!, abi, functionName }),
+          ),
+        );
+        durationBounds = { min: min.toString(), max: max.toString() };
+      }
     }
     console.log(
       JSON.stringify({
@@ -274,6 +283,7 @@ async function main() {
         proxy: journal.proxy ?? null,
         version,
         scheduler,
+        durationBounds,
         hostedScheduler: journal.hostedScheduler ?? null,
         markets: journal.markets,
       }),
@@ -474,9 +484,17 @@ async function main() {
     const to = journal.hostedScheduler;
     await receipt('fund-hosted-scheduler', () => signer.sendTransaction({ to, value: parseNativeUsdc('2') }));
     console.log(`hosted scheduler balance: ${formatEther(await publicClient.getBalance({ address: to }))} USDC`);
+  } else if (command === 'set-duration-bounds') {
+    const [min, max] = [process.argv[3], process.argv[4]].map((v) => (v && /^\d+$/.test(v) ? BigInt(v) : null));
+    if (min === null || max === null) throw new Error('Use set-duration-bounds <minSeconds> <maxSeconds>');
+    const target = await requireDeployment();
+    await send('set-duration-bounds', 'owner', 'setMarketDurationBounds', [min, max]);
+    const [gotMin, gotMax] = await Promise.all((['minMarketDurationSeconds', 'maxMarketDurationSeconds'] as const).map((functionName) => publicClient.readContract({ address: target, abi, functionName })));
+    if (gotMin !== min || gotMax !== max) throw new Error('Duration bounds not confirmed.');
+    console.log(`market duration bounds: ${min}s – ${max}s`);
   } else
     throw new Error(
-      'Use status, weather, deploy, fund, reconcile, cancel-test, browser-test, hosted-test, start, no-winners, settle, claims, rotate-settler, fund-hosted-settler, upgrade, set-scheduler, or fund-hosted-scheduler.',
+      'Use status, weather, deploy, fund, reconcile, cancel-test, browser-test, hosted-test, start, no-winners, settle, claims, rotate-settler, fund-hosted-settler, upgrade, set-scheduler, fund-hosted-scheduler, or set-duration-bounds.',
     );
 }
 const readOnly = ['status', 'weather'].includes(process.argv[2] ?? 'status');

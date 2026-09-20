@@ -35,6 +35,7 @@ if (command === 'env-push') {
   const defs = [
     { scheduleId: 'weatherb-arc-settle-sweep', cron: '*/2 * * * *', path: '/api/cron/settle-markets', retries: 0 },
     { scheduleId: 'weatherb-arc-schedule-daily', cron: '5 12-16 * * *', path: '/api/cron/schedule-daily', retries: 3 },
+    { scheduleId: 'weatherb-arc-canary', cron: '30 2 * * *', path: '/api/cron/schedule-daily?duration=1800&test=1', retries: 2 },
   ];
   for (const def of defs) {
     const destination = `${worker.workerUrl}${def.path}`;
@@ -42,7 +43,9 @@ if (command === 'env-push') {
     console.log(JSON.stringify({ scheduleId: schedule.scheduleId, cron: def.cron, destination }));
   }
 } else if (command === 'create-now') {
-  const response = await fetch(`${worker.workerUrl}/api/cron/schedule-daily`, { headers: { Authorization: `Bearer ${worker.cronSecret}` } });
+  const seconds = process.argv[3];
+  const query = seconds ? `?duration=${Number(seconds)}&test=1` : '';
+  const response = await fetch(`${worker.workerUrl}/api/cron/schedule-daily${query}`, { headers: { Authorization: `Bearer ${worker.cronSecret}` } });
   console.log(JSON.stringify({ status: response.status, body: await response.json() }, null, 2));
 } else {
   const health = await fetch(`${worker.workerUrl}/api/health`);

@@ -24,6 +24,8 @@ type ScheduleSummary = {
   thresholdTenths?: number;
   transactionHash?: Hex | undefined;
   settlementSchedule?: SettlementScheduleResult;
+  test?: boolean;
+  durationSeconds?: number;
 };
 
 /** One idempotent slot per UTC hour from 12 through 16; the contract enforces the limit. */
@@ -43,6 +45,14 @@ export async function GET(request: Request): Promise<NextResponse> {
   const privateKey = process.env.SCHEDULER_PRIVATE_KEY as Hex | undefined;
   if (!rpcUrl || !contractAddress || !privateKey)
     return NextResponse.json({ success: false, error: 'Missing scheduler configuration' }, { status: 500 });
+  const url = new URL(request.url);
+  const test = url.searchParams.get('test') === '1';
+  const rawDuration = url.searchParams.get('duration') ?? '86400';
+  const durationSeconds = /^\d+$/.test(rawDuration) ? Number(rawDuration) : NaN;
+  if (!Number.isSafeInteger(durationSeconds) || durationSeconds < 900 || durationSeconds > 604800)
+    return NextResponse.json({ success: false, error: 'Invalid duration' }, { status: 400 });
+  if (!test && durationSeconds !== 86400)
+    return NextResponse.json({ success: false, error: 'Daily markets declare 86400' }, { status: 400 });
   try {
     const clients = createContractClients({ rpcUrl, privateKey });
     const { publicClient, walletClient } = clients;
@@ -58,7 +68,7 @@ export async function GET(request: Request): Promise<NextResponse> {
           const now = Math.floor(Date.now() / 1000);
           const slot = Math.floor(now / 3600) * 3600;
           const hour = (slot % 86400) / 3600;
-          if (hour < 12 || hour > 16) return { slot, created: 0, skipped: true, reason: 'Outside creation hours' };
+          if (!test && (hour < 12 || hour > 16)) return { slot, created: 0, skipped: true, reason: 'Outside creation hours' };
           const lookup = () =>
             publicClient.readContract({ address: contractAddress, abi: WEATHER_MARKET_ABI, functionName: 'getScheduledMarket', args: [BigInt(slot)] });
           let storedId = await lookup();
@@ -71,7 +81,7 @@ export async function GET(request: Request): Promise<NextResponse> {
             const city = cities[Number(count % BigInt(cities.length))]!;
             let forecast: number;
             try {
-              forecast = await createWeatherProviderFromEnv().getForecast(city.latitude, city.longitude, now + 86400);
+              forecast = await createWeatherProviderFromEnv().getForecast(city.latitude, city.longitude, now + durationSeconds);
               await recordProviderSuccess();
             } catch (error) {
               await recordProviderError();
@@ -81,7 +91,7 @@ export async function GET(request: Request): Promise<NextResponse> {
             if (!Number.isSafeInteger(threshold) || threshold <= 0) throw new Error('Unsupported forecast threshold');
             const { request: txRequest } = await publicClient.simulateContract({
               address: contractAddress, abi: WEATHER_MARKET_ABI, functionName: 'createScheduledMarket',
-              args: [keccak256(toBytes(city.slug)), BigInt(threshold), BigInt(slot)], account: walletClient.account!,
+              args: [keccak256(toBytes(city.slug)), BigInt(threshold), BigInt(slot), BigInt(durationSeconds)], account: walletClient.account!,
             });
             transactionHash = await walletClient.writeContract(txRequest);
             const receipt = await publicClient.waitForTransactionReceipt({ hash: transactionHash });
@@ -96,10 +106,11 @@ export async function GET(request: Request): Promise<NextResponse> {
           const id = storedId - 1n;
           const confirmed = await readMarket(publicClient, contractAddress, id);
           await persistMarket(id, confirmed);
+          if (test) await prisma.market.update({ where: { contractMarketId: Number(id) }, data: { isTest: true } });
           const settlementSchedule = await ensureSettlementScheduled(id, Number(confirmed.resolveTime)).catch(
             (): SettlementScheduleResult => ({ scheduled: false, message: 'Queue unavailable; periodic settlement remains required' }),
           );
-          return { slot, created, marketId: id.toString(), thresholdTenths: Number(confirmed.thresholdTenths), transactionHash, settlementSchedule };
+          return { slot, created, marketId: id.toString(), thresholdTenths: Number(confirmed.thresholdTenths), transactionHash, settlementSchedule, test, durationSeconds };
         });
         if (!held.acquired) return { status: 'busy', summary: { busy: true as const } };
         return { status: held.value.skipped ? 'skipped' : 'succeeded', summary: held.value };

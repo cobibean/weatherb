@@ -1,5 +1,5 @@
 // Generated from contracts/out/WeatherMarketV2.sol/WeatherMarketV2.json by scripts/generate-contract-abi.mjs.
-// Intended source version: 2.3.0; this does not upgrade any deployed contract.
+// Intended source version: 2.4.0; this does not upgrade any deployed contract.
 export const WEATHER_MARKET_ABI = [
   {
     type: 'constructor',
@@ -164,6 +164,11 @@ export const WEATHER_MARKET_ABI = [
       },
       {
         name: 'slot',
+        type: 'uint64',
+        internalType: 'uint64'
+      },
+      {
+        name: 'durationSeconds',
         type: 'uint64',
         internalType: 'uint64'
       }
@@ -401,6 +406,19 @@ export const WEATHER_MARKET_ABI = [
   },
   {
     type: 'function',
+    name: 'maxMarketDurationSeconds',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint64',
+        internalType: 'uint64'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
     name: 'minBetWei',
     inputs: [],
     outputs: [
@@ -408,6 +426,19 @@ export const WEATHER_MARKET_ABI = [
         name: '',
         type: 'uint256',
         internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'minMarketDurationSeconds',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint64',
+        internalType: 'uint64'
       }
     ],
     stateMutability: 'view'
@@ -533,6 +564,24 @@ export const WEATHER_MARKET_ABI = [
         name: 'newFeeBps',
         type: 'uint256',
         internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setMarketDurationBounds',
+    inputs: [
+      {
+        name: 'minSeconds',
+        type: 'uint64',
+        internalType: 'uint64'
+      },
+      {
+        name: 'maxSeconds',
+        type: 'uint64',
+        internalType: 'uint64'
       }
     ],
     outputs: [],
@@ -844,6 +893,25 @@ export const WEATHER_MARKET_ABI = [
   },
   {
     type: 'event',
+    name: 'MarketDurationBoundsUpdated',
+    inputs: [
+      {
+        name: 'minSeconds',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64'
+      },
+      {
+        name: 'maxSeconds',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
     name: 'MarketResolved',
     inputs: [
       {
@@ -1044,6 +1112,11 @@ export const WEATHER_MARKET_ABI = [
   {
     type: 'error',
     name: 'BettingClosed',
+    inputs: []
+  },
+  {
+    type: 'error',
+    name: 'DurationOutOfBounds',
     inputs: []
   },
   {

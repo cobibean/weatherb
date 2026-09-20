@@ -142,7 +142,7 @@ export function setupLifecycle(): void {
     }),
   );
   mocks.read.mockImplementation(async ({ functionName, args }) => {
-    if (functionName === 'version') return '2.3.0';
+    if (functionName === 'version') return '2.4.0';
     if (functionName === 'getMarketCount') return BigInt(chain.length);
     if (functionName === 'getScheduledMarket') return slots.get(args[0]) ?? 0n;
     if (functionName === 'getMarket') return { ...chain[Number(args[0])] };
@@ -157,7 +157,7 @@ export function setupLifecycle(): void {
           market({
             cityId: args[0],
             thresholdTenths: args[1],
-            resolveTime: BigInt(Date.now() / 1000 + 86400),
+            resolveTime: BigInt(Date.now() / 1000) + BigInt(args[3] ?? 86400),
           }),
         );
       }

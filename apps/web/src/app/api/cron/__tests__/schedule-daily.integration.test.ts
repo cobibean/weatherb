@@ -4,7 +4,7 @@ import { keccak256, toBytes, toEventSelector } from 'viem';
 import { CITIES } from '@weatherb/shared/constants';
 import * as readiness from '@/lib/cron/readiness';
 import { GET } from '../schedule-daily/route';
-const request = (): Request => new Request('http://localhost/api/cron/schedule-daily');
+const request = (query = ''): Request => new Request(`http://localhost/api/cron/schedule-daily${query}`);
 beforeEach(setupLifecycle);
 afterEach(() => {
   vi.useRealTimers();
@@ -62,7 +62,7 @@ describe('Scheduled market creation and recovery', () => {
     expect(mocks.simulate).toHaveBeenCalledWith(
       expect.objectContaining({
         functionName: 'createScheduledMarket',
-        args: [keccak256(toBytes('nyc')), BigInt(threshold), BigInt(Date.now() / 1000)],
+        args: [keccak256(toBytes('nyc')), BigInt(threshold), BigInt(Date.now() / 1000), 86400n],
       }),
     );
     expect(rows.get(0)).toMatchObject({
@@ -188,5 +188,24 @@ describe('Scheduled market creation and recovery', () => {
     await GET(request()); // same slot → reuse, no second publish
     expect(mocks.publish).toHaveBeenCalledTimes(1);
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ data: { settlementMessageId: expect.any(String) } }));
+  });
+  it('creates a short hidden test market at any hour when test=1', async () => {
+    vi.setSystemTime(new Date('2026-09-20T20:07:00Z'));
+    const response = await GET(request('?duration=1800&test=1'));
+    expect(response.status).toBe(200);
+    expect(mocks.simulate).toHaveBeenCalledWith(expect.objectContaining({ functionName: 'createScheduledMarket', args: [expect.any(String), expect.any(BigInt), BigInt(Date.UTC(2026, 8, 20, 20) / 1000), 1800n] }));
+    expect(rows.get(0)).toMatchObject({ isTest: true });
+    expect(Number(chain[0]!.resolveTime) - Math.floor(Date.now() / 1000)).toBe(1800);
+  });
+  it('declares 86400 for daily markets and refuses other durations without test=1', async () => {
+    expect((await GET(request('?duration=1800'))).status).toBe(400);
+    await GET(request());
+    expect(mocks.simulate).toHaveBeenCalledWith(expect.objectContaining({ args: expect.arrayContaining([86400n]) }));
+    expect(rows.get(0)).toMatchObject({ isTest: false });
+  });
+  it('rejects out-of-range or malformed durations', async () => {
+    for (const q of ['?duration=899&test=1', '?duration=604801&test=1', '?duration=abc&test=1'])
+      expect((await GET(request(q))).status).toBe(400);
+    expect(mocks.write).not.toHaveBeenCalled();
   });
 });
