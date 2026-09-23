@@ -1,6 +1,6 @@
 # Automated market liquidity: staged operator runbook
 
-Status: local implementation and disposable verification only. Hosted migration, deployment, wallet provisioning, funding, activation, and chain acceptance require a separate authorized rollout. This feature starts disabled.
+Status (2026-09-23): hosted migration, public and worker deployment, dedicated maker wallet provisioning and manual funding, and first activation are complete. Seeding and claims are enabled for eligible new public markets from ID 26 at 2.50 native USDC per side. Actual new-market YES/NO deposits, claims or refunds, and continuation through the five-slot limit still await live acceptance. See `docs/memory/2026-09-23/liquidity-hosted-rollout-memory-2026-09-23.md` for rollout evidence.
 
 ## What the worker does
 
@@ -15,7 +15,7 @@ Only `PUBLIC` markets with IDs at or above the immutable first-enable cutoff can
 1. Keep the public application on `weatherb_app` and worker on `weatherb_worker`. Apply the additive Prisma migration and `scripts/development/access.sql` with the existing migration role, then verify both role grants and RLS. The migration creates disabled settings; do not enable during migration.
 2. Provision a dedicated market-maker key with `npm run arc:market-maker` into a protected, gitignored local wallet file. Record only its public address. Ensure it differs from owner, scheduler and settler addresses. The worker profile alone receives `MARKET_MAKER_PRIVATE_KEY`; the public and verification profiles must exclude it. Do not print, copy into chat, or place the private key in the public Vercel project.
 3. Put the worker-only key in the protected `.env.arc-worker` profile. Keep the existing settlement/scheduler secrets. `MARKET_MAKER_PRIVATE_KEY` is optional while the feature is disabled. Add `LIQUIDITY_ADMIN_WRITES_ENABLED=true` only to the public profile when the operator is ready to edit liquidity settings; it does not unlock unrelated `ADMIN_WRITES_ENABLED` routes. Keep `WEATHERB_WORKER_ROLE=settler` and a strong `CRON_SECRET` on the worker.
-4. Deploy with seeding disabled, then check the old creation and settlement worker health, classification persistence, anonymous 401 on the immediate maker route, and the distinct maker heartbeat. Neither the public site nor a development-auth bypass may be able to reach a maker signer.
+4. Deploy with seeding disabled, then check the old creation and settlement worker health, classification persistence, anonymous 401 on the immediate maker route, anonymous admin config redirects to login without exposing data or write access, and the distinct maker heartbeat. Neither the public site nor a development-auth bypass may be able to reach a maker signer.
 
 `npm run arc:worker -- check` is **not read-only**: its authenticated route checks can create or settle markets when enabled. Do not use it as a harmless health probe during rollout. The dedicated maker route requires the worker bearer in development too.
 
@@ -43,7 +43,7 @@ For a newly created PUBLIC market at or after the cutoff, record:
 | Outcome | Settlement/cancellation status and maker claim/refund receipt, actual event amount, gas, released slot |
 | Continuation | A later new PUBLIC market starts automatically from the remaining/recovered wallet balance |
 
-Check YES and NO outcomes, cancellation, NoWinners refund, a partial losing side with `NO_PAYOUT`, insufficient funds before and after one side, and an already-claimed rerun over time. Do not present a mock or a pre-funded wallet as live payout proof. Public pages should contain no new maker disclosure UI; anonymous admin API requests must return 401.
+Check YES and NO outcomes, cancellation, NoWinners refund, a partial losing side with `NO_PAYOUT`, insufficient funds before and after one side, and an already-claimed rerun over time. Do not present a mock or a pre-funded wallet as live payout proof. Public pages should contain no new maker disclosure UI. Anonymous admin API requests may be redirected by middleware to login (307 in the hosted check); they must expose no settings data or write access. Anonymous maker POST must return 401.
 
 ## Recovery and incident handling
 
