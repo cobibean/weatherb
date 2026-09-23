@@ -41,7 +41,8 @@
     "arc:worker": "node scripts/development/worker.mjs",
     "arc:hosted-key": "node scripts/development/setup-hosted-key.mjs",
     "arc:hosted-settler": "node scripts/development/setup-hosted-key.mjs settler",
-    "arc:hosted-scheduler": "node scripts/development/setup-hosted-key.mjs scheduler"
+    "arc:hosted-scheduler": "node scripts/development/setup-hosted-key.mjs scheduler",
+    "arc:market-maker": "node scripts/development/setup-hosted-key.mjs market-maker"
   },
   "devDependencies": {
     "@types/node": "24.13.5",

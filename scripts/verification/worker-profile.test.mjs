@@ -54,3 +54,12 @@ test('worker profile requires a distinct scheduler key and forwards it', () => {
   assert.throws(() => workerEnvironment({ ...settings, SCHEDULER_PRIVATE_KEY: '' }), /SCHEDULER_PRIVATE_KEY/);
   assert.throws(() => workerEnvironment({ ...settings, SCHEDULER_PRIVATE_KEY: settings.SETTLER_PRIVATE_KEY }), /must differ/);
 });
+
+test('market maker key is optional while disabled and forwarded only to the worker when configured', () => {
+  assert.equal(workerEnvironment(settings).vercelEnv.MARKET_MAKER_PRIVATE_KEY, undefined);
+  const maker = `0x${'c'.repeat(64)}`;
+  const env = workerEnvironment({ ...settings, MARKET_MAKER_PRIVATE_KEY: maker });
+  assert.equal(env.vercelEnv.MARKET_MAKER_PRIVATE_KEY, maker);
+  assert.throws(() => workerEnvironment({ ...settings, MARKET_MAKER_PRIVATE_KEY: settings.SETTLER_PRIVATE_KEY }), /must differ/);
+  assert.throws(() => workerEnvironment({ ...settings, MARKET_MAKER_PRIVATE_KEY: '0x12' }), /malformed/);
+});

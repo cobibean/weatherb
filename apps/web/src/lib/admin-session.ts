@@ -44,6 +44,7 @@ export async function createPendingSession(
       wallet: normalizedWallet,
       nonce,
       expiresAt,
+      authenticatedAt: null,
     },
   });
 
@@ -78,6 +79,8 @@ export async function verifyAndActivateSession(
     return { success: false, error: 'Wallet mismatch' };
   }
 
+  if (session.authenticatedAt) return { success: false, error: 'Nonce already used' };
+
   if (new Date() > session.expiresAt) {
     await prisma.adminSession.delete({ where: { id: sessionId } });
     return { success: false, error: 'Session expired' };
@@ -102,10 +105,11 @@ export async function verifyAndActivateSession(
 
   // Extend session duration
   const newExpiresAt = new Date(Date.now() + SESSION_DURATION_MS);
-  await prisma.adminSession.update({
-    where: { id: sessionId },
-    data: { expiresAt: newExpiresAt },
+  const activation = await prisma.adminSession.updateMany({
+    where: { id: sessionId, authenticatedAt: null, expiresAt: { gt: new Date() }, wallet: normalizedWallet },
+    data: { expiresAt: newExpiresAt, authenticatedAt: new Date() },
   });
+  if (activation.count !== 1) return { success: false, error: 'Nonce already used or expired' };
 
   // Set the session cookie
   const cookieStore = await cookies();
@@ -135,9 +139,9 @@ export async function getAdminSession(): Promise<{ wallet: string; sessionId: st
     where: { id: sessionId },
   });
 
-  if (!session || new Date() > session.expiresAt) {
+  if (!session || !session.authenticatedAt || new Date() > session.expiresAt) {
     // Clean up expired session
-    if (session) {
+    if (session && new Date() > session.expiresAt) {
       await prisma.adminSession.delete({ where: { id: sessionId } }).catch(() => {});
     }
     return null;

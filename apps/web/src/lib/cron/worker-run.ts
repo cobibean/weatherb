@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 
-export type WorkerRunKind = 'settle-sweep' | 'settle-market' | 'schedule-daily';
+export type WorkerRunKind = 'settle-sweep' | 'settle-market' | 'schedule-daily' | 'liquidity-tick';
 export type WorkerRunStatus = 'succeeded' | 'failed' | 'skipped' | 'busy';
 export type WorkerRunOutcome<T> = {
   status: WorkerRunStatus;
@@ -10,11 +10,17 @@ export type WorkerRunOutcome<T> = {
 
 /** Strip anything that looks like a secret before persisting an error message. */
 export function redactError(error: unknown): string {
-  let message = (error instanceof Error ? error.message : String(error)).slice(0, 500);
+  let message = error instanceof Error ? error.message : String(error);
   for (const [key, value] of Object.entries(process.env))
     if (value && value.length >= 8 && /KEY|SECRET|TOKEN|DATABASE|URL/.test(key))
       message = message.replaceAll(value, '[redacted]');
-  return message.replace(/(apikey|token|secret)=[^&\s]+/gi, '$1=[redacted]');
+  // Viem errors may stringify the serialized, spend-authorizing envelope.
+  return message
+    .replace(/0x[0-9a-f]{128,}/gi, '[signed transaction redacted]')
+    .replace(/(privatekey|authorization|bearer)\s*[:=]?\s*(?:bearer\s+)?[^\s,}]+/gi, '$1 [redacted]')
+    .replace(/(https?:\/\/)[^\s]+/gi, '$1[redacted]')
+    .replace(/(apikey|token|secret)=[^&\s]+/gi, '$1=[redacted]')
+    .slice(0, 500);
 }
 
 export function triggerFromRequest(request: Request): string {

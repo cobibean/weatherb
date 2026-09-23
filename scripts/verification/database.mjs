@@ -113,12 +113,25 @@ try {
     '-f',
     join(root, 'scripts/development/access.sql'),
   ]);
+  // Hosted migrate reapplies access.sql; prove its grants and policies are repeatable.
+  run(join(pgBin, 'psql'), [
+    '-h', dir, '-U', 'weatherb_migrator', '-d', 'weatherb_test', '-v', 'ON_ERROR_STOP=1',
+    '-f', join(root, 'scripts/development/access.sql'),
+  ]);
   if (process.argv.includes('--serve')) {
     run(
       process.execPath,
       [join(root, 'node_modules/tsx/dist/cli.mjs'), 'src/scripts/development-database.ts', 'seed'],
       join(root, 'apps/web'),
     );
+    if (process.argv.includes('--browser-fixture')) {
+      env.ADMIN_WALLETS = '0x00000000000000000000000000000000000000a2';
+      env.LIQUIDITY_ADMIN_WRITES_ENABLED = 'true';
+      env.RPC_URL = 'http://127.0.0.1:3012';
+      env.WEATHERB_BROWSER_FIXTURE_RPC = '1';
+      run(process.execPath, [join(root, 'scripts/verification/browser-liquidity-fixture.mjs'), 'initialize']);
+      console.log(`BROWSER_FIXTURE_SOCKET=${dir}`);
+    }
     // Keep the parent alive long enough to clean the database on Ctrl-C.
     process.on('SIGINT', () => {});
     process.on('SIGTERM', () => {});

@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 import { DashboardClient } from './dashboard-client';
 import { getAdminStats, getRecentLogs } from '@/lib/admin-data';
 import { adminWritesEnabled } from '@/lib/admin-writes';
+import { LiquidityAlertSummary } from '@/components/admin/liquidity-panel';
 
 // Ensure this page is always fresh
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,8 @@ export default function AdminDashboardPage(): React.ReactElement {
           Monitor platform health and key metrics at a glance.
         </p>
       </div>
+
+      <LiquidityAlertSummary />
 
       <Suspense
         fallback={

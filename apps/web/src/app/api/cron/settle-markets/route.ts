@@ -11,6 +11,8 @@ import {
 import { settleMarket, type SettlementResult } from '@/lib/cron/settlement';
 import { ensureSettlementScheduled } from '@/lib/cron/settlement-schedule';
 import { recordWorkerRun, redactError, triggerFromRequest } from '@/lib/cron/worker-run';
+import { verifyLiquidityWorkerRequest } from '@/lib/liquidity/auth';
+import { runLiquidityTick } from '@/lib/liquidity/service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -27,8 +29,7 @@ type SweepSummary = {
   errors: { marketId: string; error: string }[];
 };
 
-export async function GET(request: Request): Promise<NextResponse> {
-  if (!verifyWorkerRequest(request)) return unauthorizedResponse();
+async function settlementPhase(request: Request): Promise<NextResponse> {
   const readiness = await automationReadinessResponse('settler');
   if (readiness) {
     if (readiness.status === 200)
@@ -105,4 +106,26 @@ export async function GET(request: Request): Promise<NextResponse> {
       { status: 503 },
     );
   }
+}
+
+/** Start the independent maker phase before awaiting settlement readiness or weather/RPC work. */
+export async function GET(request: Request): Promise<NextResponse> {
+  if (!verifyWorkerRequest(request)) return unauthorizedResponse();
+  const startedAt = Date.now();
+  const liquidity = verifyLiquidityWorkerRequest(request)
+    ? runLiquidityTick(triggerFromRequest(request), startedAt).then(
+        (result) => result,
+        () => ({ status: 'failed' as const, error: 'Liquidity service unavailable' }),
+      )
+    : Promise.resolve({ status: 'disabled' as const });
+  const settlement = settlementPhase(request).catch((error) => {
+    console.error('[Settler] Phase failed:', redactError(error));
+    return NextResponse.json({ success: false, error: 'Settlement phase unavailable; retry required' }, { status: 503 });
+  });
+  const [settlementResponse, liquidityResult] = await Promise.all([settlement, liquidity]);
+  const body = await settlementResponse.json();
+  const liquidityFailed = liquidityResult.status === 'failed' || ('errors' in liquidityResult && liquidityResult.errors > 0);
+  return NextResponse.json({ ...body, liquidity: liquidityResult }, {
+    status: liquidityFailed && settlementResponse.status < 400 ? 503 : settlementResponse.status,
+  });
 }

@@ -14,6 +14,7 @@ import {
   TrendingUp,
   ScrollText,
   CloudSun,
+  Activity,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -23,15 +24,17 @@ const mobileNavItems = [
   { href: '/admin/settings', label: 'Settings', icon: Settings },
   { href: '/admin/cities', label: 'Cities', icon: MapPin },
   { href: '/admin/markets', label: 'Markets', icon: TrendingUp },
+  { href: '/admin/operations', label: 'Operations', icon: Activity },
   { href: '/admin/logs', label: 'Activity Logs', icon: ScrollText },
 ];
 
 interface AdminHeaderProps {
   wallet: string;
   readOnly: boolean;
+  liquidityEditable?: boolean;
 }
 
-export function AdminHeader({ wallet, readOnly }: AdminHeaderProps): React.ReactElement {
+export function AdminHeader({ wallet, readOnly, liquidityEditable = false }: AdminHeaderProps): React.ReactElement {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -82,7 +85,7 @@ export function AdminHeader({ wallet, readOnly }: AdminHeaderProps): React.React
           </div>
           {readOnly && (
             <span className="px-2 py-1 rounded-lg bg-neutral-100 text-xs font-body text-neutral-600">
-              Read-only
+              {liquidityEditable ? 'Liquidity controls only' : 'Read-only'}
             </span>
           )}
 

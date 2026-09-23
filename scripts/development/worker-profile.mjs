@@ -1,4 +1,5 @@
 /** Worker-only Vercel profile: the ONLY deployment that may hold settlement credentials. */
+import { privateKeyToAccount } from 'viem/accounts';
 export const PUBLIC_PROJECT_ID = 'prj_Xf7r8PYDcxuvtLKApRK4YvfunSfi';
 export const TEAM_ID = 'team_2l4gGocPPIEpAB4OWmKXM5LJ';
 export const PUBLIC_HOST = 'weatherb.vercel.app';
@@ -42,6 +43,12 @@ export function workerEnvironment(settings) {
   if (!/^0x[0-9a-fA-F]{64}$/.test(settings.SETTLER_PRIVATE_KEY ?? '')) throw new Error('SETTLER_PRIVATE_KEY missing or malformed');
   if (!/^0x[0-9a-fA-F]{64}$/.test(settings.SCHEDULER_PRIVATE_KEY ?? '')) throw new Error('SCHEDULER_PRIVATE_KEY missing or malformed');
   if (settings.SCHEDULER_PRIVATE_KEY.toLowerCase() === settings.SETTLER_PRIVATE_KEY.toLowerCase()) throw new Error('SCHEDULER_PRIVATE_KEY must differ from SETTLER_PRIVATE_KEY');
+  if (settings.MARKET_MAKER_PRIVATE_KEY) {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(settings.MARKET_MAKER_PRIVATE_KEY)) throw new Error('MARKET_MAKER_PRIVATE_KEY malformed');
+    const maker = privateKeyToAccount(settings.MARKET_MAKER_PRIVATE_KEY).address.toLowerCase();
+    for (const other of [settings.SETTLER_PRIVATE_KEY, settings.SCHEDULER_PRIVATE_KEY])
+      if (privateKeyToAccount(other).address.toLowerCase() === maker) throw new Error('MARKET_MAKER_PRIVATE_KEY must differ from existing signers');
+  }
   if ((settings.CRON_SECRET ?? '').length < 32) throw new Error('CRON_SECRET must be at least 32 characters');
   if (!settings.TOMORROW_IO_API_KEY) throw new Error('TOMORROW_IO_API_KEY required');
   if (!settings.QSTASH_TOKEN) throw new Error('QSTASH_TOKEN required');
@@ -60,6 +67,7 @@ export function workerEnvironment(settings) {
     TOMORROW_IO_API_KEY: settings.TOMORROW_IO_API_KEY,
     QSTASH_TOKEN: settings.QSTASH_TOKEN,
   };
+  if (settings.MARKET_MAKER_PRIVATE_KEY) vercelEnv.MARKET_MAKER_PRIVATE_KEY = settings.MARKET_MAKER_PRIVATE_KEY;
   if (settings.NEXT_PUBLIC_THIRDWEB_CLIENT_ID) vercelEnv.NEXT_PUBLIC_THIRDWEB_CLIENT_ID = settings.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
   return {
     vercelEnv,

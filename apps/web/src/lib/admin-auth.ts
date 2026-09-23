@@ -59,6 +59,8 @@ export async function verifyAdminWallet(token: string): Promise<AdminTokenVerifi
     return { isValid: false, error: 'Session not found' };
   }
 
+  if (!session.authenticatedAt) return { isValid: false, error: 'Session not verified' };
+
   if (new Date() > session.expiresAt) {
     await prisma.adminSession.delete({ where: { id: token } }).catch(() => {});
     return { isValid: false, error: 'Session expired' };

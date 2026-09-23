@@ -40,6 +40,8 @@ import {
   persistMarket,
 } from '../lib/cron/market-state';
 import { settleMarket } from '../lib/cron/settlement';
+import { deploymentKey } from '../lib/liquidity/config';
+import { registerCreationIntent, confirmCreationIntent } from '../lib/liquidity/discovery';
 
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
 const dir = `${root}.tools/arc-lifecycle`;
@@ -176,7 +178,37 @@ async function snapshotState(target: Hex) {
   return JSON.stringify({ owner, settler, feeBps, minBetWei, buffer, paused, count, markets, scheduled }, (_, v) => (typeof v === 'bigint' ? v.toString() : v));
 }
 async function create(label: string, scheduled: boolean) {
-  if (journal.markets[label]) return BigInt(journal.markets[label]);
+  const durableIntentKey = `${scheduled ? 'scheduled' : 'manual'}:create-${label}`;
+  if (journal.markets[label]) {
+    const id = BigInt(journal.markets[label]);
+    const target = await requireDeployment();
+    const key = deploymentKey(target);
+    const intent = await prisma.liquidityCreationIntent.findUnique({ where: { deploymentKey_intentKey: { deploymentKey: key, intentKey: durableIntentKey } } }) ??
+      await prisma.liquidityCreationIntent.findFirst({ where: { deploymentKey: key, contractMarketId: Number(id) } });
+    if (intent && !intent.reconciledAt) {
+      await persistMarket(id, await readMarket(publicClient, target, id));
+      await confirmCreationIntent({ deploymentKey: key, intentKey: intent.intentKey, marketId: id,
+        transactionHash: journal.transactions[`create-${label}`] });
+    }
+    return id;
+  }
+  if (journal.transactions[`create-${label}`]) {
+    const target = await requireDeployment();
+    const key = deploymentKey(target);
+    const intent = await prisma.liquidityCreationIntent.findUnique({ where: { deploymentKey_intentKey: { deploymentKey: key, intentKey: durableIntentKey } } });
+    if (!intent) throw new Error('Saved creation transaction has no durable classification intent. Investigate before retry.');
+    const recovered = await receipt(`create-${label}`, async () => { throw new Error('Saved creation hash missing'); });
+    const { parseEventLogs } = await import('viem');
+    const logs = parseEventLogs({ abi, logs: recovered.logs, eventName: 'MarketCreated' });
+    const id = logs.find((log) => log.address.toLowerCase() === target.toLowerCase())?.args.marketId;
+    if (id === undefined) throw new Error('Saved creation receipt has no market ID.');
+    await persistMarket(id, await readMarket(publicClient, target, id));
+    await confirmCreationIntent({ deploymentKey: key, intentKey: durableIntentKey, marketId: id,
+      transactionHash: journal.transactions[`create-${label}`] });
+    journal.markets[label] = id.toString();
+    save();
+    return id;
+  }
   const target = await requireDeployment();
   const city = await prisma.city.findUniqueOrThrow({ where: { slug: 'austin' } });
   const block = await publicClient.getBlock();
@@ -197,6 +229,9 @@ async function create(label: string, scheduled: boolean) {
   const args = scheduled
     ? [keccak256(toBytes(city.slug)), BigInt(threshold), (block.timestamp / 3600n) * 3600n, 86400n]
     : [keccak256(toBytes(city.slug)), BigInt(resolveTime), BigInt(threshold), zeroAddress];
+  const key = deploymentKey(target);
+  const intentKey = durableIntentKey;
+  await registerCreationIntent({ deploymentKey: key, intentKey, ...(scheduled ? { slot: args[2] as bigint } : {}), isTest: true, source: scheduled ? 'scheduled' : 'manual' });
   const result = await send(
     `create-${label}`,
     'owner',
@@ -212,6 +247,7 @@ async function create(label: string, scheduled: boolean) {
   save();
   const market = await readMarket(publicClient, target, id);
   await persistMarket(id, market);
+  await confirmCreationIntent({ deploymentKey: key, intentKey, marketId: id, transactionHash: journal.transactions[`create-${label}`] });
   console.log(
     JSON.stringify({
       label,

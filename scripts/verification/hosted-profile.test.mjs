@@ -21,6 +21,8 @@ test('hosted profile excludes signing, weather, admin, and inherited configurati
     ADMIN_PRIVATE_KEY: 'must-not-export',
     TOMORROW_IO_API_KEY: 'must-not-export',
     CRON_SECRET: 'must-not-export',
+    MARKET_MAKER_PRIVATE_KEY: 'must-not-export',
+    LIQUIDITY_ADMIN_WRITES_ENABLED: 'true',
   });
   assert.equal(env.WEATHERB_ENV_FILE, 'none');
   for (const key of [
@@ -28,8 +30,10 @@ test('hosted profile excludes signing, weather, admin, and inherited configurati
     'ADMIN_PRIVATE_KEY',
     'TOMORROW_IO_API_KEY',
     'CRON_SECRET',
+    'MARKET_MAKER_PRIVATE_KEY',
   ])
     assert.equal(env[key], undefined);
+  assert.equal(env.LIQUIDITY_ADMIN_WRITES_ENABLED, 'true');
 });
 
 test('hosted profile rejects different databases, endpoints, roles, chain and unverified TLS', () => {

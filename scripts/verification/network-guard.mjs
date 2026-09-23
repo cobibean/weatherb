@@ -6,6 +6,7 @@ import { syncBuiltinESMExports } from 'node:module';
 // Installed before test/application imports, including in worker processes.
 // Only the runner-owned PostgreSQL Unix socket is allowed for database tests.
 const originalConnect = net.Socket.prototype.connect;
+const originalFetch = globalThis.fetch;
 let attempts = 0;
 export function takeBlockedAttempts() {
   const count = attempts;
@@ -29,11 +30,19 @@ net.Socket.prototype.connect = function (...args) {
   if (socket && path === `${socket}/.s.PGSQL.5432`) {
     return originalConnect.apply(this, args);
   }
+  if (socket && process.env.WEATHERB_BROWSER_FIXTURE_RPC === '1' && (options?.host === '127.0.0.1' || options?.hostname === '127.0.0.1') && Number(options.port) === 3012) {
+    return originalConnect.apply(this, args);
+  }
   return blocked();
 };
 tls.connect = blocked;
 dgram.createSocket = blocked;
-globalThis.fetch = blocked;
+globalThis.fetch = function (...args) {
+  const url = args[0] instanceof Request ? args[0].url : String(args[0]);
+  if (process.env.WEATHERB_BROWSER_FIXTURE_RPC === '1' && process.env.WEATHERB_TEST_SOCKET &&
+      url === 'http://127.0.0.1:3012/') return originalFetch(...args);
+  return blocked();
+};
 if ('WebSocket' in globalThis)
   globalThis.WebSocket = class {
     constructor() {

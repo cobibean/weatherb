@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ create: vi.fn(), update: vi.fn() }));
 vi.mock('@/lib/prisma', () => ({
   default: { workerRun: { create: mocks.create, update: mocks.update } },
 }));
-import { recordWorkerRun, triggerFromRequest } from '../worker-run';
+import { recordWorkerRun, redactError, triggerFromRequest } from '../worker-run';
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -63,4 +63,12 @@ describe('triggerFromRequest', () => {
     expect(triggerFromRequest(h({ 'upstash-message-id': 'msg_1' }))).toBe('qstash-message');
     expect(triggerFromRequest(h({}))).toBe('manual');
   });
+});
+
+it('redacts a serialized transaction and credential URL from a viem-style error', () => {
+  const serialized = `0x${'a'.repeat(400)}`;
+  const safe = redactError(new Error(`RPC failed: ${serialized} at https://rpc.test/private?apiKey=sensitive`));
+  expect(safe).not.toContain(serialized);
+  expect(safe).not.toContain('sensitive');
+  expect(safe).toContain('[signed transaction redacted]');
 });

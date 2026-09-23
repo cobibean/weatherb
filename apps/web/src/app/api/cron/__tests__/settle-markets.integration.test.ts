@@ -1,6 +1,14 @@
 import { mocks, chain, rows, setupLifecycle, market } from '@/test/lifecycle-mocks';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+const liquidity = vi.hoisted(() => ({ auth: vi.fn(), run: vi.fn(), readiness: vi.fn() }));
+vi.mock('@/lib/liquidity/auth', () => ({ verifyLiquidityWorkerRequest: liquidity.auth }));
+vi.mock('@/lib/liquidity/service', () => ({ runLiquidityTick: liquidity.run }));
+vi.mock('@/lib/cron/readiness', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/cron/readiness')>();
+  return { ...actual, automationReadinessResponse: (...args: Parameters<typeof actual.automationReadinessResponse>) =>
+    liquidity.readiness.getMockImplementation() ? liquidity.readiness(...args) : actual.automationReadinessResponse(...args) };
+});
 import { GET } from '../settle-markets/route';
 import { POST } from '@/app/api/markets/[marketId]/settle/route';
 const request = (): Request => new Request('http://localhost/api/cron/settle-markets');
@@ -10,6 +18,7 @@ const single = (id = '0') =>
   });
 beforeEach(() => {
   setupLifecycle();
+  liquidity.auth.mockReturnValue(false);
   chain.push(market());
 });
 afterEach(() => {
@@ -45,6 +54,18 @@ describe('Settlement and reconciliation routes', () => {
     expect((await single()).status).toBe(503);
     expect(mocks.read).not.toHaveBeenCalled();
     expect(mocks.runCreate).not.toHaveBeenCalled();
+  });
+  it('awaits the independent maker even when settlement readiness throws', async () => {
+    liquidity.auth.mockReturnValue(true);
+    let finishMaker!: (result: object) => void;
+    liquidity.run.mockImplementation(() => new Promise((resolve) => { finishMaker = resolve; }));
+    liquidity.readiness.mockRejectedValue(new Error('offline'));
+    const pending = GET(request());
+    expect(liquidity.run).toHaveBeenCalledTimes(1);
+    finishMaker({ status: 'ready', reconciled: 0, seeded: 0, claimed: 1, blocked: 0, errors: 0 });
+    const response = await pending;
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ liquidity: { claimed: 1 }, error: 'Settlement phase unavailable; retry required' });
   });
   it('requires configuration', async () => {
     vi.stubEnv('RPC_URL', '');

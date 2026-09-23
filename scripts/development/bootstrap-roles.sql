@@ -8,9 +8,14 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='weatherb_app') THEN
     CREATE ROLE weatherb_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
   END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='weatherb_worker') THEN
+    CREATE ROLE weatherb_worker NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+  END IF;
   EXECUTE format('GRANT CONNECT, CREATE ON DATABASE %I TO weatherb_migrator', current_database());
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO weatherb_app', current_database());
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO weatherb_worker', current_database());
 END $$;
 GRANT USAGE, CREATE ON SCHEMA public TO weatherb_migrator;
 GRANT USAGE ON SCHEMA public TO weatherb_app;
+GRANT USAGE ON SCHEMA public TO weatherb_worker;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

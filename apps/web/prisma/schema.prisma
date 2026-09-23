@@ -36,6 +36,47 @@ enum MarketStatus {
   NO_WINNERS
 }
 
+enum LiquidityClassification {
+  UNKNOWN
+  PUBLIC
+  TEST
+}
+enum LiquiditySeedStatus {
+  QUEUED
+  SEEDING
+  PARTIAL
+  SEEDED
+  SKIPPED
+  ATTENTION
+}
+enum LiquidityClaimStatus {
+  NONE
+  WAITING
+  CLAIMABLE
+  IN_FLIGHT
+  CLAIMED
+  NO_PAYOUT
+  ATTENTION
+}
+enum LiquidityOperation {
+  YES_SEED
+  NO_SEED
+  CLAIM
+}
+enum LiquidityTransactionStatus {
+  PREPARED
+  SUBMITTED
+  CONFIRMED
+  REVERTED
+  UNKNOWN
+  SUPERSEDED_EXTERNALLY
+}
+enum LiquiditySeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
 model SystemConfig {
   deploymentKey String? // Chain ID and contract address; one restart deployment per database
   id            String   @id @default("default")
@@ -122,6 +163,10 @@ model Market {
   settlementMessageId     String?
 
   isTest           Boolean  @default(false) // Filter test markets from public view
+  liquidityClassification LiquidityClassification @default(UNKNOWN)
+  liquidityUnknownSweeps Int @default(0)
+  liquidityPositions LiquidityPosition[]
+  liquidityCreationIntents LiquidityCreationIntent[]
   testRunId        String?
   testRun          TestRun? @relation(fields: [testRunId], references: [id])
 
@@ -136,6 +181,7 @@ model Market {
   @@index([isTest, resolveTime]) // Combined index for public market queries
   @@index([isSettled]) // NEW: For settlement queries
   @@index([isTest, contractMarketId, sheetsLoggedAt])
+  @@index([liquidityClassification, contractMarketId])
 }
 
 // Epic 8: Test Run tracking for automated city testing
@@ -276,10 +322,162 @@ model AdminSession {
   nonce     String
   expiresAt DateTime @db.Timestamptz(6)
   createdAt DateTime @default(now()) @db.Timestamptz(6)
+  authenticatedAt DateTime? @db.Timestamptz(6)
 
   @@index([wallet])
   @@index([expiresAt])
   @@index([wallet, expiresAt]) // NEW: Issue #5 - optimize session lookups
+}
+
+model LiquidityConfig {
+  id String @id @default("default")
+  deploymentKey String?
+  walletAddress String?
+  seedAmountWei String @default("2500000000000000000")
+  seedingEnabled Boolean @default(false)
+  claimsEnabled Boolean @default(true)
+  firstEligibleMarketId Int?
+  activationBlockNumber BigInt?
+  activatedAt DateTime? @db.Timestamptz(6)
+  version Int @default(1)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  updatedBy String?
+}
+
+model LiquidityCreationIntent {
+  id String @id @default(cuid())
+  deploymentKey String
+  intentKey String
+  slot BigInt?
+  isTest Boolean
+  source String
+  creationTxHash String?
+  contractMarketId Int?
+  market Market? @relation(fields: [contractMarketId], references: [contractMarketId])
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  reconciledAt DateTime? @db.Timestamptz(6)
+  lastCheckedAt DateTime? @db.Timestamptz(6)
+  lastError String?
+
+  @@unique([deploymentKey, intentKey])
+  @@unique([deploymentKey, slot])
+  @@index([deploymentKey, reconciledAt, createdAt])
+  @@index([deploymentKey, reconciledAt, lastCheckedAt])
+}
+
+model LiquidityPosition {
+  id String @id @default(cuid())
+  deploymentKey String
+  walletAddress String
+  contractMarketId Int
+  market Market @relation(fields: [contractMarketId], references: [contractMarketId])
+  seedStatus LiquiditySeedStatus @default(QUEUED)
+  claimStatus LiquidityClaimStatus @default(NONE)
+  waitReason String?
+  slotHeld Boolean @default(false)
+  targetPerSideWei String?
+  configVersionAtReservation Int?
+  confirmedYesWei String @default("0")
+  confirmedNoWei String @default("0")
+  claimedAmountWei String @default("0")
+  claimableWei String?
+  gasSpentWei String @default("0")
+  lastCheckedBlock BigInt?
+  claimRecoveryCursor BigInt?
+  discoveredAt DateTime @default(now()) @db.Timestamptz(6)
+  firstSeededAt DateTime? @db.Timestamptz(6)
+  claimedAt DateTime? @db.Timestamptz(6)
+  completedAt DateTime? @db.Timestamptz(6)
+  lastErrorCode String?
+  lastError String?
+  lastTransactionHash String?
+  lastTransactionStatus LiquidityTransactionStatus?
+  lastTransactionNonce Int?
+  lastTransactionOperation LiquidityOperation?
+  lastAttemptAt DateTime? @db.Timestamptz(6)
+  nextAttemptAt DateTime? @db.Timestamptz(6)
+  transactions LiquidityTransaction[]
+  events LiquidityEvent[]
+
+  @@unique([deploymentKey, walletAddress, contractMarketId])
+  @@index([deploymentKey, slotHeld])
+  @@index([deploymentKey, seedStatus, contractMarketId])
+  @@index([deploymentKey, claimStatus, contractMarketId])
+}
+
+model LiquidityTransaction {
+  id String @id @default(cuid())
+  positionId String
+  position LiquidityPosition @relation(fields: [positionId], references: [id])
+  operation LiquidityOperation
+  attempt Int
+  deploymentKey String
+  signerAddress String
+  nonce Int
+  toAddress String
+  calldata String @db.Text
+  valueWei String
+  gasLimitWei String
+  maxFeePerGasWei String
+  maxPriorityFeePerGasWei String
+  signedTransaction String @db.Text
+  transactionHash String @unique
+  status LiquidityTransactionStatus @default(PREPARED)
+  preparedAt DateTime @default(now()) @db.Timestamptz(6)
+  firstBroadcastAt DateTime? @db.Timestamptz(6)
+  lastBroadcastAt DateTime? @db.Timestamptz(6)
+  receiptBlockNumber BigInt?
+  receiptBlockHash String?
+  receiptStatus String?
+  confirmedAmountWei String?
+  gasSpentWei String?
+  errorCode String?
+  lastError String?
+  externalRecoveryHash String?
+  recoveryEvidence String?
+
+  @@unique([deploymentKey, signerAddress, nonce])
+  @@unique([positionId, operation, attempt])
+  @@index([deploymentKey, status, preparedAt])
+}
+
+model LiquidityEvent {
+  id String @id @default(cuid())
+  deploymentKey String
+  walletAddress String
+  positionId String?
+  position LiquidityPosition? @relation(fields: [positionId], references: [id])
+  contractMarketId Int?
+  transactionHash String?
+  code String
+  severity LiquiditySeverity
+  message String
+  details Json? @db.JsonB
+  incidentKey String?
+  firstSeenAt DateTime @default(now()) @db.Timestamptz(6)
+  lastSeenAt DateTime @default(now()) @db.Timestamptz(6)
+  occurrenceCount Int @default(1)
+  resolvedAt DateTime? @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([deploymentKey, createdAt(sort: Desc), id])
+  @@index([deploymentKey, incidentKey, resolvedAt])
+}
+
+model LiquidityWorkerState {
+  id String @id
+  deploymentKey String
+  walletAddress String
+  lastHeartbeatAt DateTime? @db.Timestamptz(6)
+  lastReconciledAt DateTime? @db.Timestamptz(6)
+  ready Boolean @default(false)
+  balanceWei String?
+  balanceObservedAt DateTime? @db.Timestamptz(6)
+  balanceBlockNumber BigInt?
+  currentFailure String?
+  discoveryCursor Int?
+
+  @@unique([deploymentKey, walletAddress])
 }
 
 model game_sessions {

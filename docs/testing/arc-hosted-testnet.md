@@ -59,6 +59,9 @@ Vercel cron remains absent (`vercel.json` has `crons: []`). Since September 20,
 settlement runs from the dedicated worker described below, not from the local
 heartbeat; the scheduler flag remains paused and scheduled creation is still a
 manual step (`arc:worker -- create-now`). Browser claims remain the user's or teammate's responsibility.
+The approved automated market-liquidity implementation has a separate staged rollout;
+see [its operator runbook](automated-market-liquidity.md). It does not change the
+current hosted scheduler state or imply that a maker wallet is funded or enabled.
 
 ## Settlement worker
 
@@ -121,6 +124,10 @@ npm run arc:lifecycle -- set-duration-bounds <min> <max>  # owner tx; 0 disables
 npm run arc:hosted -- mark-test <contractMarketId>   # hide a fixture from public listings
 npm run arc:lifecycle -- hosted-test <label>   # owner-created 30-minute market with two 0.01 USDC stakes
 ```
+
+`check` calls authenticated creation and settlement routes; when the corresponding
+flags are enabled it can sign and submit transactions. Treat it as a write-capable
+operator action, including during liquidity acceptance.
 
 ### Execution semantics
 

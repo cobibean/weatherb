@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { getOperationsSnapshot } from '@/lib/admin-operations';
 import { OperationsClient } from './operations-client';
+import { LiquidityPanel } from '@/components/admin/liquidity-panel';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -31,12 +32,13 @@ export default function OperationsPage(): React.ReactElement {
       <div>
         <h1 className="font-display text-3xl font-bold text-neutral-800 mb-1">Operations</h1>
         <p className="font-body text-neutral-500">
-          Hosted settlement worker status, outstanding markets, and recent runs. Read-only.
+          Hosted worker status, market liquidity, outstanding markets, and recent runs.
         </p>
       </div>
       <Suspense fallback={<div className="h-40 rounded-2xl bg-neutral-100 animate-pulse" />}>
         <OperationsContent />
       </Suspense>
+      <LiquidityPanel />
     </div>
   );
 }

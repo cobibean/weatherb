@@ -40,5 +40,9 @@ export function hostedEnvironment(settings) {
   ]) {
     if (settings[key]) env[key] = settings[key];
   }
+  if (settings.LIQUIDITY_ADMIN_WRITES_ENABLED !== undefined) {
+    if (!['true', 'false'].includes(settings.LIQUIDITY_ADMIN_WRITES_ENABLED)) throw new Error('Invalid LIQUIDITY_ADMIN_WRITES_ENABLED');
+    env.LIQUIDITY_ADMIN_WRITES_ENABLED = settings.LIQUIDITY_ADMIN_WRITES_ENABLED;
+  }
   return env;
 }

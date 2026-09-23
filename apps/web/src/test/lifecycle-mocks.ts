@@ -28,6 +28,12 @@ const mocks = vi.hoisted(() => ({
   forecast: vi.fn(),
   reading: vi.fn(),
   publish: vi.fn(),
+  intentFind: vi.fn(),
+  intentCreate: vi.fn(),
+  intentUpdate: vi.fn(),
+  eventFindMany: vi.fn(),
+  eventUpdateMany: vi.fn(),
+  eventCreate: vi.fn(),
 }));
 vi.mock('@/lib/prisma', () => ({
   default: {
@@ -41,6 +47,8 @@ vi.mock('@/lib/prisma', () => ({
       update: mocks.update,
     },
     workerRun: { create: mocks.runCreate, update: mocks.runUpdate },
+    liquidityCreationIntent: { findUnique: mocks.intentFind, create: mocks.intentCreate },
+    liquidityEvent: { findMany: mocks.eventFindMany, updateMany: mocks.eventUpdateMany, create: mocks.eventCreate },
     $transaction: mocks.transaction,
     $queryRaw: mocks.queryRaw,
     $executeRaw: mocks.executeRaw,
@@ -83,6 +91,7 @@ vi.mock('@upstash/qstash', () => ({
 export const chain: ChainMarket[] = [];
 export const slots = new Map<bigint, bigint>();
 export const rows = new Map<number, Record<string, unknown> & { isSettled: boolean }>();
+export const intents = new Map<string, Record<string, unknown>>();
 export function market(overrides: Partial<ChainMarket> = {}): ChainMarket {
   return {
     cityId: keccak256(toBytes('nyc')),
@@ -109,6 +118,18 @@ export function setupLifecycle(): void {
   chain.length = 0;
   slots.clear();
   rows.clear();
+  intents.clear();
+  mocks.intentFind.mockImplementation(async ({ where }) => intents.get(`${where.deploymentKey_intentKey.deploymentKey}:${where.deploymentKey_intentKey.intentKey}`) ?? null);
+  mocks.intentCreate.mockImplementation(async ({ data }) => {
+    const row = { contractMarketId: null, creationTxHash: null, ...data };
+    intents.set(`${data.deploymentKey}:${data.intentKey}`, row);
+    return row;
+  });
+  mocks.intentUpdate.mockImplementation(async ({ where, data }) => {
+    const entry = [...intents.values()].find((item) => item.id === where.id)!;
+    Object.assign(entry, data);
+    return entry;
+  });
   mocks.auth.mockReturnValue(true);
   mocks.config.mockResolvedValue({ isPaused: false, settlerPaused: false });
   mocks.cities.mockResolvedValue(CITIES.map((c) => ({ ...c, id: c.slug })));
@@ -138,7 +159,9 @@ export function setupLifecycle(): void {
           deploymentKey = data.deploymentKey;
         },
       },
-      market: { count: async () => rows.size, findUnique: mocks.findUnique, upsert: mocks.upsert },
+      market: { count: async () => rows.size, findUnique: mocks.findUnique, findUniqueOrThrow: async ({ where }: { where: { contractMarketId: number } }) => rows.get(where.contractMarketId)!, upsert: mocks.upsert, update: mocks.update },
+      liquidityCreationIntent: { findUniqueOrThrow: async ({ where }: { where: { deploymentKey_intentKey: { deploymentKey: string; intentKey: string } } }) => intents.get(`${where.deploymentKey_intentKey.deploymentKey}:${where.deploymentKey_intentKey.intentKey}`)!, update: mocks.intentUpdate },
+      liquidityEvent: { findMany: mocks.eventFindMany, updateMany: mocks.eventUpdateMany, create: mocks.eventCreate },
     }),
   );
   mocks.read.mockImplementation(async ({ functionName, args }) => {
@@ -198,6 +221,9 @@ export function setupLifecycle(): void {
   mocks.runUpdate.mockResolvedValue({});
   mocks.queryRaw.mockResolvedValue([{ holder: 'run-1' }]);
   mocks.executeRaw.mockResolvedValue(1);
+  mocks.eventFindMany.mockResolvedValue([]);
+  mocks.eventUpdateMany.mockResolvedValue({ count: 0 });
+  mocks.eventCreate.mockResolvedValue({ id: 'event-1' });
 }
 
 export { mocks };

@@ -75,7 +75,7 @@ describe('Development database baseline', () => {
     const tables = await prisma.$queryRaw<Array<{ relrowsecurity: boolean }>>`
       SELECT relrowsecurity FROM pg_class JOIN pg_namespace ON pg_namespace.oid=relnamespace
       WHERE nspname='public' AND relkind='r'`;
-    expect(tables).toHaveLength(19);
+    expect(tables).toHaveLength(25);
     expect(tables.every((table) => table.relrowsecurity)).toBe(true);
   });
 });

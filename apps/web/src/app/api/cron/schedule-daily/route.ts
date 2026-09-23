@@ -10,6 +10,9 @@ import { ensureSettlementScheduled, type SettlementScheduleResult } from '@/lib/
 import { recordWorkerRun, redactError, triggerFromRequest } from '@/lib/cron/worker-run';
 import { recordProviderError, recordProviderSuccess } from '@/lib/provider-health';
 import prisma from '@/lib/prisma';
+import { deploymentKey } from '@/lib/liquidity/config';
+import { registerCreationIntent, confirmCreationIntent } from '@/lib/liquidity/discovery';
+import { ensureLiquidityScheduled } from '@/lib/liquidity/schedule';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -24,6 +27,7 @@ type ScheduleSummary = {
   thresholdTenths?: number;
   transactionHash?: Hex | undefined;
   settlementSchedule?: SettlementScheduleResult;
+  liquiditySchedule?: { scheduled: boolean; message?: string };
   test?: boolean;
   durationSeconds?: number;
 };
@@ -74,6 +78,8 @@ export async function GET(request: Request): Promise<NextResponse> {
           let storedId = await lookup();
           let transactionHash: Hex | undefined;
           let created = 0;
+          const intentKey = `scheduled:${slot}`;
+          const key = deploymentKey(contractAddress);
           if (storedId === 0n) {
             const cities = await prisma.city.findMany({ where: { isActive: true }, orderBy: [{ createdAt: 'asc' }, { slug: 'asc' }] });
             if (cities.length === 0) throw new Error('No active cities configured');
@@ -89,6 +95,7 @@ export async function GET(request: Request): Promise<NextResponse> {
             }
             const threshold = Math.round(forecast / 10) * 10;
             if (!Number.isSafeInteger(threshold) || threshold <= 0) throw new Error('Unsupported forecast threshold');
+            await registerCreationIntent({ deploymentKey: key, intentKey, slot: BigInt(slot), isTest: test, source: 'scheduled' });
             const { request: txRequest } = await publicClient.simulateContract({
               address: contractAddress, abi: WEATHER_MARKET_ABI, functionName: 'createScheduledMarket',
               args: [keccak256(toBytes(city.slug)), BigInt(threshold), BigInt(slot), BigInt(durationSeconds)], account: walletClient.account!,
@@ -106,11 +113,20 @@ export async function GET(request: Request): Promise<NextResponse> {
           const id = storedId - 1n;
           const confirmed = await readMarket(publicClient, contractAddress, id);
           await persistMarket(id, confirmed);
-          if (test) await prisma.market.update({ where: { contractMarketId: Number(id) }, data: { isTest: true } });
+          const intent = await prisma.liquidityCreationIntent.findUnique({ where: { deploymentKey_intentKey: { deploymentKey: key, intentKey } } });
+          if (intent) {
+            if (intent.isTest !== test) throw new Error('Scheduled slot classification conflicts with recorded intent');
+            await confirmCreationIntent({ deploymentKey: key, intentKey, marketId: id, transactionHash });
+          }
           const settlementSchedule = await ensureSettlementScheduled(id, Number(confirmed.resolveTime)).catch(
             (): SettlementScheduleResult => ({ scheduled: false, message: 'Queue unavailable; periodic settlement remains required' }),
           );
-          return { slot, created, marketId: id.toString(), thresholdTenths: Number(confirmed.thresholdTenths), transactionHash, settlementSchedule, test, durationSeconds };
+          const liquiditySchedule = intent && !intent.isTest
+            ? await ensureLiquidityScheduled(id, key).then(
+                (scheduled) => ({ scheduled, ...(!scheduled ? { message: 'Queue not configured; periodic liquidity sweep remains required' } : {}) }),
+                (error) => ({ scheduled: false, message: `Queue unavailable; periodic liquidity sweep remains required (${redactError(error)})` }),
+              ) : undefined;
+          return { slot, created, marketId: id.toString(), thresholdTenths: Number(confirmed.thresholdTenths), transactionHash, settlementSchedule, ...(liquiditySchedule ? { liquiditySchedule } : {}), test, durationSeconds };
         });
         if (!held.acquired) return { status: 'busy', summary: { busy: true as const } };
         return { status: held.value.skipped ? 'skipped' : 'succeeded', summary: held.value };
@@ -124,6 +140,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       created: s.created,
       market: { marketId: s.marketId, thresholdTenths: s.thresholdTenths, transactionHash: s.transactionHash },
       settlementSchedule: s.settlementSchedule,
+      liquiditySchedule: s.liquiditySchedule,
     });
   } catch (error) {
     console.error('[Scheduler] Creation/reconciliation failed:', redactError(error));

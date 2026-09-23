@@ -8,6 +8,7 @@ import {
   type ContractFunctionReturnType,
 } from 'viem';
 import prisma from '@/lib/prisma';
+import type { LiquidityClassification } from '@prisma/client';
 
 export async function requireRestartContract(client: PublicClient, address: Hex): Promise<void> {
   assertArcChain(await client.getChainId());
@@ -60,7 +61,7 @@ export const isTerminal = (market: ChainMarket): boolean =>
   market.status >= 2 && market.status <= 4;
 
 /** Chain state is authoritative. Upsert is atomic and never resets a settled row to OPEN. */
-export async function persistMarket(id: bigint, market: ChainMarket): Promise<void> {
+export async function persistMarket(id: bigint, market: ChainMarket, classification?: LiquidityClassification): Promise<void> {
   const contractMarketId = Number(id);
   if (!Number.isSafeInteger(contractMarketId) || contractMarketId < 0)
     throw new Error('Invalid market ID');
@@ -93,11 +94,17 @@ export async function persistMarket(id: bigint, market: ChainMarket): Promise<vo
   await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${contractMarketId}::bigint)`;
     const existing = await tx.market.findUnique({ where: { contractMarketId } });
-    if (existing?.isSettled) return;
+    if (existing?.isSettled) {
+      if (classification && existing.liquidityClassification === 'UNKNOWN')
+        await tx.market.update({ where: { contractMarketId }, data: { liquidityClassification: classification, isTest: classification === 'TEST' } });
+      return;
+    }
+    if (existing && classification && existing.liquidityClassification !== 'UNKNOWN' && existing.liquidityClassification !== classification)
+      throw new Error('Conflicting market liquidity classification');
     await tx.market.upsert({
       where: { contractMarketId },
-      create: { contractMarketId, ...data, isTest: false, settledAt: settled ? new Date() : null },
-      update: { ...data, settledAt: settled ? new Date() : null },
+      create: { contractMarketId, ...data, isTest: classification === 'TEST', liquidityClassification: classification ?? 'UNKNOWN', settledAt: settled ? new Date() : null },
+      update: { ...data, ...(classification ? { isTest: classification === 'TEST', liquidityClassification: classification } : {}), settledAt: settled ? new Date() : null },
     });
   });
 }
